@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Météo Pêche</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" role="img">
+              <path d="M24 4 38 44 24 36 10 44 24 4Z" />
+              <path d="M24 12v24" />
+            </svg>
+          </span>
+          <div>
+            <h1>Météo Pêche</h1>
+            <p id="spotMeta">Prévisions marines par spot</p>
+          </div>
+        </div>
+        <div class="status-pill" id="statusPill">Prêt</div>
+      </header>
+
+      <main>
+        <section class="controls-band" aria-label="Paramètres du spot">
+          <form id="spotForm" class="spot-form">
+            <label class="field field-wide" for="spotPreset">
+              <span>Spot</span>
+              <select id="spotPreset" name="spotPreset"></select>
+            </label>
+            <label class="field" for="latitude">
+              <span>Latitude</span>
+              <input id="latitude" name="latitude" type="number" step="0.0001" min="-90" max="90" />
+            </label>
+            <label class="field" for="longitude">
+              <span>Longitude</span>
+              <input id="longitude" name="longitude" type="number" step="0.0001" min="-180" max="180" />
+            </label>
+            <button class="icon-button" id="locateBtn" type="button" title="Utiliser ma position" aria-label="Utiliser ma position">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 2v3" />
+                <path d="M12 19v3" />
+                <path d="M2 12h3" />
+                <path d="M19 12h3" />
+                <circle cx="12" cy="12" r="7" />
+                <circle cx="12" cy="12" r="2" />
+              </svg>
+            </button>
+            <button class="primary-button" type="submit">Actualiser</button>
+          </form>
+
+          <div class="depth-control">
+            <div>
+              <label for="depth">Profondeur cible</label>
+              <strong><output id="depthOutput" for="depth">15 m</output></strong>
+            </div>
+            <input id="depth" type="range" min="0" max="80" step="1" value="15" />
+          </div>
+        </section>
+
+        <section class="spot-workspace" aria-label="Carte et favoris">
+          <section class="map-panel" aria-label="Carte des spots">
+            <div class="section-head">
+              <div>
+                <span class="eyebrow">Carte</span>
+                <h2>Spots Méditerranée</h2>
+              </div>
+              <button class="icon-button favorite-toggle" id="favoriteBtn" type="button" title="Ajouter aux favoris" aria-label="Ajouter aux favoris" aria-pressed="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m12 3 2.9 5.9 6.5.9-4.7 4.6 1.1 6.4-5.8-3-5.8 3 1.1-6.4-4.7-4.6 6.5-.9L12 3Z" />
+                </svg>
+              </button>
+            </div>
+            <div class="spot-map" id="spotMap" role="application" aria-label="Carte de sélection des spots">
+              <div class="map-tiles" id="mapTiles"></div>
+              <div class="map-markers" id="mapMarkers"></div>
+              <div class="map-controls" aria-label="Zoom carte">
+                <button class="map-control" id="mapZoomIn" type="button" title="Zoomer" aria-label="Zoomer">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 5v14" />
+                    <path d="M5 12h14" />
+                  </svg>
+                </button>
+                <button class="map-control" id="mapZoomOut" type="button" title="Dézoomer" aria-label="Dézoomer">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 12h14" />
+                  </svg>
+                </button>
+                <button class="map-control map-layer-toggle" id="mapNauticalToggle" type="button" title="Carte nautique" aria-label="Carte nautique" aria-pressed="true">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 3v18" />
+                    <path d="M7 8h10" />
+                    <path d="M6 14c1.8 0 1.8 1.6 3.6 1.6S11.4 14 13.2 14s1.8 1.6 3.6 1.6S18.6 14 20.4 14" />
+                    <path d="M8 21c2.2-1 3.2-2.7 4-5 0.8 2.3 1.8 4 4 5" />
+                  </svg>
+                </button>
+                <button class="map-control map-layer-toggle" id="mapFishingToggle" type="button" title="Coins pêche connus" aria-label="Coins pêche connus" aria-pressed="true">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 13c3.2-4 8.7-5 14-2.4l3-2.2v7.2l-3-2.2C12.7 16 7.2 15 4 11Z" />
+                    <path d="M4 13 2 16" />
+                    <circle cx="15.5" cy="11.2" r="0.7" />
+                  </svg>
+                </button>
+              </div>
+              <div class="map-scale" id="mapScale" aria-label="Échelle de la carte">
+                <span></span>
+                <strong>--</strong>
+              </div>
+              <div class="map-attribution" id="mapAttribution">© OpenStreetMap</div>
+              <div class="fish-filter-control" id="fishFilterControl">
+                <button class="fish-filter-trigger" id="fishFilterButton" type="button" aria-expanded="false" aria-controls="fishFilterPanel">
+                  <span>Poisson</span>
+                  <strong id="fishFilterLabel">Tous</strong>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m7 10 5 5 5-5" />
+                  </svg>
+                </button>
+                <div class="fish-filter-panel" id="fishFilterPanel" aria-hidden="true"></div>
+              </div>
+              <form class="spot-name-sheet" id="spotNameSheet" aria-hidden="true" role="dialog" aria-labelledby="spotNameTitle" inert>
+                <div class="spot-name-head">
+                  <div>
+                    <span class="eyebrow">Point GPS</span>
+                    <strong id="spotNameTitle">Nommer ce spot</strong>
+                  </div>
+                  <button class="sheet-close" id="spotNameClose" type="button" title="Fermer" aria-label="Fermer">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M6 6l12 12" />
+                      <path d="M18 6 6 18" />
+                    </svg>
+                  </button>
+                </div>
+                <span class="spot-name-coords" id="spotNameCoords">--</span>
+                <label class="spot-name-field" for="spotNameInput">
+                  <span>Nom</span>
+                  <input id="spotNameInput" name="spotNameInput" type="text" maxlength="48" autocomplete="off" />
+                </label>
+                <div class="spot-name-actions">
+                  <button class="ghost-button" id="spotNameCancel" type="button">Annuler</button>
+                  <button class="ghost-button" id="spotNameFavorite" type="button">Ajouter favori</button>
+                  <button class="primary-button" type="submit">Consulter</button>
+                </div>
+              </form>
+            </div>
+            <div class="map-meta">
+              <strong id="activeSpotName">--</strong>
+              <span id="activeSpotCoords">--</span>
+            </div>
+          </section>
+
+          <aside class="favorites-panel" aria-label="Favoris">
+            <div class="section-head">
+              <div>
+                <span class="eyebrow">Spots</span>
+                <h2>Favoris</h2>
+              </div>
+            </div>
+            <div class="favorites-list" id="favoritesList"></div>
+          </aside>
+        </section>
+
+        <section class="day-strip" id="dayTabs" aria-label="Jours disponibles"></section>
+
+        <section class="activity-panel" aria-label="Activité des poissons">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Activité</span>
+              <h2>Activité poisson</h2>
+            </div>
+            <label class="activity-fish-field" for="activityFish">
+              <span>Espèce</span>
+              <select id="activityFish"></select>
+            </label>
+          </div>
+          <div class="activity-layout">
+            <div class="activity-summary">
+              <div class="activity-ring" id="activityRing">
+                <strong id="activityScore">--</strong>
+              </div>
+              <div>
+                <strong id="activityLabel">--</strong>
+                <span id="activityContext">--</span>
+              </div>
+              <div class="activity-reasons" id="activityReasons"></div>
+            </div>
+            <div class="activity-chart-wrap">
+              <canvas id="activityCanvas" width="980" height="360"></canvas>
+            </div>
+          </div>
+          <div class="activity-windows">
+            <div>
+              <span>Majeurs</span>
+              <strong id="activityMajor">--</strong>
+            </div>
+            <div>
+              <span>Mineurs</span>
+              <strong id="activityMinor">--</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="dashboard-grid" aria-label="Synthèse du jour">
+          <div class="metric-grid" id="metricGrid"></div>
+
+          <aside class="compass-panel" aria-label="Directions moyennes">
+            <canvas id="compassCanvas" width="420" height="420"></canvas>
+            <div class="best-window">
+              <span>Créneau calme</span>
+              <strong id="bestWindow">--</strong>
+            </div>
+          </aside>
+        </section>
+
+        <section class="chart-panel" aria-label="Évolution horaire">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Heure par heure</span>
+              <h2 id="chartTitle">Vent</h2>
+            </div>
+            <div class="segmented" role="tablist" aria-label="Type de courbe">
+              <button class="segment is-active" type="button" data-chart="wind">Vent</button>
+              <button class="segment" type="button" data-chart="wave">Houle</button>
+              <button class="segment" type="button" data-chart="current">Courant</button>
+            </div>
+          </div>
+          <canvas id="chartCanvas" width="1180" height="420"></canvas>
+          <div class="chart-legend" id="chartLegend"></div>
+        </section>
+
+        <section class="daily-panel" aria-label="Moyennes des prochains jours">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Prévision</span>
+              <h2>Moyennes journalières</h2>
+            </div>
+          </div>
+          <div class="daily-grid" id="dailyGrid"></div>
+        </section>
+      </main>
+
+      <footer>
+        Données météo et marine: Open-Meteo. Courant profondeur: Copernicus Marine si configuré, sinon estimation locale depuis le courant de surface.
+      </footer>
+    </div>
+
+    <template id="metricTemplate">
+      <article class="metric-card">
+        <div class="metric-top">
+          <span class="metric-icon"></span>
+          <span class="metric-label"></span>
+        </div>
+        <strong class="metric-value"></strong>
+        <span class="metric-detail"></span>
+      </article>
+    </template>
+
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
+    <script src="app.js?v=20260524-fish-activity" defer></script>
+  </body>
+</html>
