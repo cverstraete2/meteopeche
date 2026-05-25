@@ -1,6 +1,29 @@
 const WEATHER_API = "https://api.open-meteo.com/v1/forecast";
 const MARINE_API = "https://marine-api.open-meteo.com/v1/marine";
-const FAVORITES_KEY = "meteo-peche-favorites";
+const STORE_KEY = "meteo-peche-store-v1";
+const LEGACY_FAVORITES_KEY = "meteo-peche-favorites";
+const LEGACY_SETTINGS_KEY = "meteo-peche-settings";
+const STORE_VERSION = 1;
+const WATER_MODES = {
+  SEA: "sea",
+  FRESHWATER: "freshwater",
+};
+const waterModeConfig = {
+  [WATER_MODES.SEA]: {
+    label: "Mer",
+    mapTitle: "Spots mer",
+    metaPrefix: "Prévisions marines",
+    defaultActivityFish: "loup",
+    showMarine: true,
+  },
+  [WATER_MODES.FRESHWATER]: {
+    label: "Eau douce",
+    mapTitle: "Spots eau douce",
+    metaPrefix: "Prévisions eau douce",
+    defaultActivityFish: "brochet",
+    showMarine: false,
+  },
+};
 const MAP_BASE_ZOOM = 7;
 const MAP_MIN_ZOOM = 6;
 const MAP_MAX_ZOOM = 19;
@@ -899,17 +922,122 @@ const knownFishingSpots = [
   },
 ];
 
-const fishFilters = [
-  { id: "all", label: "Tous" },
-  { id: "thon", label: "Thon" },
-  { id: "dorade", label: "Dorade" },
-  { id: "loup", label: "Bar/Loup" },
-  { id: "sar", label: "Sars" },
-  { id: "roche", label: "Roche" },
-  { id: "maquereau", label: "Maquereau" },
-  { id: "maigre", label: "Maigre" },
-  { id: "cephalopodes", label: "Seiche" },
+const freshwaterFishingSpots = [
+  {
+    name: "Lac du Bourget - tombants nord",
+    lat: 45.785,
+    lon: 5.864,
+    area: "Savoie",
+    fish: ["brochet", "perche", "sandre"],
+    note: "Cassures, herbiers et zones profondes, intéressant aux changements de lumière.",
+    caution: "Vérifier réglementation lacustre, réserves et navigation.",
+  },
+  {
+    name: "Lac d'Annecy - herbiers ouest",
+    lat: 45.859,
+    lon: 6.139,
+    area: "Haute-Savoie",
+    fish: ["brochet", "perche", "truite"],
+    note: "Herbiers, bordures et tombants clairs; approche discrète recommandée.",
+    caution: "Eau très claire et secteurs réglementés selon saison.",
+  },
+  {
+    name: "Lac Léman - cassures de Thonon",
+    lat: 46.398,
+    lon: 6.503,
+    area: "Léman",
+    fish: ["brochet", "perche", "truite"],
+    note: "Grand lac, cassures et bordures profondes autour des ports et plages.",
+    caution: "Surveiller vent thermique, zones de baignade et règles franco-suisses.",
+  },
+  {
+    name: "Serre-Ponçon - baies et pointes",
+    lat: 44.493,
+    lon: 6.368,
+    area: "Alpes du Sud",
+    fish: ["brochet", "perche", "sandre", "truite"],
+    note: "Pointes, arrivées d'eau et baies productives selon niveau du lac.",
+    caution: "Niveau variable et berges glissantes.",
+  },
+  {
+    name: "Sainte-Croix - cassures du Verdon",
+    lat: 43.791,
+    lon: 6.192,
+    area: "Verdon",
+    fish: ["brochet", "perche", "blackBass", "carpe"],
+    note: "Eau claire, bordures rocheuses et plateaux propices aux carnassiers.",
+    caution: "Forte fréquentation estivale et zones de navigation.",
+  },
+  {
+    name: "Lac de Biscarrosse - herbiers",
+    lat: 44.46,
+    lon: -1.19,
+    area: "Landes",
+    fish: ["brochet", "perche", "sandre", "blackBass"],
+    note: "Herbiers, hauts-fonds et anses abritées pour pêche lente ou leurres.",
+    caution: "Respecter réserves, mises à l'eau et météo locale.",
+  },
+  {
+    name: "Lac du Der - queues de lac",
+    lat: 48.578,
+    lon: 4.747,
+    area: "Grand Est",
+    fish: ["brochet", "sandre", "perche", "carpe"],
+    note: "Grand lac de plaine, bordures peu profondes et cassures selon niveau.",
+    caution: "Réserves ornithologiques et réglementation spécifique.",
+  },
+  {
+    name: "Seine - amortis de confluence",
+    lat: 48.842,
+    lon: 2.238,
+    area: "Île-de-France",
+    fish: ["sandre", "perche", "silure"],
+    note: "Amortis, piles et bordures urbaines à travailler selon débit.",
+    caution: "Sécurité des berges, navigation et arrêtés locaux.",
+  },
+  {
+    name: "Loire - veines et bras morts",
+    lat: 47.902,
+    lon: 1.904,
+    area: "Val de Loire",
+    fish: ["sandre", "silure", "brochet"],
+    note: "Veines de courant, fosses et bras morts intéressants après stabilisation.",
+    caution: "Débit changeant, bancs de sable et accès à vérifier.",
+  },
+  {
+    name: "Canal du Midi - bordures lentes",
+    lat: 43.604,
+    lon: 1.43,
+    area: "Occitanie",
+    fish: ["blackBass", "perche", "carpe", "brochet"],
+    note: "Bordures, arbres noyés et zones lentes à pêcher finement.",
+    caution: "Respecter navigation, écluses et propriétés riveraines.",
+  },
 ];
+
+const fishCatalogs = {
+  [WATER_MODES.SEA]: [
+    { id: "all", label: "Tous" },
+    { id: "thon", label: "Thon" },
+    { id: "dorade", label: "Dorade" },
+    { id: "loup", label: "Bar/Loup" },
+    { id: "sar", label: "Sars" },
+    { id: "roche", label: "Roche" },
+    { id: "maquereau", label: "Maquereau" },
+    { id: "maigre", label: "Maigre" },
+    { id: "cephalopodes", label: "Seiche" },
+  ],
+  [WATER_MODES.FRESHWATER]: [
+    { id: "all", label: "Tous" },
+    { id: "brochet", label: "Brochet" },
+    { id: "sandre", label: "Sandre" },
+    { id: "perche", label: "Perche" },
+    { id: "blackBass", label: "Black-bass" },
+    { id: "carpe", label: "Carpe" },
+    { id: "silure", label: "Silure" },
+    { id: "truite", label: "Truite" },
+  ],
+};
 
 const fishActivityProfiles = {
   thon: {
@@ -976,9 +1104,66 @@ const fishActivityProfiles = {
     light: "night",
     currentWeight: 0.18,
   },
+  brochet: {
+    label: "Brochet",
+    current: [0, 0.2, 0.7],
+    wave: [0, 0.2, 0.8],
+    temp: [8, 14, 20],
+    light: "lowLight",
+    currentWeight: 0.12,
+  },
+  sandre: {
+    label: "Sandre",
+    current: [0, 0.15, 0.55],
+    wave: [0, 0.18, 0.65],
+    temp: [10, 16, 22],
+    light: "nightEdge",
+    currentWeight: 0.14,
+  },
+  perche: {
+    label: "Perche",
+    current: [0, 0.2, 0.6],
+    wave: [0, 0.18, 0.7],
+    temp: [10, 18, 24],
+    light: "dayEdge",
+    currentWeight: 0.1,
+  },
+  blackBass: {
+    label: "Black-bass",
+    current: [0, 0.15, 0.5],
+    wave: [0, 0.12, 0.55],
+    temp: [16, 22, 28],
+    light: "day",
+    currentWeight: 0.1,
+  },
+  carpe: {
+    label: "Carpe",
+    current: [0, 0.1, 0.45],
+    wave: [0, 0.12, 0.55],
+    temp: [14, 22, 29],
+    light: "dayEdge",
+    currentWeight: 0.08,
+  },
+  silure: {
+    label: "Silure",
+    current: [0, 0.2, 0.7],
+    wave: [0, 0.16, 0.65],
+    temp: [18, 24, 30],
+    light: "night",
+    currentWeight: 0.13,
+  },
+  truite: {
+    label: "Truite",
+    current: [0.05, 0.35, 0.9],
+    wave: [0, 0.18, 0.65],
+    temp: [6, 12, 18],
+    light: "dayEdge",
+    currentWeight: 0.18,
+  },
 };
 
 const state = {
+  waterMode: WATER_MODES.SEA,
   activeChart: "wind",
   days: [],
   hours: [],
@@ -1010,6 +1195,7 @@ const state = {
 };
 
 const els = {
+  modeButtons: [...document.querySelectorAll("[data-water-mode]")],
   spotPreset: document.querySelector("#spotPreset"),
   latitude: document.querySelector("#latitude"),
   longitude: document.querySelector("#longitude"),
@@ -1037,6 +1223,7 @@ const els = {
   bestWindow: document.querySelector("#bestWindow"),
   statusPill: document.querySelector("#statusPill"),
   spotMeta: document.querySelector("#spotMeta"),
+  mapTitle: document.querySelector("#mapTitle"),
   spotMap: document.querySelector("#spotMap"),
   mapTiles: document.querySelector("#mapTiles"),
   mapMarkers: document.querySelector("#mapMarkers"),
@@ -1069,16 +1256,21 @@ const colors = {
   swell: "#7357b8",
   current: "#087d72",
   depth: "#17201d",
+  pressure: "#59656f",
+  rain: "#2f74c0",
+  cloud: "#7357b8",
+  temperature: "#c85c45",
 };
 
 function init() {
   populateSpots();
-  populateActivityFish();
   restoreState();
   state.favorites = readFavorites();
+  populateActivityFish();
   initMapEngine();
   bindEvents();
   updateDepth();
+  applyWaterModeUI();
   renderSpotTools();
   loadForecast();
 }
@@ -1155,8 +1347,31 @@ function populateSpots() {
   });
 }
 
+function normalizeWaterMode(mode) {
+  return Object.prototype.hasOwnProperty.call(waterModeConfig, mode) ? mode : WATER_MODES.SEA;
+}
+
+function isSeaMode() {
+  return waterModeConfig[state.waterMode]?.showMarine === true;
+}
+
+function getFishFilters(mode = state.waterMode) {
+  return fishCatalogs[normalizeWaterMode(mode)] ?? fishCatalogs[WATER_MODES.SEA];
+}
+
+function getAllFishFilters() {
+  return Object.values(fishCatalogs).flat();
+}
+
+function getFishLabel(id) {
+  return getAllFishFilters().find((filter) => filter.id === id)?.label ?? id;
+}
+
 function populateActivityFish() {
-  fishFilters
+  if (!els.activityFish) return;
+
+  els.activityFish.innerHTML = "";
+  getFishFilters()
     .filter((filter) => filter.id !== "all")
     .forEach((filter) => {
       const option = document.createElement("option");
@@ -1164,10 +1379,14 @@ function populateActivityFish() {
       option.textContent = filter.label;
       els.activityFish.append(option);
     });
+
+  state.activityFish = normalizeActivityFish(state.activityFish);
+  els.activityFish.value = state.activityFish;
 }
 
 function restoreState() {
   const saved = readSavedSettings();
+  state.waterMode = normalizeWaterMode(saved.waterMode);
   const selectedIndex = resolveSavedSpotIndex(saved);
   const spot = spots[selectedIndex] ?? spots[0];
   const useSavedCoordinates = spot.custom && isValidNumber(saved.lat) && isValidNumber(saved.lon);
@@ -1181,7 +1400,66 @@ function restoreState() {
   state.knownFishingEnabled = saved.knownFishingEnabled !== false;
   state.activeFishFilters = normalizeFishFilters(saved.fishFilters);
   state.activityFish = normalizeActivityFish(saved.activityFish);
-  els.activityFish.value = state.activityFish;
+}
+
+function applyWaterModeUI() {
+  const config = waterModeConfig[state.waterMode];
+  document.documentElement.dataset.currentWaterMode = state.waterMode;
+
+  els.modeButtons.forEach((button) => {
+    const active = button.dataset.waterMode === state.waterMode;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+
+  if (els.mapTitle) {
+    els.mapTitle.textContent = config.mapTitle;
+  }
+
+  const marineOnlyControls = [
+    els.depth?.closest(".depth-control"),
+    els.mapNauticalToggle,
+  ].filter(Boolean);
+  marineOnlyControls.forEach((element) => {
+    element.hidden = !isSeaMode();
+  });
+
+  document.querySelectorAll("[data-chart]").forEach((button) => {
+    const marineOnly = button.dataset.chart === "wave" || button.dataset.chart === "current";
+    button.hidden = marineOnly && !isSeaMode();
+    button.disabled = marineOnly && !isSeaMode();
+  });
+
+  if (!isSeaMode()) {
+    if (state.activeChart === "wave" || state.activeChart === "current") {
+      state.activeChart = "wind";
+    }
+  }
+
+  document.querySelectorAll("[data-chart]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.chart === state.activeChart);
+  });
+  updateNauticalOverlay();
+}
+
+function setWaterMode(mode, options = {}) {
+  const nextMode = normalizeWaterMode(mode);
+  if (nextMode === state.waterMode) return;
+
+  state.waterMode = nextMode;
+  state.activeFishFilters = normalizeFishFilters(["all"]);
+  state.activityFish = normalizeActivityFish(state.activityFish);
+  state.fishFilterOpen = false;
+  populateActivityFish();
+  applyWaterModeUI();
+  renderSpotTools();
+  saveSettings();
+
+  if (options.load !== false) {
+    loadForecast();
+  } else if (state.days.length) {
+    renderAll();
+  }
 }
 
 function getSelectedPreset() {
@@ -1295,6 +1573,7 @@ function confirmPendingSpot(options = {}) {
       lat: pending.lat,
       lon: pending.lon,
       custom: true,
+      waterMode: state.waterMode,
     });
     saveFavorites();
     renderSpotTools();
@@ -1320,21 +1599,23 @@ function renderSpotTools() {
 }
 
 function updateNauticalOverlay() {
+  const nauticalEnabled = state.nauticalEnabled && isSeaMode();
+
   if (els.mapNauticalToggle) {
-    els.mapNauticalToggle.classList.toggle("is-active", state.nauticalEnabled);
-    els.mapNauticalToggle.setAttribute("aria-pressed", String(state.nauticalEnabled));
+    els.mapNauticalToggle.classList.toggle("is-active", nauticalEnabled);
+    els.mapNauticalToggle.setAttribute("aria-pressed", String(nauticalEnabled));
   }
 
   if (els.mapAttribution) {
-    els.mapAttribution.textContent = state.nauticalEnabled ? "© OpenStreetMap · OpenSeaMap" : "© OpenStreetMap";
+    els.mapAttribution.textContent = nauticalEnabled ? "© OpenStreetMap · OpenSeaMap" : "© OpenStreetMap";
   }
 
   if (!state.leafletMap || !state.nauticalLayer) return;
 
   const hasLayer = state.leafletMap.hasLayer(state.nauticalLayer);
-  if (state.nauticalEnabled && !hasLayer) {
+  if (nauticalEnabled && !hasLayer) {
     state.nauticalLayer.addTo(state.leafletMap);
-  } else if (!state.nauticalEnabled && hasLayer) {
+  } else if (!nauticalEnabled && hasLayer) {
     state.leafletMap.removeLayer(state.nauticalLayer);
   }
 }
@@ -1362,8 +1643,9 @@ function updateKnownFishingOverlay() {
 function renderFishFilterControls() {
   if (!els.fishFilterPanel || !els.fishFilterButton || !els.fishFilterLabel) return;
 
+  const filters = getFishFilters();
   const active = getActiveFishFilter();
-  const activeLabel = fishFilters.find((filter) => filter.id === active)?.label ?? "Tous";
+  const activeLabel = filters.find((filter) => filter.id === active)?.label ?? "Tous";
   els.fishFilterLabel.textContent = activeLabel;
   els.fishFilterButton.classList.toggle("is-open", state.fishFilterOpen);
   els.fishFilterButton.setAttribute("aria-expanded", String(state.fishFilterOpen));
@@ -1371,7 +1653,7 @@ function renderFishFilterControls() {
   els.fishFilterPanel.setAttribute("aria-hidden", String(!state.fishFilterOpen));
   els.fishFilterPanel.innerHTML = "";
 
-  fishFilters.forEach((filter) => {
+  filters.forEach((filter) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `fish-filter-option fish-${filter.id}`;
@@ -1391,7 +1673,7 @@ function renderFishFilterControls() {
 }
 
 function selectFishFilter(id) {
-  state.activeFishFilters = new Set([id]);
+  state.activeFishFilters = normalizeFishFilters([id]);
   if (id !== "all") {
     state.activityFish = normalizeActivityFish(id);
     els.activityFish.value = state.activityFish;
@@ -1403,31 +1685,40 @@ function selectFishFilter(id) {
   saveSettings();
 }
 
+function getKnownFishingSpots() {
+  return isSeaMode() ? knownFishingSpots : freshwaterFishingSpots;
+}
+
 function getVisibleKnownFishingSpots() {
   const active = getActiveFishFilter();
-  if (active === "all") return knownFishingSpots;
-  return knownFishingSpots.filter((spot) => spot.fish?.includes(active));
+  const catalog = getKnownFishingSpots();
+  if (active === "all") return catalog;
+  return catalog.filter((spot) => spot.fish?.includes(active));
 }
 
 function normalizeFishFilters(filters) {
-  const validFilters = new Set(fishFilters.map((filter) => filter.id));
+  const validFilters = new Set(getFishFilters().map((filter) => filter.id));
   const next = Array.isArray(filters) ? filters.find((filter) => validFilters.has(filter)) : null;
 
   return new Set([next ?? "all"]);
 }
 
 function normalizeActivityFish(fish) {
-  return fishFilters.some((filter) => filter.id === fish && filter.id !== "all") ? fish : "loup";
+  const filters = getFishFilters();
+  return filters.some((filter) => filter.id === fish && filter.id !== "all")
+    ? fish
+    : waterModeConfig[state.waterMode].defaultActivityFish;
 }
 
 function getActiveFishFilter() {
   const active = [...state.activeFishFilters][0];
-  return fishFilters.some((filter) => filter.id === active) ? active : "all";
+  return getFishFilters().some((filter) => filter.id === active) ? active : "all";
 }
 
 function countKnownFishingSpotsForFilter(id) {
-  if (id === "all") return knownFishingSpots.length;
-  return knownFishingSpots.filter((spot) => spot.fish?.includes(id)).length;
+  const catalog = getKnownFishingSpots();
+  if (id === "all") return catalog.length;
+  return catalog.filter((spot) => spot.fish?.includes(id)).length;
 }
 
 function markerFishForSpot(spot) {
@@ -1437,7 +1728,7 @@ function markerFishForSpot(spot) {
 
 function formatFishTargets(fish = []) {
   const labels = fish
-    .map((id) => fishFilters.find((filter) => filter.id === id)?.label)
+    .map((id) => getFishLabel(id))
     .filter(Boolean);
 
   return labels.length ? `Cibles: ${labels.join(", ")}` : "Cibles: à préciser";
@@ -1606,31 +1897,33 @@ function renderLeafletMarkers() {
   const active = getActiveSpot();
   const activeId = active.id;
 
-  spots.forEach((spot, index) => {
-    if (spot.custom || !spot.group?.startsWith("Méditerranée")) return;
+  if (isSeaMode()) {
+    spots.forEach((spot, index) => {
+      if (spot.custom || !spot.group?.startsWith("Méditerranée")) return;
 
-    const id = spotFavoriteId(spot);
-    const marker = L.circleMarker([spot.lat, spot.lon], {
-      radius: id === activeId ? 7 : 5,
-      color: "#fff",
-      weight: id === activeId ? 3 : 2,
-      fillColor: id === activeId ? colors.gust : hasFavorite(id) ? colors.wind : colors.current,
-      fillOpacity: 0.95,
-      bubblingMouseEvents: false,
-    });
+      const id = spotFavoriteId(spot);
+      const marker = L.circleMarker([spot.lat, spot.lon], {
+        radius: id === activeId ? 7 : 5,
+        color: "#fff",
+        weight: id === activeId ? 3 : 2,
+        fillColor: id === activeId ? colors.gust : hasFavorite(id) ? colors.wind : colors.current,
+        fillOpacity: 0.95,
+        bubblingMouseEvents: false,
+      });
 
-    marker.bindTooltip(spot.name, {
-      direction: "top",
-      offset: [0, -8],
-      opacity: 0.96,
-      sticky: true,
+      marker.bindTooltip(spot.name, {
+        direction: "top",
+        offset: [0, -8],
+        opacity: 0.96,
+        sticky: true,
+      });
+      marker.on("click", (event) => {
+        if (event.originalEvent) L.DomEvent.stop(event.originalEvent);
+        selectSpot(index, { load: true });
+      });
+      marker.addTo(state.leafletMarkers);
     });
-    marker.on("click", (event) => {
-      if (event.originalEvent) L.DomEvent.stop(event.originalEvent);
-      selectSpot(index, { load: true });
-    });
-    marker.addTo(state.leafletMarkers);
-  });
+  }
 
   state.favorites.forEach((favorite) => {
     if (!isValidNumber(favorite.lat) || !isValidNumber(favorite.lon)) return;
@@ -1758,6 +2051,8 @@ function renderMapMarkers() {
 }
 
 function getMapMarkerEntries() {
+  if (!isSeaMode()) return [];
+
   const entries = spots
     .map((spot, index) => ({ spot, index, point: latLonToMapPoint(spot.lat, spot.lon) }))
     .filter(({ spot, point }) => {
@@ -2024,6 +2319,7 @@ function toggleFavorite() {
       lat: active.lat,
       lon: active.lon,
       custom: active.custom,
+      waterMode: state.waterMode,
     });
   }
 
@@ -2032,13 +2328,17 @@ function toggleFavorite() {
 }
 
 function upsertFavorite(favorite) {
+  const normalizedFavorite = {
+    ...favorite,
+    waterMode: normalizeWaterMode(favorite.waterMode ?? state.waterMode),
+  };
   const existingIndex = state.favorites.findIndex((item) => item.id === favorite.id);
   if (existingIndex >= 0) {
-    state.favorites = state.favorites.map((item, index) => (index === existingIndex ? { ...item, ...favorite } : item));
+    state.favorites = state.favorites.map((item, index) => (index === existingIndex ? { ...item, ...normalizedFavorite } : item));
     return;
   }
 
-  state.favorites = [favorite, ...state.favorites];
+  state.favorites = [normalizedFavorite, ...state.favorites];
 }
 
 function renderFavorites() {
@@ -2155,9 +2455,18 @@ function renameFavorite(id, name) {
 }
 
 function selectFavorite(favorite) {
+  const favoriteMode = normalizeWaterMode(favorite.waterMode ?? state.waterMode);
+  if (favoriteMode !== state.waterMode) {
+    state.waterMode = favoriteMode;
+    state.activeFishFilters = normalizeFishFilters(["all"]);
+    state.activityFish = normalizeActivityFish(state.activityFish);
+    populateActivityFish();
+    applyWaterModeUI();
+  }
+
   const knownIndex = spots.findIndex((spot) => spotFavoriteId(spot) === favorite.id);
 
-  if (knownIndex >= 0) {
+  if (isSeaMode() && knownIndex >= 0) {
     selectSpot(knownIndex, { load: true });
     return;
   }
@@ -2206,6 +2515,10 @@ function hasFavorite(id) {
 }
 
 function bindEvents() {
+  els.modeButtons.forEach((button) => {
+    button.addEventListener("click", () => setWaterMode(button.dataset.waterMode));
+  });
+
   els.spotPreset.addEventListener("change", () => {
     selectSpot(Number(els.spotPreset.value), { load: true });
   });
@@ -2219,11 +2532,13 @@ function bindEvents() {
   });
 
   els.depth.addEventListener("input", () => {
+    if (!isSeaMode()) return;
     updateDepth();
     recomputeDepthSensitiveViews();
   });
 
   els.depth.addEventListener("change", () => {
+    if (!isSeaMode()) return;
     loadForecast();
   });
 
@@ -2268,6 +2583,7 @@ function bindEvents() {
   });
   els.mapNauticalToggle.addEventListener("click", (event) => {
     event.stopPropagation();
+    if (!isSeaMode()) return;
     state.nauticalEnabled = !state.nauticalEnabled;
     updateNauticalOverlay();
     saveSettings();
@@ -2312,6 +2628,7 @@ function bindEvents() {
 
   document.querySelectorAll("[data-chart]").forEach((button) => {
     button.addEventListener("click", () => {
+      if (button.disabled || button.hidden) return;
       state.activeChart = button.dataset.chart;
       document.querySelectorAll("[data-chart]").forEach((item) => {
         item.classList.toggle("is-active", item === button);
@@ -2353,10 +2670,8 @@ async function loadForecast() {
   saveSettings();
 
   try {
-    const [weather, marine] = await Promise.all([
-      fetchJson(buildWeatherUrl(lat, lon)),
-      fetchJson(buildMarineUrl(lat, lon)),
-    ]);
+    const weather = await fetchJson(buildWeatherUrl(lat, lon));
+    const marine = isSeaMode() ? await fetchJson(buildMarineUrl(lat, lon)) : null;
 
     state.hours = mergeHourlyData(weather, marine);
     state.days = buildDailySummaries(state.hours);
@@ -2367,7 +2682,7 @@ async function loadForecast() {
     }
 
     renderAll();
-    const realDepthApplied = await loadRealDepthCurrents(lat, lon);
+    const realDepthApplied = isSeaMode() ? await loadRealDepthCurrents(lat, lon) : false;
     setStatus(realDepthApplied ? "Copernicus" : "À jour", "ready");
   } catch (error) {
     console.error(error);
@@ -2380,7 +2695,10 @@ function buildWeatherUrl(lat, lon) {
   const url = new URL(WEATHER_API);
   url.searchParams.set("latitude", lat.toFixed(4));
   url.searchParams.set("longitude", lon.toFixed(4));
-  url.searchParams.set("hourly", "wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,cloud_cover,precipitation");
+  url.searchParams.set(
+    "hourly",
+    "temperature_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,cloud_cover,precipitation",
+  );
   url.searchParams.set("daily", "wind_speed_10m_max,wind_direction_10m_dominant,sunrise,sunset");
   url.searchParams.set("timezone", "auto");
   url.searchParams.set("forecast_days", "7");
@@ -2420,7 +2738,7 @@ async function fetchJson(url) {
 }
 
 async function loadRealDepthCurrents(lat, lon) {
-  if (!state.hours.length) return false;
+  if (!isSeaMode() || !state.hours.length) return false;
 
   try {
     const url = buildDepthCurrentUrl(lat, lon);
@@ -2502,7 +2820,8 @@ function mergeHourlyData(weather, marine) {
   const weatherByTime = new Map();
   const weatherHourly = weather.hourly ?? {};
   const weatherDaily = weather.daily ?? {};
-  const marineHourly = marine.hourly ?? {};
+  const marineHourly = marine?.hourly ?? {};
+  const timeline = marineHourly.time?.length ? marineHourly.time : weatherHourly.time ?? [];
   const dailyByDate = new Map();
 
   (weatherDaily.time ?? []).forEach((date, index) => {
@@ -2514,6 +2833,7 @@ function mergeHourlyData(weather, marine) {
 
   (weatherHourly.time ?? []).forEach((time, index) => {
     weatherByTime.set(time, {
+      airTemperature: valueAt(weatherHourly.temperature_2m, index),
       windSpeed: valueAt(weatherHourly.wind_speed_10m, index),
       windDirection: valueAt(weatherHourly.wind_direction_10m, index),
       windGust: valueAt(weatherHourly.wind_gusts_10m, index),
@@ -2523,7 +2843,7 @@ function mergeHourlyData(weather, marine) {
     });
   });
 
-  return (marineHourly.time ?? []).map((time, index) => {
+  return timeline.map((time, index) => {
     const weatherRow = weatherByTime.get(time) ?? {};
     const date = time.slice(0, 10);
     const daylight = dailyByDate.get(date) ?? {};
@@ -2535,6 +2855,7 @@ function mergeHourlyData(weather, marine) {
       time,
       date,
       hour: time.slice(11, 16),
+      airTemperature: weatherRow.airTemperature ?? null,
       windSpeed: weatherRow.windSpeed ?? null,
       windDirection: weatherRow.windDirection ?? null,
       windGust: weatherRow.windGust ?? null,
@@ -2584,6 +2905,11 @@ function buildDailySummaries(hours) {
       windMax: max(pluck(rows, "windSpeed")),
       windGustMax: max(pluck(rows, "windGust")),
       windDirection: circularMean(pluck(rows, "windDirection"), pluck(rows, "windSpeed")),
+      airTemperature: average(pluck(rows, "airTemperature")),
+      pressureAvg: average(pluck(rows, "pressure")),
+      pressureTrend: pressureTrend(rows),
+      precipitationTotal: sum(pluck(rows, "precipitation")),
+      cloudCoverAvg: average(pluck(rows, "cloudCover")),
       waveAvg,
       waveMax: max(pluck(rows, "waveHeight")),
       waveDirection: circularMean(pluck(rows, "waveDirection"), pluck(rows, "waveHeight")),
@@ -2619,7 +2945,7 @@ function renderAll() {
 function updateSpotMeta() {
   const lat = Number(els.latitude.value);
   const lon = Number(els.longitude.value);
-  els.spotMeta.textContent = `${state.selectedSpotName} · ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+  els.spotMeta.textContent = `${waterModeConfig[state.waterMode].metaPrefix} · ${state.selectedSpotName} · ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
 }
 
 function renderDayTabs() {
@@ -2632,9 +2958,12 @@ function renderDayTabs() {
     button.className = "day-tab";
     button.classList.toggle("is-active", day.date === state.selectedDate);
     button.setAttribute("aria-pressed", String(day.date === state.selectedDate));
+    const summary = isSeaMode()
+      ? `${formatNumber(day.windAvg, 0)} kt · ${formatNumber(day.waveAvg, 1)} m · activité ${activityScore}`
+      : `${formatNumber(day.windAvg, 0)} kt · ${formatNumber(day.pressureAvg, 0)} hPa · activité ${activityScore}`;
     button.innerHTML = `
       <strong>${day.shortLabel}</strong>
-      <span>${formatNumber(day.windAvg, 0)} kt · ${formatNumber(day.waveAvg, 1)} m · activité ${activityScore}</span>
+      <span>${summary}</span>
     `;
     button.addEventListener("click", () => {
       state.selectedDate = day.date;
@@ -2701,19 +3030,24 @@ function activityRows(day, fish) {
 
 function fishActivityForHour(row, fish, windows = solunarWindows({ date: row.date, rows: [row] })) {
   const profile = fishActivityProfiles[normalizeActivityFish(fish)];
+  const temperature = isSeaMode() ? row.seaTemperature : row.airTemperature;
   const currentScore = rangeScore(row.surfaceCurrent, profile.current);
   const waveScore = rangeScore(row.waveHeight, profile.wave);
-  const temperatureScore = rangeScore(row.seaTemperature, profile.temp);
+  const temperatureScore = rangeScore(temperature, profile.temp);
   const light = lightActivityScore(row, profile.light);
   const solunar = solunarActivityScore(row, windows);
   const weather = weatherActivityScore(row);
+  const pressureScore = isValidNumber(row.pressure) ? rangeScore(row.pressure, [1006, 1016, 1028]) : 60;
+  const rainScore = clamp(100 - (row.precipitation ?? 0) * 55, 0, 100);
   const score = Math.round(
-    solunar * 0.25 +
-      light * 0.17 +
-      currentScore * profile.currentWeight +
-      waveScore * 0.12 +
-      weather * 0.1 +
-      temperatureScore * 0.08,
+    isSeaMode()
+      ? solunar * 0.25 +
+          light * 0.17 +
+          currentScore * profile.currentWeight +
+          waveScore * 0.12 +
+          weather * 0.1 +
+          temperatureScore * 0.08
+      : solunar * 0.24 + light * 0.2 + pressureScore * 0.22 + weather * 0.16 + temperatureScore * 0.12 + rainScore * 0.06,
   );
 
   return {
@@ -2725,6 +3059,8 @@ function fishActivityForHour(row, fish, windows = solunarWindows({ date: row.dat
       wave: waveScore,
       weather,
       temperature: temperatureScore,
+      pressure: pressureScore,
+      rain: rainScore,
     },
   };
 }
@@ -2736,17 +3072,26 @@ function activityReasons(row, fish) {
   const parts = row.activity?.parts ?? fishActivityForHour(row, fish).parts;
   const reasons = [];
 
-  if (parts.current >= 72) reasons.push({ label: "Courant favorable" });
-  else if (parts.current <= 38) reasons.push({ label: "Courant peu idéal", type: "warn" });
+  if (isSeaMode()) {
+    if (parts.current >= 72) reasons.push({ label: "Courant favorable" });
+    else if (parts.current <= 38) reasons.push({ label: "Courant peu idéal", type: "warn" });
+  } else {
+    if (parts.pressure >= 72) reasons.push({ label: "Pression favorable" });
+    else if (parts.pressure <= 38) reasons.push({ label: "Pression peu idéale", type: "warn" });
+  }
 
   if (parts.light >= 72) reasons.push({ label: "Lumière favorable" });
   if (parts.solunar >= 72) reasons.push({ label: "Fenêtre solunar" });
 
-  if (parts.wave <= 38) reasons.push({ label: "Mer moins adaptée", type: "warn" });
-  else if (parts.wave >= 72) reasons.push({ label: "Houle correcte" });
+  if (isSeaMode()) {
+    if (parts.wave <= 38) reasons.push({ label: "Mer moins adaptée", type: "warn" });
+    else if (parts.wave >= 72) reasons.push({ label: "Houle correcte" });
+  } else if (parts.rain <= 38) {
+    reasons.push({ label: "Pluie récente pénalisante", type: "warn" });
+  }
 
   if (parts.weather <= 42) reasons.push({ label: "Vent/météo pénalisants", type: "bad" });
-  if (parts.temperature >= 72) reasons.push({ label: `Eau OK ${profile.label}` });
+  if (parts.temperature >= 72) reasons.push({ label: isSeaMode() ? `Eau OK ${profile.label}` : `Température OK ${profile.label}` });
 
   return reasons.slice(0, 4);
 }
@@ -2876,7 +3221,7 @@ function drawActivityChart(day, rows, highlightedIndex) {
   ctx.fillStyle = "#17201d";
   ctx.font = "800 12px Inter, system-ui, sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText(`${fishActivityProfiles[state.activityFish].label} · ${day.shortLabel}`, padding.left, padding.top - 10);
+  ctx.fillText(`${fishActivityProfiles[normalizeActivityFish(state.activityFish)].label} · ${day.shortLabel}`, padding.left, padding.top - 10);
 }
 
 function activityLabel(score) {
@@ -2893,36 +3238,67 @@ function renderMetrics(day) {
     return;
   }
 
-  const metrics = [
-    {
-      label: "Courant surface",
-      value: `${formatNumber(day.surfaceCurrent, 1)} kt`,
-      detail: `vers ${compassLabel(day.surfaceCurrentDirection)} · moy. journée`,
-      color: "current",
-      icon: currentIcon(),
-    },
-    {
-      label: "Courant profondeur",
-      value: `${formatNumber(day.depthCurrent, 1)} kt`,
-      detail: depthDetail(day),
-      color: "depth",
-      icon: depthIcon(),
-    },
-    {
-      label: "Vent moyen",
-      value: `${formatNumber(day.windAvg, 0)} kt`,
-      detail: `de ${compassLabel(day.windDirection)} · raf. ${formatNumber(day.windGustMax, 0)} kt`,
-      color: "wind",
-      icon: windIcon(),
-    },
-    {
-      label: "Houle totale",
-      value: `${formatNumber(day.waveAvg, 1)} m`,
-      detail: `de ${compassLabel(day.waveDirection)} · ${formatNumber(day.wavePeriod, 0)} s`,
-      color: "wave",
-      icon: waveIcon(),
-    },
-  ];
+  const metrics = isSeaMode()
+    ? [
+        {
+          label: "Courant surface",
+          value: `${formatNumber(day.surfaceCurrent, 1)} kt`,
+          detail: `vers ${compassLabel(day.surfaceCurrentDirection)} · moy. journée`,
+          color: "current",
+          icon: currentIcon(),
+        },
+        {
+          label: "Courant profondeur",
+          value: `${formatNumber(day.depthCurrent, 1)} kt`,
+          detail: depthDetail(day),
+          color: "depth",
+          icon: depthIcon(),
+        },
+        {
+          label: "Vent moyen",
+          value: `${formatNumber(day.windAvg, 0)} kt`,
+          detail: `de ${compassLabel(day.windDirection)} · raf. ${formatNumber(day.windGustMax, 0)} kt`,
+          color: "wind",
+          icon: windIcon(),
+        },
+        {
+          label: "Houle totale",
+          value: `${formatNumber(day.waveAvg, 1)} m`,
+          detail: `de ${compassLabel(day.waveDirection)} · ${formatNumber(day.wavePeriod, 0)} s`,
+          color: "wave",
+          icon: waveIcon(),
+        },
+      ]
+    : [
+        {
+          label: "Vent moyen",
+          value: `${formatNumber(day.windAvg, 0)} kt`,
+          detail: `de ${compassLabel(day.windDirection)} · raf. ${formatNumber(day.windGustMax, 0)} kt`,
+          color: "wind",
+          icon: windIcon(),
+        },
+        {
+          label: "Pression",
+          value: `${formatNumber(day.pressureAvg, 0)} hPa`,
+          detail: `${formatPressureTrend(day.pressureTrend)} · moyenne journée`,
+          color: "pressure",
+          icon: pressureIcon(),
+        },
+        {
+          label: "Pluie 24h",
+          value: `${formatNumber(day.precipitationTotal, 1)} mm`,
+          detail: "indice turbidité à affiner au Ticket 5",
+          color: "rain",
+          icon: rainIcon(),
+        },
+        {
+          label: "Nuages",
+          value: `${formatNumber(day.cloudCoverAvg, 0)} %`,
+          detail: `air ${formatNumber(day.airTemperature, 1)} °C · moyenne`,
+          color: "cloud",
+          icon: cloudIcon(),
+        },
+      ];
 
   els.metricGrid.innerHTML = "";
   metrics.forEach((metric) => {
@@ -2955,6 +3331,12 @@ function depthDetail(day) {
   }
 
   return `${state.depth} m · est. vers ${direction}`;
+}
+
+function formatPressureTrend(value) {
+  if (!isValidNumber(value)) return "tendance --";
+  const sign = value > 0 ? "+" : "";
+  return `tendance ${sign}${formatNumber(value, 1)} hPa`;
 }
 
 function depthSeriesLabel(day) {
@@ -3015,10 +3397,14 @@ function drawCompass() {
     return;
   }
 
-  drawCompassArrow(ctx, cx, cy, radius * 0.82, day.surfaceCurrentDirection, colors.current, "Courant", false);
-  drawCompassArrow(ctx, cx, cy, radius * 0.68, day.depthDirection, colors.depth, `${state.depth} m`, false);
-  drawCompassArrow(ctx, cx, cy, radius * 0.55, reverseDirection(day.windDirection), colors.wind, "Vent", true);
-  drawCompassArrow(ctx, cx, cy, radius * 0.42, reverseDirection(day.waveDirection), colors.wave, "Houle", true);
+  if (isSeaMode()) {
+    drawCompassArrow(ctx, cx, cy, radius * 0.82, day.surfaceCurrentDirection, colors.current, "Courant", false);
+    drawCompassArrow(ctx, cx, cy, radius * 0.68, day.depthDirection, colors.depth, `${state.depth} m`, false);
+    drawCompassArrow(ctx, cx, cy, radius * 0.55, reverseDirection(day.windDirection), colors.wind, "Vent", true);
+    drawCompassArrow(ctx, cx, cy, radius * 0.42, reverseDirection(day.waveDirection), colors.wave, "Houle", true);
+  } else {
+    drawCompassArrow(ctx, cx, cy, radius * 0.76, reverseDirection(day.windDirection), colors.wind, "Vent", true);
+  }
 
   ctx.fillStyle = "#17201d";
   ctx.font = "900 18px Inter, system-ui, sans-serif";
@@ -3150,7 +3536,7 @@ function renderChart() {
 function chartConfig(day) {
   const rows = day.rows;
 
-  if (state.activeChart === "wave") {
+  if (isSeaMode() && state.activeChart === "wave") {
     return {
       title: "Houle",
       unit: "m",
@@ -3161,7 +3547,7 @@ function chartConfig(day) {
     };
   }
 
-  if (state.activeChart === "current") {
+  if (isSeaMode() && state.activeChart === "current") {
     return {
       title: "Courant",
       unit: "kt",
@@ -3201,17 +3587,28 @@ function renderDailyCards() {
     const card = document.createElement("article");
     card.className = "daily-card";
     card.classList.toggle("is-active", day.date === state.selectedDate);
+    const dailyItems = isSeaMode()
+      ? `
+        <div><span>Vent</span><strong>${formatNumber(day.windAvg, 0)} kt ${compassLabel(day.windDirection)}</strong></div>
+        <div><span>Houle</span><strong>${formatNumber(day.waveAvg, 1)} m ${compassLabel(day.waveDirection)}</strong></div>
+        <div><span>Courant</span><strong>${formatNumber(day.surfaceCurrent, 1)} kt ${compassLabel(day.surfaceCurrentDirection)}</strong></div>
+        <div><span>${day.depthSource === "copernicus" ? "Profondeur" : "Prof. est."}</span><strong>${formatNumber(day.depthCurrent, 1)} kt ${compassLabel(day.depthDirection)}</strong></div>
+        <div><span>Eau</span><strong>${formatNumber(day.seaTemperature, 1)} °C</strong></div>
+      `
+      : `
+        <div><span>Vent</span><strong>${formatNumber(day.windAvg, 0)} kt ${compassLabel(day.windDirection)}</strong></div>
+        <div><span>Pression</span><strong>${formatNumber(day.pressureAvg, 0)} hPa</strong></div>
+        <div><span>Tendance</span><strong>${formatPressureTrend(day.pressureTrend)}</strong></div>
+        <div><span>Pluie 24h</span><strong>${formatNumber(day.precipitationTotal, 1)} mm</strong></div>
+        <div><span>Air</span><strong>${formatNumber(day.airTemperature, 1)} °C</strong></div>
+      `;
     card.innerHTML = `
       <header>
         <strong>${day.shortLabel}</strong>
         <span class="score ${scoreClass(activityScore)}">${activityScore}</span>
       </header>
       <div class="daily-list">
-        <div><span>Vent</span><strong>${formatNumber(day.windAvg, 0)} kt ${compassLabel(day.windDirection)}</strong></div>
-        <div><span>Houle</span><strong>${formatNumber(day.waveAvg, 1)} m ${compassLabel(day.waveDirection)}</strong></div>
-        <div><span>Courant</span><strong>${formatNumber(day.surfaceCurrent, 1)} kt ${compassLabel(day.surfaceCurrentDirection)}</strong></div>
-        <div><span>${day.depthSource === "copernicus" ? "Profondeur" : "Prof. est."}</span><strong>${formatNumber(day.depthCurrent, 1)} kt ${compassLabel(day.depthDirection)}</strong></div>
-        <div><span>Eau</span><strong>${formatNumber(day.seaTemperature, 1)} °C</strong></div>
+        ${dailyItems}
       </div>
     `;
     card.addEventListener("click", () => {
@@ -3269,9 +3666,15 @@ function bestWindow(rows) {
 function scoreHour(row) {
   const wind = row.windSpeed ?? 0;
   const gust = row.windGust ?? wind;
+  const gustGap = Math.max(0, gust - wind);
+  if (!isSeaMode()) {
+    const rain = row.precipitation ?? 0;
+    const pressurePenalty = isValidNumber(row.pressure) ? Math.abs(row.pressure - 1016) * 0.9 : 8;
+    return clamp(100 - wind * 2.4 - gustGap * 1.2 - rain * 55 - pressurePenalty, 0, 100);
+  }
+
   const wave = row.waveHeight ?? 0;
   const current = row.surfaceCurrent ?? 0;
-  const gustGap = Math.max(0, gust - wind);
   return clamp(100 - wind * 2.2 - wave * 24 - current * 12 - gustGap * 1.1, 0, 100);
 }
 
@@ -3589,6 +3992,18 @@ function average(values) {
   return clean.reduce((sum, value) => sum + value, 0) / clean.length;
 }
 
+function sum(values) {
+  const clean = values.filter(isValidNumber);
+  if (!clean.length) return null;
+  return clean.reduce((total, value) => total + value, 0);
+}
+
+function pressureTrend(rows) {
+  const clean = rows.filter((row) => isValidNumber(row.pressure));
+  if (clean.length < 2) return null;
+  return clean.at(-1).pressure - clean[0].pressure;
+}
+
 function max(values) {
   const clean = values.filter(isValidNumber);
   if (!clean.length) return null;
@@ -3733,6 +4148,7 @@ function setStatus(label, mode) {
 function saveSettings() {
   const spot = spots[Number(els.spotPreset.value)] ?? spots[0];
   const payload = {
+    waterMode: state.waterMode,
     spotIndex: Number(els.spotPreset.value),
     spotName: spot.name,
     customName: state.selectedSpotName,
@@ -3744,7 +4160,12 @@ function saveSettings() {
     fishFilters: [...state.activeFishFilters],
     activityFish: state.activityFish,
   };
-  localStorage.setItem("meteo-peche-settings", JSON.stringify(payload));
+  updateAppStore((store) => {
+    store.settings = {
+      ...store.settings,
+      ...payload,
+    };
+  });
 }
 
 function resolveSavedSpotIndex(saved) {
@@ -3761,33 +4182,202 @@ function resolveSavedSpotIndex(saved) {
 }
 
 function saveFavorites() {
-  localStorage.setItem(FAVORITES_KEY, JSON.stringify(state.favorites));
+  updateAppStore((store) => {
+    store.favorites = state.favorites.map(normalizeFavorite).filter(Boolean);
+  });
 }
 
 function readFavorites() {
-  try {
-    const payload = JSON.parse(localStorage.getItem(FAVORITES_KEY) ?? "[]");
-    if (!Array.isArray(payload)) return [];
-    return payload
-      .filter((favorite) => favorite && isValidNumber(favorite.lat) && isValidNumber(favorite.lon) && typeof favorite.name === "string")
-      .map((favorite) => ({
-        id: favorite.id ?? coordinateFavoriteId(favorite.lat, favorite.lon),
-        name: favorite.name,
-        group: favorite.group ?? "",
-        lat: favorite.lat,
-        lon: favorite.lon,
-        custom: Boolean(favorite.custom),
-      }));
-  } catch {
-    return [];
-  }
+  return readAppStore().favorites;
 }
 
 function readSavedSettings() {
+  return readAppStore().settings;
+}
+
+function readCatchLog() {
+  return readAppStore().catchLog;
+}
+
+function saveCatchLogEntry(entry) {
+  const normalizedEntry = normalizeCatchLogEntry(entry);
+  if (!normalizedEntry) return null;
+
+  updateAppStore((store) => {
+    store.catchLog = [normalizedEntry, ...store.catchLog.filter((item) => item.id !== normalizedEntry.id)];
+  });
+  return normalizedEntry;
+}
+
+function createCatchLogEntry(input = {}) {
+  const now = new Date().toISOString();
+  const active = getActiveSpot();
+  const day = getSelectedDay();
+  const hour = nearestHour(day?.rows ?? [], input.caughtAt ?? now);
+
+  return normalizeCatchLogEntry({
+    id: input.id ?? `catch:${Date.now()}`,
+    createdAt: input.createdAt ?? now,
+    caughtAt: input.caughtAt ?? now,
+    waterMode: input.waterMode ?? state.waterMode,
+    species: input.species ?? state.activityFish,
+    spot: input.spot ?? {
+      id: active.id,
+      name: active.name,
+      lat: active.lat,
+      lon: active.lon,
+      group: active.group,
+    },
+    measurements: {
+      lengthCm: input.measurements?.lengthCm ?? null,
+      weightKg: input.measurements?.weightKg ?? null,
+    },
+    notes: input.notes ?? "",
+    weatherSnapshot: input.weatherSnapshot ?? buildWeatherSnapshot(hour, day),
+    media: input.media ?? [],
+  });
+}
+
+function buildWeatherSnapshot(row, day) {
+  return {
+    capturedAt: new Date().toISOString(),
+    date: day?.date ?? null,
+    hour: row?.hour ?? null,
+    waterMode: state.waterMode,
+    windSpeed: row?.windSpeed ?? null,
+    windDirection: row?.windDirection ?? null,
+    windGust: row?.windGust ?? null,
+    pressure: row?.pressure ?? null,
+    precipitation: row?.precipitation ?? null,
+    cloudCover: row?.cloudCover ?? null,
+    airTemperature: row?.airTemperature ?? null,
+    seaTemperature: row?.seaTemperature ?? null,
+    waveHeight: isSeaMode() ? row?.waveHeight ?? null : null,
+    surfaceCurrent: isSeaMode() ? row?.surfaceCurrent ?? null : null,
+    depthCurrent: isSeaMode() ? row?.depthCurrent ?? null : null,
+    moonPhase: day?.date ? lunarPhase(day.date) : null,
+  };
+}
+
+function nearestHour(rows, isoTime) {
+  if (!rows.length) return null;
+  const target = Date.parse(isoTime);
+  if (!Number.isFinite(target)) return rows[0];
+
+  return rows.reduce((best, row) => {
+    const rowMs = Date.parse(row.time);
+    if (!Number.isFinite(rowMs)) return best;
+    const diff = Math.abs(rowMs - target);
+    const bestDiff = best ? Math.abs(Date.parse(best.time) - target) : Infinity;
+    return diff < bestDiff ? row : best;
+  }, rows[0]);
+}
+
+function readAppStore() {
+  const stored = parseStoredJson(STORE_KEY);
+  if (stored && typeof stored === "object") {
+    return normalizeStore(stored);
+  }
+
+  const migrated = normalizeStore({
+    version: STORE_VERSION,
+    settings: parseStoredJson(LEGACY_SETTINGS_KEY) ?? {},
+    favorites: parseStoredJson(LEGACY_FAVORITES_KEY) ?? [],
+    catchLog: [],
+  });
+  writeAppStore(migrated);
+  return migrated;
+}
+
+function updateAppStore(mutator) {
+  const store = readAppStore();
+  mutator(store);
+  const normalized = normalizeStore(store);
+  writeAppStore(normalized);
+  return normalized;
+}
+
+function writeAppStore(store) {
+  localStorage.setItem(STORE_KEY, JSON.stringify(normalizeStore(store)));
+}
+
+function normalizeStore(store) {
+  return {
+    version: STORE_VERSION,
+    settings: normalizeSettings(store?.settings ?? {}),
+    favorites: Array.isArray(store?.favorites) ? store.favorites.map(normalizeFavorite).filter(Boolean) : [],
+    catchLog: Array.isArray(store?.catchLog) ? store.catchLog.map(normalizeCatchLogEntry).filter(Boolean) : [],
+  };
+}
+
+function normalizeSettings(settings) {
+  return {
+    waterMode: normalizeWaterMode(settings.waterMode),
+    spotIndex: Number.isInteger(settings.spotIndex) ? settings.spotIndex : 0,
+    spotName: typeof settings.spotName === "string" ? settings.spotName : "",
+    customName: typeof settings.customName === "string" ? settings.customName : "",
+    lat: isValidNumber(settings.lat) ? settings.lat : null,
+    lon: isValidNumber(settings.lon) ? settings.lon : null,
+    depth: isValidNumber(settings.depth) ? settings.depth : state.depth,
+    nauticalEnabled: settings.nauticalEnabled !== false,
+    knownFishingEnabled: settings.knownFishingEnabled !== false,
+    fishFilters: Array.isArray(settings.fishFilters) ? settings.fishFilters : ["all"],
+    activityFish: typeof settings.activityFish === "string" ? settings.activityFish : "",
+  };
+}
+
+function normalizeFavorite(favorite) {
+  if (!favorite || !isValidNumber(favorite.lat) || !isValidNumber(favorite.lon) || typeof favorite.name !== "string") {
+    return null;
+  }
+
+  return {
+    id: favorite.id ?? coordinateFavoriteId(favorite.lat, favorite.lon),
+    name: favorite.name,
+    group: favorite.group ?? "",
+    lat: favorite.lat,
+    lon: favorite.lon,
+    custom: Boolean(favorite.custom),
+    waterMode: normalizeWaterMode(favorite.waterMode),
+    createdAt: favorite.createdAt ?? new Date().toISOString(),
+    updatedAt: favorite.updatedAt ?? new Date().toISOString(),
+  };
+}
+
+function normalizeCatchLogEntry(entry) {
+  if (!entry || typeof entry !== "object") return null;
+  const spot = entry.spot ?? {};
+  if (!isValidNumber(spot.lat) || !isValidNumber(spot.lon)) return null;
+
+  return {
+    id: typeof entry.id === "string" ? entry.id : `catch:${Date.now()}`,
+    createdAt: entry.createdAt ?? new Date().toISOString(),
+    caughtAt: entry.caughtAt ?? entry.createdAt ?? new Date().toISOString(),
+    waterMode: normalizeWaterMode(entry.waterMode),
+    species: typeof entry.species === "string" ? entry.species : "",
+    spot: {
+      id: spot.id ?? coordinateFavoriteId(spot.lat, spot.lon),
+      name: spot.name ?? "Spot",
+      group: spot.group ?? "",
+      lat: spot.lat,
+      lon: spot.lon,
+    },
+    measurements: {
+      lengthCm: isValidNumber(entry.measurements?.lengthCm) ? entry.measurements.lengthCm : null,
+      weightKg: isValidNumber(entry.measurements?.weightKg) ? entry.measurements.weightKg : null,
+    },
+    notes: typeof entry.notes === "string" ? entry.notes : "",
+    weatherSnapshot: entry.weatherSnapshot && typeof entry.weatherSnapshot === "object" ? entry.weatherSnapshot : {},
+    media: Array.isArray(entry.media) ? entry.media : [],
+  };
+}
+
+function parseStoredJson(key) {
   try {
-    return JSON.parse(localStorage.getItem("meteo-peche-settings") ?? "{}");
+    const value = localStorage.getItem(key);
+    return value ? JSON.parse(value) : null;
   } catch {
-    return {};
+    return null;
   }
 }
 
@@ -3826,6 +4416,18 @@ function waveIcon() {
   return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15c2.6 0 2.6-2 5.2-2s2.6 2 5.2 2 2.6-2 5.2-2H21"/><path d="M3 9c2.6 0 2.6-2 5.2-2s2.6 2 5.2 2 2.6-2 5.2-2H21"/></svg>`;
 }
 
+function pressureIcon() {
+  return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/><path d="m12 13 4-4"/><path d="M8 17h8"/></svg>`;
+}
+
+function rainIcon() {
+  return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 15a5 5 0 0 1 1.2-9.8A7 7 0 0 1 21 10.5 4.5 4.5 0 0 1 17 15H7Z"/><path d="m8 18-1 2"/><path d="m13 18-1 2"/><path d="m18 18-1 2"/></svg>`;
+}
+
+function cloudIcon() {
+  return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18a5 5 0 0 1 1.3-9.8A7 7 0 0 1 21 12.5 4.5 4.5 0 0 1 17 18H6Z"/><path d="M4 21h16"/></svg>`;
+}
+
 function trashIcon() {
   return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v5"/><path d="M14 11v5"/></svg>`;
 }
@@ -3857,6 +4459,13 @@ function fishSpotIcon(type = "dorade") {
     maquereau: `<svg viewBox="0 0 28 28" aria-hidden="true"><path d="M2.5 14c5-4.4 12.5-4.7 19-.9L26 9.8v8.4l-4.5-3.3c-6.5 3.8-14 3.5-19-.9Z"/><path d="m9.2 10.3 1.8 2.1"/><path d="m12.1 9.6 1.8 2.4"/><path d="m15 9.8 1.7 2.3"/><path d="m17.8 10.7 1.4 1.8"/><path d="M7.5 15.8h10.8"/><circle cx="19.6" cy="13.1" r="0.8"/></svg>`,
     maigre: `<svg viewBox="0 0 28 28" aria-hidden="true"><path d="M3 14c4.2-5 12.8-5.8 18.6-1.5L25.8 9v10l-4.2-3.5C15.8 19.8 7.2 19 3 14Z"/><path d="M7 14.2c4.4-1.5 8.2-1.4 12.4.2"/><path d="M12.4 9.1c-.8 1.6-.8 8.3 0 9.8"/><circle cx="19" cy="13.1" r="0.8"/></svg>`,
     cephalopodes: `<svg viewBox="0 0 28 28" aria-hidden="true"><path d="M14 4.5c4.3 0 7 3.4 7 7.6 0 3.1-2 5.2-7 5.2s-7-2.1-7-5.2c0-4.2 2.7-7.6 7-7.6Z"/><path d="M8.5 17.2c-1 1.8-2.5 3.2-4.5 4"/><path d="M11.5 17.5c-.4 2-1.3 3.6-2.7 5"/><path d="M14 17.7v5.1"/><path d="M16.5 17.5c.4 2 1.3 3.6 2.7 5"/><path d="M19.5 17.2c1 1.8 2.5 3.2 4.5 4"/><circle cx="11.7" cy="11.5" r="0.8"/><circle cx="16.3" cy="11.5" r="0.8"/></svg>`,
+    brochet: `<svg viewBox="0 0 28 28" aria-hidden="true"><path d="M2.5 13.5c5.9-3.2 13.3-3.8 20.1-1.1L26 9.8v8.4l-3.4-2.8c-6.8 2.7-14.2 2.1-20.1-1.9Z"/><path d="M6 12h7.8"/><path d="M6 15h8.8"/><path d="M12 9.4 15.6 6"/><circle cx="19.4" cy="12.8" r="0.8"/></svg>`,
+    sandre: `<svg viewBox="0 0 28 28" aria-hidden="true"><path d="M3 14c5.2-3.8 12.4-4.2 18.5-1.1L25.5 10v8l-4-3.1C15.4 18.2 8.2 17.8 3 14Z"/><path d="m8.8 10.2 1.3-3 1.3 3"/><path d="m12.4 9.5 1.2-3.3 1.5 3.4"/><path d="m16.2 10.2 1-2.7 1.1 3"/><circle cx="19" cy="13.1" r="0.8"/></svg>`,
+    perche: `<svg viewBox="0 0 28 28" aria-hidden="true"><path d="M4 14c4.3-4 10.8-4.5 16-1.1L25 10v8l-5-3.1C14.8 18.4 8.3 18 4 14Z"/><path d="M9.5 10.4v7.2"/><path d="M12.5 9.6v8.5"/><path d="M15.7 9.7v8.1"/><path d="M18.5 11v5.6"/><circle cx="19.2" cy="13.1" r="0.8"/></svg>`,
+    blackBass: `<svg viewBox="0 0 28 28" aria-hidden="true"><path d="M3 14c3.7-5.3 12.3-6.1 18.4-1.8L25.5 9v10l-4.1-3.3C15.3 20 6.7 19.3 3 14Z"/><path d="M8 14.2h10.8"/><path d="M10.2 10.6c2.3 1.6 5.2 1.8 8.1 1.1"/><circle cx="19.2" cy="13" r="0.8"/></svg>`,
+    carpe: `<svg viewBox="0 0 28 28" aria-hidden="true"><path d="M4 14c3.5-4.7 10.6-5.7 15.8-1.7L25 9.2v9.6l-5.2-3.1C14.6 19.7 7.5 18.7 4 14Z"/><path d="M7.5 15.2c2.4 2.2 6.2 2.8 10.2 1.5"/><path d="M18.9 13.3c2.1-1.2 3.4-1 4.8.3"/><circle cx="18.8" cy="12.7" r="0.8"/></svg>`,
+    silure: `<svg viewBox="0 0 28 28" aria-hidden="true"><path d="M2.5 14.5c5.5-3.1 13.7-3.2 20 .1L26 12v6l-3.5-2.1c-6.3 3.4-14.5 2.8-20-1.4Z"/><path d="M18.5 13.5c2.9-1.9 5.4-2.3 7-1.2"/><path d="M18.5 14.9c2.9 1.9 5.4 2.3 7 1.2"/><path d="M7 16.2c2.8 1.5 6.4 1.6 10 .4"/><circle cx="17.6" cy="13.6" r="0.8"/></svg>`,
+    truite: `<svg viewBox="0 0 28 28" aria-hidden="true"><path d="M3 14c4.7-4.1 12.3-4.8 18.4-1.1L25.5 10v8l-4.1-3.1C15.3 18.9 7.7 18.1 3 14Z"/><circle cx="11" cy="12.2" r="0.7"/><circle cx="13.8" cy="15.7" r="0.7"/><circle cx="16.2" cy="12" r="0.7"/><path d="M9 9.8c2.9-1.1 6.2-1.2 9.3-.2"/><circle cx="19.2" cy="13.1" r="0.8"/></svg>`,
   };
 
   return icons[type] ?? icons.dorade;

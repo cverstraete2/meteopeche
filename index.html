@@ -22,7 +22,13 @@
             <p id="spotMeta">Prévisions marines par spot</p>
           </div>
         </div>
-        <div class="status-pill" id="statusPill">Prêt</div>
+        <div class="topbar-actions">
+          <div class="mode-switch" id="waterModeSwitch" role="group" aria-label="Mode de pêche">
+            <button class="mode-option is-active" type="button" data-water-mode="sea" aria-pressed="true">Mer</button>
+            <button class="mode-option" type="button" data-water-mode="freshwater" aria-pressed="false">Eau douce</button>
+          </div>
+          <div class="status-pill" id="statusPill">Prêt</div>
+        </div>
       </header>
 
       <main>
@@ -67,7 +73,7 @@
             <div class="section-head">
               <div>
                 <span class="eyebrow">Carte</span>
-                <h2>Spots Méditerranée</h2>
+                <h2 id="mapTitle">Spots mer</h2>
               </div>
               <button class="icon-button favorite-toggle" id="favoriteBtn" type="button" title="Ajouter aux favoris" aria-label="Ajouter aux favoris" aria-pressed="false">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -259,6 +265,6 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-    <script src="app.js?v=20260524-fish-activity" defer></script>
+    <script src="app.js?v=20260525-dual-mode-storage" defer></script>
   </body>
 </html>
