@@ -186,7 +186,7 @@ main {
 
 .controls-band {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   padding: 16px;
 }
@@ -1266,6 +1266,12 @@ button:focus-visible {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(310px, 420px);
   gap: 18px;
+}
+
+.weather-summary {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
 }
 
 .metric-grid {
