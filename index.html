@@ -104,6 +104,22 @@
                     <circle cx="15.5" cy="11.2" r="0.7" />
                   </svg>
                 </button>
+                <button class="map-control map-layer-toggle" id="mapRegulationToggle" type="button" title="Zones sensibles" aria-label="Zones sensibles" aria-pressed="true">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 3 20 6v6c0 4.8-3.3 7.7-8 9-4.7-1.3-8-4.2-8-9V6l8-3Z" />
+                    <path d="M9 12h6" />
+                    <path d="M12 9v6" />
+                  </svg>
+                </button>
+                <button class="map-control anchor-watch-toggle" id="anchorWatchBtn" type="button" title="Surveillance ancre" aria-label="Surveillance ancre" aria-pressed="false">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 3v14" />
+                    <path d="M8 7h8" />
+                    <path d="M5 14c0 4 3 7 7 7s7-3 7-7" />
+                    <path d="M5 14h4" />
+                    <path d="M15 14h4" />
+                  </svg>
+                </button>
               </div>
               <div class="map-scale" id="mapScale" aria-label="Échelle de la carte">
                 <span></span>
@@ -154,6 +170,10 @@
             <div class="map-meta">
               <strong id="activeSpotName">--</strong>
               <span id="activeSpotCoords">--</span>
+            </div>
+            <div class="safety-banner" id="safetyBanner" aria-live="polite">
+              <strong id="safetyTitle">Sécurité</strong>
+              <span id="safetyDetail">Zones et dérive prêtes.</span>
             </div>
           </section>
 
@@ -317,6 +337,6 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-    <script src="app.js?v=20260525-marine-overlay" defer></script>
+    <script src="app.js?v=20260525-safety-zones" defer></script>
   </body>
 </html>

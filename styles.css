@@ -514,6 +514,12 @@ button:focus-visible {
   color: var(--teal);
 }
 
+.anchor-watch-toggle.is-alert {
+  border-color: rgba(180, 66, 59, 0.62);
+  background: rgba(180, 66, 59, 0.13);
+  color: var(--bad);
+}
+
 .map-control svg {
   width: 19px;
   height: 19px;
@@ -869,6 +875,26 @@ button:focus-visible {
   color: var(--blue);
 }
 
+.anchor-watch-marker {
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--teal-dark);
+  box-shadow: 0 4px 12px rgba(23, 32, 29, 0.22);
+}
+
+.anchor-watch-marker svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .leaflet-popup-content {
   display: grid;
   gap: 4px;
@@ -1061,6 +1087,47 @@ button:focus-visible {
 
 .map-meta strong {
   color: var(--ink);
+}
+
+.safety-banner {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfdfb;
+  padding: 10px 12px;
+}
+
+.safety-banner strong {
+  color: var(--ink);
+  font-size: 0.92rem;
+}
+
+.safety-banner span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.safety-banner.is-watch {
+  border-color: rgba(8, 125, 114, 0.38);
+  background: rgba(8, 125, 114, 0.08);
+}
+
+.safety-banner.is-warn {
+  border-color: rgba(185, 115, 34, 0.44);
+  background: rgba(185, 115, 34, 0.09);
+}
+
+.safety-banner.is-alert {
+  border-color: rgba(180, 66, 59, 0.5);
+  background: rgba(180, 66, 59, 0.1);
+}
+
+.safety-banner.is-alert strong,
+.safety-banner.is-alert span {
+  color: var(--bad);
 }
 
 .favorites-panel {

@@ -38,6 +38,141 @@ const MAP_BOUNDS = {
   north: 44.25,
   south: 41.15,
 };
+const REGULATION_WARNING_METERS = 600;
+const ANCHOR_DRIFT_LIMIT_METERS = 30;
+
+const regulationZones = [
+  {
+    id: "cerbere-banyuls",
+    name: "Réserve marine Cerbère-Banyuls",
+    area: "Côte Vermeille",
+    level: "danger",
+    rule: "Zone protégée: pêche et mouillage peuvent être interdits ou très encadrés. Vérifier Nav&Co et l'arrêté local.",
+    coordinates: [
+      [42.505, 3.112],
+      [42.502, 3.188],
+      [42.416, 3.206],
+      [42.408, 3.13],
+    ],
+  },
+  {
+    id: "cote-bleue-carry",
+    name: "Parc marin Côte Bleue - Carry / Cap Rousset",
+    area: "Côte Bleue",
+    level: "danger",
+    rule: "Secteur de réserve et d'herbiers: pêche à vérifier précisément avant action.",
+    coordinates: [
+      [43.337, 5.136],
+      [43.337, 5.168],
+      [43.318, 5.17],
+      [43.316, 5.14],
+    ],
+  },
+  {
+    id: "calanques-marseille",
+    name: "Parc national des Calanques - zones à vérifier",
+    area: "Marseille / Cassis",
+    level: "danger",
+    rule: "Le parc contient des zones de non-prélèvement et des règles spécifiques. Vérifier l'autorisation pêche avant sortie.",
+    coordinates: [
+      [43.218, 5.335],
+      [43.214, 5.545],
+      [43.112, 5.54],
+      [43.12, 5.34],
+    ],
+  },
+  {
+    id: "port-cros",
+    name: "Parc national de Port-Cros",
+    area: "Îles d'Hyères",
+    level: "danger",
+    rule: "Coeur de parc très réglementé: pêche, mouillage et débarquement à vérifier avant navigation.",
+    coordinates: [
+      [43.072, 6.34],
+      [43.072, 6.462],
+      [42.958, 6.468],
+      [42.952, 6.336],
+    ],
+  },
+  {
+    id: "scandola",
+    name: "Réserve naturelle de Scandola",
+    area: "Corse ouest",
+    level: "danger",
+    rule: "Réserve naturelle: pêche, mouillage et accès sont strictement encadrés selon les secteurs.",
+    coordinates: [
+      [42.444, 8.525],
+      [42.438, 8.708],
+      [42.29, 8.724],
+      [42.284, 8.544],
+    ],
+  },
+  {
+    id: "bonifacio",
+    name: "Bouches de Bonifacio - zones protégées",
+    area: "Corse sud",
+    level: "warn",
+    rule: "Grande aire protégée avec secteurs réglementés. Vérifier les interdictions locales avant pêche.",
+    coordinates: [
+      [41.59, 8.8],
+      [41.59, 9.39],
+      [41.25, 9.42],
+      [41.24, 8.82],
+    ],
+  },
+  {
+    id: "banc-arguin",
+    name: "Réserve naturelle du Banc d'Arguin",
+    area: "Bassin d'Arcachon",
+    level: "danger",
+    rule: "Réserve naturelle avec zonages saisonniers. Vérifier accès, pêche et mouillage avant sortie.",
+    coordinates: [
+      [44.65, -1.285],
+      [44.65, -1.13],
+      [44.48, -1.075],
+      [44.475, -1.27],
+    ],
+  },
+  {
+    id: "sept-iles",
+    name: "Réserve naturelle des Sept-Îles",
+    area: "Côte de Granit Rose",
+    level: "warn",
+    rule: "Réserve naturelle et protection oiseaux: vérifier les zones d'accès et d'activités autorisées.",
+    coordinates: [
+      [48.93, -3.58],
+      [48.93, -3.39],
+      [48.848, -3.37],
+      [48.846, -3.585],
+    ],
+  },
+  {
+    id: "iroise-molene",
+    name: "Iroise / archipel de Molène - vigilance",
+    area: "Finistère",
+    level: "warn",
+    rule: "Aire marine protégée avec secteurs sensibles et forts courants. Vérifier réglementation et météo.",
+    coordinates: [
+      [48.505, -5.13],
+      [48.505, -4.74],
+      [48.31, -4.71],
+      [48.295, -5.105],
+    ],
+  },
+  {
+    id: "chausey",
+    name: "Archipel de Chausey - vigilance réserve",
+    area: "Manche",
+    level: "warn",
+    rule: "Archipel à marnage extrême avec secteurs sensibles. Vérifier pêche, mouillage et navigation.",
+    coordinates: [
+      [48.935, -1.995],
+      [48.935, -1.695],
+      [48.775, -1.66],
+      [48.765, -1.99],
+    ],
+  },
+];
 
 const spots = [
   { name: "Cerbère", lat: 42.44, lon: 3.17, group: "Méditerranée - Côte Vermeille" },
@@ -1190,6 +1325,8 @@ const state = {
   nauticalEnabled: true,
   knownFishingLayer: null,
   knownFishingEnabled: true,
+  regulationLayer: null,
+  regulationEnabled: true,
   marineOverlayLayer: null,
   marineOverlayMode: "none",
   marineOverlayCache: new Map(),
@@ -1198,6 +1335,17 @@ const state = {
   marineOverlayRequestId: 0,
   marineOverlayTimer: null,
   marineOverlayLoading: false,
+  anchorLayer: null,
+  anchorWatch: {
+    active: false,
+    watchId: null,
+    anchor: null,
+    position: null,
+    drift: null,
+    status: "idle",
+    message: "",
+    alerted: false,
+  },
   activeFishFilters: new Set(["all"]),
   fishFilterOpen: false,
   activityFish: "loup",
@@ -1249,8 +1397,13 @@ const els = {
   mapZoomOut: document.querySelector("#mapZoomOut"),
   mapNauticalToggle: document.querySelector("#mapNauticalToggle"),
   mapFishingToggle: document.querySelector("#mapFishingToggle"),
+  mapRegulationToggle: document.querySelector("#mapRegulationToggle"),
+  anchorWatchBtn: document.querySelector("#anchorWatchBtn"),
   mapScale: document.querySelector("#mapScale"),
   mapAttribution: document.querySelector("#mapAttribution"),
+  safetyBanner: document.querySelector("#safetyBanner"),
+  safetyTitle: document.querySelector("#safetyTitle"),
+  safetyDetail: document.querySelector("#safetyDetail"),
   fishFilterControl: document.querySelector("#fishFilterControl"),
   fishFilterButton: document.querySelector("#fishFilterButton"),
   fishFilterLabel: document.querySelector("#fishFilterLabel"),
@@ -1335,7 +1488,11 @@ function initMapEngine() {
   state.knownFishingLayer = L.layerGroup();
   updateKnownFishingOverlay();
 
+  state.regulationLayer = L.layerGroup();
+  updateRegulationOverlay();
+
   state.marineOverlayLayer = L.layerGroup().addTo(state.leafletMap);
+  state.anchorLayer = L.layerGroup().addTo(state.leafletMap);
   state.leafletMarkers = L.layerGroup().addTo(state.leafletMap);
   state.leafletMap.on("click", selectLeafletMapPoint);
   state.leafletMap.on("moveend zoomend", syncLeafletState);
@@ -1417,6 +1574,7 @@ function restoreState() {
   state.selectedSpotName = spot.custom ? saved.customName ?? getCustomSpotName() : spot.name;
   state.nauticalEnabled = saved.nauticalEnabled !== false;
   state.knownFishingEnabled = saved.knownFishingEnabled !== false;
+  state.regulationEnabled = saved.regulationEnabled !== false;
   state.marineOverlayMode = normalizeMarineOverlayMode(saved.marineOverlayMode);
   state.activeFishFilters = normalizeFishFilters(saved.fishFilters);
   state.activityFish = normalizeActivityFish(saved.activityFish);
@@ -1438,6 +1596,10 @@ function applyWaterModeUI() {
 
   if (els.marineOverlayControl) {
     els.marineOverlayControl.hidden = !isSeaMode();
+  }
+
+  if (els.mapRegulationToggle) {
+    els.mapRegulationToggle.hidden = !isSeaMode();
   }
 
   const marineOnlyControls = [
@@ -1465,8 +1627,10 @@ function applyWaterModeUI() {
     button.classList.toggle("is-active", button.dataset.chart === state.activeChart);
   });
   updateNauticalOverlay();
+  updateRegulationOverlay();
   updateMarineOverlayControls();
   renderMarineOverlay();
+  renderSafetyStatus();
 }
 
 function setWaterMode(mode, options = {}) {
@@ -1699,6 +1863,10 @@ function renderSpotTools() {
   updateNauticalOverlay();
   renderKnownFishingMarkers();
   updateKnownFishingOverlay();
+  renderRegulationZones();
+  updateRegulationOverlay();
+  renderAnchorWatch();
+  renderSafetyStatus();
   renderSpotNameSheet();
 
   const active = getActiveSpot();
@@ -1745,6 +1913,358 @@ function updateKnownFishingOverlay() {
     state.knownFishingLayer.addTo(state.leafletMap);
   } else if (!state.knownFishingEnabled && hasLayer) {
     state.leafletMap.removeLayer(state.knownFishingLayer);
+  }
+}
+
+function updateRegulationOverlay() {
+  const enabled = state.regulationEnabled && isSeaMode();
+
+  if (els.mapRegulationToggle) {
+    els.mapRegulationToggle.classList.toggle("is-active", enabled);
+    els.mapRegulationToggle.setAttribute("aria-pressed", String(enabled));
+  }
+
+  if (!state.leafletMap || !state.regulationLayer) return;
+
+  const hasLayer = state.leafletMap.hasLayer(state.regulationLayer);
+  if (enabled && !hasLayer) {
+    state.regulationLayer.addTo(state.leafletMap);
+  } else if (!enabled && hasLayer) {
+    state.leafletMap.removeLayer(state.regulationLayer);
+  }
+}
+
+function renderRegulationZones() {
+  if (!state.regulationLayer) return;
+
+  state.regulationLayer.clearLayers();
+  if (!state.regulationEnabled || !isSeaMode()) return;
+
+  regulationZones.forEach((zone) => {
+    const polygon = L.polygon(zone.coordinates, {
+      color: zone.level === "danger" ? colors.gust : colors.wind,
+      fillColor: zone.level === "danger" ? colors.gust : colors.wind,
+      fillOpacity: zone.level === "danger" ? 0.18 : 0.12,
+      weight: 2,
+      dashArray: zone.level === "danger" ? "" : "7 6",
+      interactive: true,
+    });
+
+    polygon.bindTooltip(zone.name, {
+      direction: "top",
+      opacity: 0.96,
+      sticky: true,
+    });
+    polygon.bindPopup(`
+      <strong>${escapeHtml(zone.name)}</strong>
+      <span>${escapeHtml(zone.area)}</span>
+      <small>${zone.level === "danger" ? "Alerte réglementation" : "Vigilance réglementation"}</small>
+      <em>${escapeHtml(zone.rule)}</em>
+    `);
+    polygon.addTo(state.regulationLayer);
+  });
+}
+
+function toggleRegulationOverlay() {
+  if (!isSeaMode()) return;
+  state.regulationEnabled = !state.regulationEnabled;
+  updateRegulationOverlay();
+  renderRegulationZones();
+  renderSafetyStatus();
+  saveSettings();
+}
+
+function renderSafetyStatus() {
+  if (!els.safetyBanner || !els.safetyTitle || !els.safetyDetail) return;
+
+  const active = getActiveSpot();
+  const regulationStatus = isSeaMode() ? evaluateRegulationStatus(active.lat, active.lon) : null;
+  const anchorText = anchorWatchSummary();
+  let title = "Sécurité";
+  let detail = isSeaMode()
+    ? "Hors zone sensible connue autour de ce spot."
+    : "Zones marines masquées en eau douce.";
+  let mode = "ready";
+
+  if (regulationStatus?.inside) {
+    title = "Zone sensible";
+    detail = `${regulationStatus.zone.name}. ${regulationStatus.zone.rule}`;
+    mode = regulationStatus.zone.level === "danger" ? "alert" : "warn";
+  } else if (regulationStatus?.near) {
+    title = "Zone proche";
+    detail = `${formatScaleDistance(regulationStatus.distance)} de ${regulationStatus.zone.name}. Vérifier avant pêche.`;
+    mode = "warn";
+  }
+
+  if (anchorText) {
+    detail = `${detail} ${anchorText}`;
+    if (state.anchorWatch.status === "alert") mode = "alert";
+    if (state.anchorWatch.status === "starting" && mode === "ready") mode = "watch";
+  }
+
+  els.safetyTitle.textContent = title;
+  els.safetyDetail.textContent = detail;
+  els.safetyBanner.classList.toggle("is-alert", mode === "alert");
+  els.safetyBanner.classList.toggle("is-warn", mode === "warn");
+  els.safetyBanner.classList.toggle("is-watch", mode === "watch");
+}
+
+function evaluateRegulationStatus(lat, lon) {
+  if (!isValidNumber(lat) || !isValidNumber(lon)) return null;
+
+  const matches = regulationZones
+    .map((zone) => ({
+      zone,
+      inside: pointInPolygon(lat, lon, zone.coordinates),
+      distance: distanceToPolygonMeters(lat, lon, zone.coordinates),
+    }))
+    .sort((a, b) => a.distance - b.distance);
+  const closest = matches[0];
+  if (!closest) return null;
+
+  return {
+    ...closest,
+    near: !closest.inside && closest.distance <= REGULATION_WARNING_METERS,
+  };
+}
+
+function pointInPolygon(lat, lon, polygon) {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i, i += 1) {
+    const [latI, lonI] = polygon[i];
+    const [latJ, lonJ] = polygon[j];
+    const intersects = latI > lat !== latJ > lat && lon < ((lonJ - lonI) * (lat - latI)) / (latJ - latI) + lonI;
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+function distanceToPolygonMeters(lat, lon, polygon) {
+  if (pointInPolygon(lat, lon, polygon)) return 0;
+
+  return polygon.reduce((best, point, index) => {
+    const next = polygon[(index + 1) % polygon.length];
+    return Math.min(best, distanceToSegmentMeters({ lat, lon }, pointToCoord(point), pointToCoord(next)));
+  }, Infinity);
+}
+
+function pointToCoord(point) {
+  return { lat: point[0], lon: point[1] };
+}
+
+function distanceToSegmentMeters(point, start, end) {
+  const metersPerLat = 111320;
+  const metersPerLon = Math.cos(toRad(point.lat)) * 111320;
+  const startPoint = {
+    x: (start.lon - point.lon) * metersPerLon,
+    y: (start.lat - point.lat) * metersPerLat,
+  };
+  const endPoint = {
+    x: (end.lon - point.lon) * metersPerLon,
+    y: (end.lat - point.lat) * metersPerLat,
+  };
+  const dx = endPoint.x - startPoint.x;
+  const dy = endPoint.y - startPoint.y;
+  const lengthSq = dx * dx + dy * dy;
+  const t = lengthSq ? clamp((-startPoint.x * dx - startPoint.y * dy) / lengthSq, 0, 1) : 0;
+  const closest = {
+    x: startPoint.x + dx * t,
+    y: startPoint.y + dy * t,
+  };
+  return Math.hypot(closest.x, closest.y);
+}
+
+function toggleAnchorWatch() {
+  if (state.anchorWatch.active) {
+    stopAnchorWatch("Surveillance arrêtée.");
+    return;
+  }
+
+  startAnchorWatch();
+}
+
+function startAnchorWatch() {
+  if (!navigator.geolocation) {
+    state.anchorWatch = {
+      ...state.anchorWatch,
+      active: false,
+      status: "error",
+      message: "GPS indisponible sur ce navigateur.",
+    };
+    renderAnchorWatch();
+    renderSafetyStatus();
+    return;
+  }
+
+  state.anchorWatch = {
+    active: true,
+    watchId: null,
+    anchor: null,
+    position: null,
+    drift: null,
+    status: "starting",
+    message: "Recherche GPS pour poser l'ancre.",
+    alerted: false,
+  };
+  renderAnchorWatch();
+  renderSafetyStatus();
+
+  state.anchorWatch.watchId = navigator.geolocation.watchPosition(handleAnchorPosition, handleAnchorError, {
+    enableHighAccuracy: true,
+    maximumAge: 4000,
+    timeout: 12000,
+  });
+}
+
+function stopAnchorWatch(message = "") {
+  if (state.anchorWatch.watchId != null) {
+    navigator.geolocation?.clearWatch?.(state.anchorWatch.watchId);
+  }
+
+  state.anchorWatch = {
+    active: false,
+    watchId: null,
+    anchor: null,
+    position: null,
+    drift: null,
+    status: "idle",
+    message,
+    alerted: false,
+  };
+  renderAnchorWatch();
+  renderSafetyStatus();
+}
+
+function handleAnchorPosition(position) {
+  const current = {
+    lat: position.coords.latitude,
+    lon: position.coords.longitude,
+    accuracy: position.coords.accuracy,
+    updatedAt: new Date().toISOString(),
+  };
+  const anchor = state.anchorWatch.anchor ?? current;
+  const drift = distanceMeters(anchor, current);
+  const status = drift > ANCHOR_DRIFT_LIMIT_METERS ? "alert" : "watching";
+  const wasAlerted = state.anchorWatch.alerted;
+
+  state.anchorWatch = {
+    ...state.anchorWatch,
+    active: true,
+    anchor,
+    position: current,
+    drift,
+    status,
+    message: status === "alert" ? "Dérive supérieure à 30 m." : "Surveillance active.",
+    alerted: status === "alert",
+  };
+
+  if (status === "alert" && !wasAlerted) {
+    notifyAnchorDrift();
+  }
+
+  renderAnchorWatch();
+  renderSafetyStatus();
+}
+
+function handleAnchorError(error) {
+  const watchId = state.anchorWatch.watchId;
+  state.anchorWatch = {
+    ...state.anchorWatch,
+    active: false,
+    watchId: null,
+    status: "error",
+    message: error?.message ? `GPS: ${error.message}` : "Position GPS impossible.",
+  };
+  if (watchId != null) {
+    navigator.geolocation?.clearWatch?.(watchId);
+  }
+  renderAnchorWatch();
+  renderSafetyStatus();
+}
+
+function renderAnchorWatch() {
+  if (els.anchorWatchBtn) {
+    const active = state.anchorWatch.active || state.anchorWatch.status === "starting";
+    els.anchorWatchBtn.classList.toggle("is-active", active);
+    els.anchorWatchBtn.classList.toggle("is-alert", state.anchorWatch.status === "alert");
+    els.anchorWatchBtn.setAttribute("aria-pressed", String(active));
+    els.anchorWatchBtn.title = active ? "Arrêter la surveillance ancre" : "Surveillance ancre";
+    els.anchorWatchBtn.setAttribute("aria-label", els.anchorWatchBtn.title);
+  }
+
+  if (!state.anchorLayer) return;
+
+  state.anchorLayer.clearLayers();
+  if (!state.anchorWatch.anchor) return;
+
+  L.circle([state.anchorWatch.anchor.lat, state.anchorWatch.anchor.lon], {
+    radius: ANCHOR_DRIFT_LIMIT_METERS,
+    color: state.anchorWatch.status === "alert" ? colors.gust : colors.current,
+    fillColor: state.anchorWatch.status === "alert" ? colors.gust : colors.current,
+    fillOpacity: 0.12,
+    weight: 2,
+  }).addTo(state.anchorLayer);
+
+  L.marker([state.anchorWatch.anchor.lat, state.anchorWatch.anchor.lon], {
+    icon: L.divIcon({
+      className: "anchor-watch-marker",
+      html: anchorIcon(),
+      iconSize: [30, 30],
+      iconAnchor: [15, 15],
+    }),
+    keyboard: false,
+    title: "Ancre",
+  })
+    .bindTooltip("Ancre", { direction: "top", offset: [0, -12], opacity: 0.96 })
+    .addTo(state.anchorLayer);
+
+  if (state.anchorWatch.position && state.anchorWatch.drift > 2) {
+    L.polyline(
+      [
+        [state.anchorWatch.anchor.lat, state.anchorWatch.anchor.lon],
+        [state.anchorWatch.position.lat, state.anchorWatch.position.lon],
+      ],
+      {
+        color: state.anchorWatch.status === "alert" ? colors.gust : colors.current,
+        dashArray: "5 5",
+        weight: 2,
+      },
+    ).addTo(state.anchorLayer);
+  }
+}
+
+function anchorWatchSummary() {
+  if (state.anchorWatch.status === "idle") return "";
+  if (state.anchorWatch.status === "error") return state.anchorWatch.message ? `Ancre: ${state.anchorWatch.message}` : "";
+  if (state.anchorWatch.status === "starting") return "Ancre: recherche GPS.";
+  if (!isValidNumber(state.anchorWatch.drift)) return "Ancre: surveillance active.";
+
+  return `Ancre: ${formatNumber(state.anchorWatch.drift, 0)} m / ${ANCHOR_DRIFT_LIMIT_METERS} m.`;
+}
+
+function notifyAnchorDrift() {
+  navigator.vibrate?.([250, 120, 250, 120, 350]);
+  playAlertTone();
+}
+
+function playAlertTone() {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    const context = new AudioContextClass();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.value = 880;
+    gain.gain.setValueAtTime(0.0001, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.12, context.currentTime + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.42);
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + 0.45);
+    window.setTimeout(() => context.close(), 650);
+  } catch {
+    // Audio is best effort; vibration and visual alert remain active.
   }
 }
 
@@ -2945,6 +3465,14 @@ function bindEvents() {
     renderKnownFishingMarkers();
     updateKnownFishingOverlay();
     saveSettings();
+  });
+  els.mapRegulationToggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toggleRegulationOverlay();
+  });
+  els.anchorWatchBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toggleAnchorWatch();
   });
   els.fishFilterButton.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -4475,6 +5003,22 @@ function kmhToKnots(value) {
   return isValidNumber(value) ? value * 0.539957 : null;
 }
 
+function distanceMeters(a, b) {
+  if (!a || !b || !isValidNumber(a.lat) || !isValidNumber(a.lon) || !isValidNumber(b.lat) || !isValidNumber(b.lon)) {
+    return null;
+  }
+
+  const earthRadius = 6371008.8;
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const deltaLat = toRad(b.lat - a.lat);
+  const deltaLon = toRad(b.lon - a.lon);
+  const sinLat = Math.sin(deltaLat / 2);
+  const sinLon = Math.sin(deltaLon / 2);
+  const value = sinLat * sinLat + Math.cos(lat1) * Math.cos(lat2) * sinLon * sinLon;
+  return earthRadius * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
+}
+
 function average(values) {
   const clean = values.filter(isValidNumber);
   if (!clean.length) return null;
@@ -4704,6 +5248,7 @@ function saveSettings() {
     depth: Number(els.depth.value),
     nauticalEnabled: state.nauticalEnabled,
     knownFishingEnabled: state.knownFishingEnabled,
+    regulationEnabled: state.regulationEnabled,
     marineOverlayMode: state.marineOverlayMode,
     fishFilters: [...state.activeFishFilters],
     activityFish: state.activityFish,
@@ -4870,6 +5415,7 @@ function normalizeSettings(settings) {
     depth: isValidNumber(settings.depth) ? settings.depth : state.depth,
     nauticalEnabled: settings.nauticalEnabled !== false,
     knownFishingEnabled: settings.knownFishingEnabled !== false,
+    regulationEnabled: settings.regulationEnabled !== false,
     marineOverlayMode: normalizeMarineOverlayMode(settings.marineOverlayMode),
     fishFilters: Array.isArray(settings.fishFilters) ? settings.fishFilters : ["all"],
     activityFish: typeof settings.activityFish === "string" ? settings.activityFish : "",
@@ -4996,6 +5542,10 @@ function closeIcon() {
 
 function starIcon() {
   return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.9 5.9 6.5.9-4.7 4.6 1.1 6.4-5.8-3-5.8 3 1.1-6.4-4.7-4.6 6.5-.9L12 3Z"/></svg>`;
+}
+
+function anchorIcon() {
+  return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v14"/><path d="M8 7h8"/><path d="M5 14c0 4 3 7 7 7s7-3 7-7"/><path d="M5 14h4"/><path d="M15 14h4"/></svg>`;
 }
 
 function fishSpotIcon(type = "dorade") {
