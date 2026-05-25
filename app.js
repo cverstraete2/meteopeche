@@ -6160,16 +6160,91 @@ function drawCompass() {
     return;
   }
 
+  const snapshot = compassTimelineSnapshot(day);
+
   if (isSeaMode()) {
-    drawCompassArrow(ctx, cx, cy, radius * 0.82, day.surfaceCurrentDirection, colors.current, "Courant", false);
-    drawCompassArrow(ctx, cx, cy, radius * 0.68, day.depthDirection, colors.depth, `${state.depth} m`, false);
-    drawCompassArrow(ctx, cx, cy, radius * 0.55, reverseDirection(day.windDirection), colors.wind, "Vent", true);
-    drawCompassArrow(ctx, cx, cy, radius * 0.42, reverseDirection(day.waveDirection), colors.wave, "Houle", true);
+    drawCompassArrow(
+      ctx,
+      cx,
+      cy,
+      compassArrowLength(radius, 0.82, snapshot.surfaceCurrent, 1.1),
+      snapshot.surfaceCurrentDirection,
+      colors.current,
+      `Courant ${formatCompassValue(snapshot.surfaceCurrent, "kt", 1)}`,
+      false,
+    );
+    drawCompassArrow(
+      ctx,
+      cx,
+      cy,
+      compassArrowLength(radius, 0.68, snapshot.depthCurrent, 1),
+      snapshot.depthDirection,
+      colors.depth,
+      `Fond ${formatCompassValue(snapshot.depthCurrent, "kt", 1)}`,
+      false,
+    );
+    drawCompassArrow(
+      ctx,
+      cx,
+      cy,
+      compassArrowLength(radius, 0.55, snapshot.windSpeed, 18),
+      reverseDirection(snapshot.windDirection),
+      colors.wind,
+      `Vent ${formatCompassValue(snapshot.windSpeed, "kt", 0)}`,
+      true,
+    );
+    drawCompassArrow(
+      ctx,
+      cx,
+      cy,
+      compassArrowLength(radius, 0.42, snapshot.waveHeight, 1.4),
+      reverseDirection(snapshot.waveDirection),
+      colors.wave,
+      `Houle ${formatCompassValue(snapshot.waveHeight, "m", 1)}`,
+      true,
+    );
   } else {
-    drawCompassArrow(ctx, cx, cy, radius * 0.76, reverseDirection(day.windDirection), colors.wind, "Vent", true);
+    drawCompassArrow(
+      ctx,
+      cx,
+      cy,
+      compassArrowLength(radius, 0.76, snapshot.windSpeed, 18),
+      reverseDirection(snapshot.windDirection),
+      colors.wind,
+      `Vent ${formatCompassValue(snapshot.windSpeed, "kt", 0)}`,
+      true,
+    );
   }
 
   drawCompassStatusBadge(ctx, width, day);
+}
+
+function compassTimelineSnapshot(day) {
+  const sample = timelineSample(day);
+
+  return {
+    windSpeed: sample.windSpeed ?? day.windAvg,
+    windDirection: sample.windDirection ?? day.windDirection,
+    waveHeight: sample.waveHeight ?? day.waveAvg,
+    waveDirection: sample.waveDirection ?? day.waveDirection,
+    surfaceCurrent: sample.surfaceCurrent ?? day.surfaceCurrent,
+    surfaceCurrentDirection: sample.currentDirection ?? day.surfaceCurrentDirection,
+    depthCurrent: sample.depthCurrent ?? day.depthCurrent,
+    depthDirection: sample.depthDirection ?? day.depthDirection,
+  };
+}
+
+function compassArrowLength(radius, baseScale, value, reference) {
+  if (!isValidNumber(value) || !isValidNumber(reference) || reference <= 0) {
+    return radius * baseScale;
+  }
+
+  const factor = value <= 0.02 ? 0.34 : clamp(value / reference, 0.48, 1.18);
+  return radius * baseScale * factor;
+}
+
+function formatCompassValue(value, unit, decimals) {
+  return isValidNumber(value) ? `${formatNumber(value, decimals)} ${unit}` : "--";
 }
 
 function drawCompassStatusBadge(ctx, width, day) {
@@ -6737,6 +6812,18 @@ function timelineSample(day, minute = selectedTimelineMinute()) {
     airTemperature: interpolateTimelineValue(day.rows, minute, "airTemperature"),
     seaTemperature: interpolateTimelineValue(day.rows, minute, "seaTemperature"),
     seaLevel: interpolateTimelineValue(day.rows, minute, "seaLevel"),
+    windSpeed: interpolateTimelineValue(day.rows, minute, "windSpeed"),
+    windDirection: interpolateTimelineDirection(day.rows, minute, "windDirection"),
+    windGust: interpolateTimelineValue(day.rows, minute, "windGust"),
+    waveHeight: interpolateTimelineValue(day.rows, minute, "waveHeight"),
+    waveDirection: interpolateTimelineDirection(day.rows, minute, "waveDirection"),
+    wavePeriod: interpolateTimelineValue(day.rows, minute, "wavePeriod"),
+    swellHeight: interpolateTimelineValue(day.rows, minute, "swellHeight"),
+    swellDirection: interpolateTimelineDirection(day.rows, minute, "swellDirection"),
+    surfaceCurrent: interpolateTimelineValue(day.rows, minute, "surfaceCurrent"),
+    currentDirection: interpolateTimelineDirection(day.rows, minute, "currentDirection"),
+    depthCurrent: interpolateTimelineValue(day.rows, minute, "depthCurrent"),
+    depthDirection: interpolateTimelineDirection(day.rows, minute, "depthDirection"),
   };
 }
 
@@ -6782,6 +6869,24 @@ function interpolateTimelineValue(rows, minute, key) {
 
   const nearestValue = nearestTimelineRow(rows, minute)?.[key];
   return isValidNumber(nearestValue) ? nearestValue : null;
+}
+
+function interpolateTimelineDirection(rows, minute, key) {
+  const bounds = timelineBounds(rows, minute);
+  if (!bounds) return null;
+
+  const beforeValue = bounds.before.row?.[key];
+  const afterValue = bounds.after.row?.[key];
+  const span = bounds.after.minute - bounds.before.minute;
+
+  if (isValidNumber(beforeValue) && isValidNumber(afterValue) && span > 0) {
+    const progress = (minute - bounds.before.minute) / span;
+    const delta = ((afterValue - beforeValue + 540) % 360) - 180;
+    return normalizeDirection(beforeValue + delta * progress);
+  }
+
+  const nearestValue = nearestTimelineRow(rows, minute)?.[key];
+  return isValidNumber(nearestValue) ? normalizeDirection(nearestValue) : null;
 }
 
 function timelineX(rows, pointX, minute = selectedTimelineMinute()) {
