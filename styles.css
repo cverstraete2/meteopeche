@@ -1085,6 +1085,9 @@ body.is-map-fullscreen-active {
 .marine-overlay-icon {
   border: 0;
   background: transparent;
+  --overlay-color: var(--teal-dark);
+  --overlay-label: var(--teal-dark);
+  --overlay-soft: rgba(8, 125, 114, 0.14);
 }
 
 .marine-flow-marker {
@@ -1102,33 +1105,54 @@ body.is-map-fullscreen-active {
   width: calc(24px * var(--flow-strength, 1));
   height: calc(24px * var(--flow-strength, 1));
   place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.88);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  color: currentColor;
+  background: var(--overlay-color);
+  color: #fff;
   font-size: calc(22px * var(--flow-strength, 1));
   font-weight: 900;
   line-height: 1;
-  text-shadow: 0 1px 0 #fff;
+  text-shadow: 0 1px 3px rgba(23, 32, 29, 0.35);
   transform: rotate(var(--flow-rotation, 0deg));
-  box-shadow: 0 4px 12px rgba(23, 32, 29, 0.22);
+  box-shadow:
+    0 0 0 5px var(--overlay-soft),
+    0 4px 12px rgba(23, 32, 29, 0.24);
 }
 
 .marine-flow-marker strong {
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.94);
-  color: var(--ink);
+  background: var(--overlay-label);
+  color: #fff;
   padding: 2px 6px;
   font-size: 0.68rem;
   line-height: 1;
-  box-shadow: 0 3px 10px rgba(23, 32, 29, 0.14);
+  box-shadow: 0 3px 10px rgba(23, 32, 29, 0.18);
+}
+
+.marine-overlay-surface {
+  --overlay-color: #087d72;
+  --overlay-label: #075f57;
+  --overlay-soft: rgba(8, 125, 114, 0.2);
 }
 
 .marine-overlay-depth .marine-flow-marker {
-  color: var(--ink);
+  color: #283a2f;
+}
+
+.marine-overlay-depth {
+  --overlay-color: #283a2f;
+  --overlay-label: #17201d;
+  --overlay-soft: rgba(40, 58, 47, 0.22);
 }
 
 .marine-overlay-wave .marine-flow-marker {
-  color: var(--blue);
+  color: #2f74c0;
+}
+
+.marine-overlay-wave {
+  --overlay-color: #2f74c0;
+  --overlay-label: #245a8f;
+  --overlay-soft: rgba(47, 116, 192, 0.22);
 }
 
 .marine-overlay-focus .marine-flow-arrow {
@@ -1153,13 +1177,13 @@ body.is-map-fullscreen-active {
   grid-template-columns: auto auto;
   gap: 5px;
   min-width: 92px;
-  border-color: rgba(23, 50, 79, 0.36);
-  background: rgba(255, 255, 255, 0.96);
-  color: #17324f;
+  border-color: rgba(23, 50, 79, 0.46);
+  background: rgba(23, 50, 79, 0.94);
+  color: #fff;
 }
 
 .bathymetry-focus-label span {
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.72);
   font-size: 0.58rem;
   font-weight: 850;
   text-transform: uppercase;
