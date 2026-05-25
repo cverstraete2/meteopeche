@@ -31,10 +31,20 @@ Le build statique se génère dans `dist`:
 npm run build
 ```
 
-Le dépôt contient un workflow GitHub Pages (`.github/workflows/pages.yml`) qui construit et publie `dist` à chaque push sur `main`. Pour Cloudflare Pages, utiliser:
+La production est publiée sur Cloudflare Pages:
 
+- projet: `meteopeche`
+- URL: `https://meteopeche.pages.dev/`
 - build command: `npm run build`
 - output directory: `dist`
+
+Le projet Cloudflare Pages est connecté au dépôt GitHub et publie automatiquement `main`. Pour forcer un déploiement manuel depuis ce poste:
+
+```bash
+npm run deploy
+```
+
+Le workflow GitHub vérifie seulement que le build passe; il ne publie pas l'application.
 
 ## Note sur le courant en profondeur
 

@@ -5,6 +5,6 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "deploy": "npm run build && npx netlify-cli deploy --prod --dir=dist"
+    "deploy": "npm run build && npx wrangler pages deploy dist --project-name meteopeche --branch main"
   }
 }
