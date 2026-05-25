@@ -39,27 +39,26 @@ DATASETS = [
 
 def main():
     params = json.loads(sys.argv[1])
+    print_json(get_depth_current(params))
 
+
+def get_depth_current(params):
     try:
         import copernicusmarine
     except ImportError:
-        print_json(
-            {
-                "ok": False,
-                "error": "Le paquet Python copernicusmarine n'est pas installé.",
-                "setup": [
-                    "python3 -m pip install copernicusmarine pandas",
-                    "copernicusmarine login",
-                    "node server.mjs",
-                ],
-            }
-        )
-        return
+        return {
+            "ok": False,
+            "error": "Le paquet Python copernicusmarine n'est pas installé.",
+            "setup": [
+                "python3 -m pip install copernicusmarine pandas",
+                "copernicusmarine login",
+                "node server.mjs",
+            ],
+        }
 
     dataset = select_dataset(params["longitude"], params["latitude"])
     if dataset is None:
-        print_json({"ok": False, "error": "Ce point est hors couverture Copernicus Marine."})
-        return
+        return {"ok": False, "error": "Ce point est hors couverture Copernicus Marine."}
 
     try:
         radius = search_radius(dataset)
@@ -78,39 +77,31 @@ def main():
             disable_progress_bar=True,
         )
     except Exception as error:
-        print_json(
-            {
-                "ok": False,
-                "error": "Copernicus Marine n'a pas renvoyé de courant profondeur.",
-                "detail": str(error),
-                "datasetId": dataset["id"],
-            }
-        )
-        return
+        return {
+            "ok": False,
+            "error": "Copernicus Marine n'a pas renvoyé de courant profondeur.",
+            "detail": str(error),
+            "datasetId": dataset["id"],
+        }
 
     points = dataframe_to_points(df, params)
     if not points:
-        print_json(
-            {
-                "ok": False,
-                "error": "Aucune valeur uo/vo exploitable dans la réponse Copernicus.",
-                "datasetId": dataset["id"],
-            }
-        )
-        return
-
-    print_json(
-        {
-            "ok": True,
-            "source": "copernicus",
+        return {
+            "ok": False,
+            "error": "Aucune valeur uo/vo exploitable dans la réponse Copernicus.",
             "datasetId": dataset["id"],
-            "datasetLabel": dataset["label"],
-            "temporalResolution": dataset["temporalResolution"],
-            "requestedDepth": params["depth"],
-            "actualDepth": average([point["depth"] for point in points if point.get("depth") is not None]),
-            "hours": points,
         }
-    )
+
+    return {
+        "ok": True,
+        "source": "copernicus",
+        "datasetId": dataset["id"],
+        "datasetLabel": dataset["label"],
+        "temporalResolution": dataset["temporalResolution"],
+        "requestedDepth": params["depth"],
+        "actualDepth": average([point["depth"] for point in points if point.get("depth") is not None]),
+        "hours": points,
+    }
 
 
 def select_dataset(lon, lat):

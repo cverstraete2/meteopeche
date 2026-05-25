@@ -32,12 +32,19 @@ Le build statique se génère dans `dist`:
 npm run build
 ```
 
+Si un backend Copernicus externe est disponible, renseigner son URL avant le build:
+
+```bash
+METEOPECHE_API_BASE_URL=https://votre-api-copernicus.example.com npm run build
+```
+
 La production est publiée sur Cloudflare Pages:
 
 - projet: `meteopeche`
 - URL: `https://meteopeche.pages.dev/`
 - build command: `npm run build`
 - output directory: `dist`
+- variable optionnelle: `METEOPECHE_API_BASE_URL`, URL publique du backend Copernicus
 
 Le projet Cloudflare Pages est connecté au dépôt GitHub et publie automatiquement `main`. Pour forcer un déploiement manuel depuis ce poste:
 
@@ -70,7 +77,7 @@ Le bundle id iOS/Android est `com.meteopeche.app`. Avant soumission App Store / 
 
 Open-Meteo Marine expose le courant océanique de surface. Sans configuration Copernicus, le courant à profondeur reste une estimation simple calculée depuis le courant de surface et la profondeur choisie.
 
-Pour activer le courant réel en profondeur:
+Pour activer le courant réel en profondeur en local:
 
 ```bash
 python3 -m pip install copernicusmarine pandas cftime
@@ -83,3 +90,5 @@ L'application demandera alors au serveur local un extrait Copernicus Marine `uo`
 - Atlantique, Manche, Bretagne, Biscaye: `cmems_mod_ibi_phy_anfc_0.027deg-3D_PT1H-m`;
 - Méditerranée française: `cmems_mod_med_phy-cur_anfc_4.2km-3D_PT1H-m`;
 - secours global: `cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m`.
+
+Pour la production, Cloudflare Pages reste statique: l'API Copernicus est dans `backend/` et doit tourner sur un runtime Python séparé. Une fois ce backend déployé, renseigner `METEOPECHE_API_BASE_URL` dans Cloudflare Pages, puis redéployer.

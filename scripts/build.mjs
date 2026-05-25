@@ -1,19 +1,26 @@
-import { copyFile, cp, mkdir, rm } from "node:fs/promises";
+import { copyFile, cp, mkdir, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const dist = join(root, "dist");
 const localVendor = join(root, "vendor");
-const files = ["index.html", "styles.css", "app.js", "mobile-runtime.js", "_headers"];
+const files = ["index.html", "styles.css", "app.js", "mobile-runtime.js", "config.js", "_headers"];
 
 await rm(dist, { force: true, recursive: true });
 await rm(localVendor, { force: true, recursive: true });
 await mkdir(dist, { recursive: true });
 
 await Promise.all(files.map((file) => copyFile(join(root, file), join(dist, file))));
+await writeGeneratedConfig(join(dist, "config.js"));
 
 await Promise.all([copyVendor(join(dist, "vendor")), copyVendor(localVendor)]);
+
+async function writeGeneratedConfig(target) {
+  const apiBaseUrl = process.env.METEOPECHE_API_BASE_URL ?? "";
+  const payload = JSON.stringify({ apiBaseUrl });
+  await writeFile(target, `window.METEOPECHE_CONFIG = ${payload};\n`);
+}
 
 async function copyVendor(target) {
   await Promise.all([

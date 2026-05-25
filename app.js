@@ -2,6 +2,7 @@ const WEATHER_API = "https://api.open-meteo.com/v1/forecast";
 const MARINE_API = "https://marine-api.open-meteo.com/v1/marine";
 const BATHYMETRY_WMS = "https://ows.emodnet-bathymetry.eu/wms";
 const BATHYMETRY_REST = "https://rest.emodnet-bathymetry.eu/depth/point";
+const DEFAULT_API_BASE_URL = "";
 const STORE_KEY = "meteo-peche-store-v1";
 const LEGACY_FAVORITES_KEY = "meteo-peche-favorites";
 const LEGACY_SETTINGS_KEY = "meteo-peche-settings";
@@ -4371,13 +4372,27 @@ async function loadRealDepthCurrents(lat, lon) {
 function buildDepthCurrentUrl(lat, lon) {
   const start = state.hours[0]?.time;
   const end = state.hours.at(-1)?.time;
-  const url = new URL("/api/depth-current", window.location.origin);
+  const url = buildAppApiUrl("api/depth-current");
   url.searchParams.set("latitude", lat.toFixed(4));
   url.searchParams.set("longitude", lon.toFixed(4));
   url.searchParams.set("depth", state.depth.toFixed(1));
   url.searchParams.set("start", start);
   url.searchParams.set("end", end);
   return url;
+}
+
+function buildAppApiUrl(path) {
+  const configBase = typeof window.METEOPECHE_CONFIG?.apiBaseUrl === "string" ? window.METEOPECHE_CONFIG.apiBaseUrl.trim() : "";
+  const base = configBase || DEFAULT_API_BASE_URL || window.location.origin;
+  const normalizedBase = base.endsWith("/") ? base : `${base}/`;
+  const cleanPath = String(path).replace(/^\/+/, "");
+
+  try {
+    return new URL(cleanPath, normalizedBase);
+  } catch (error) {
+    console.info("Configuration API invalide, fallback origine locale.", error);
+    return new URL(cleanPath, window.location.origin);
+  }
 }
 
 function applyRealDepthData(hours, payload) {

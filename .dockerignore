@@ -1,0 +1,11 @@
+.git
+.venv
+.venv-copernicus
+.wrangler
+android
+dist
+ios
+node_modules
+vendor
+__pycache__
+.DS_Store
