@@ -1219,6 +1219,7 @@ const els = {
   activityMinor: document.querySelector("#activityMinor"),
   metricGrid: document.querySelector("#metricGrid"),
   metricTemplate: document.querySelector("#metricTemplate"),
+  waterInsights: document.querySelector("#waterInsights"),
   compassCanvas: document.querySelector("#compassCanvas"),
   chartCanvas: document.querySelector("#chartCanvas"),
   chartLegend: document.querySelector("#chartLegend"),
@@ -1438,7 +1439,7 @@ function applyWaterModeUI() {
 
   if (!isSeaMode()) {
     if (state.activeChart === "wave" || state.activeChart === "current") {
-      state.activeChart = "wind";
+      state.activeChart = "pressure";
     }
   }
 
@@ -1455,6 +1456,7 @@ function setWaterMode(mode, options = {}) {
   state.waterMode = nextMode;
   state.activeFishFilters = normalizeFishFilters(["all"]);
   state.activityFish = normalizeActivityFish(state.activityFish);
+  if (!isSeaMode()) state.activeChart = "pressure";
   state.fishFilterOpen = false;
   populateActivityFish();
   applyWaterModeUI();
@@ -2787,6 +2789,7 @@ function buildMarineUrl(lat, lon) {
     "ocean_current_velocity",
     "ocean_current_direction",
     "sea_surface_temperature",
+    "sea_level_height_msl",
   ].join(","));
   url.searchParams.set("timezone", "auto");
   url.searchParams.set("forecast_days", "7");
@@ -2943,6 +2946,7 @@ function mergeHourlyData(weather, marine) {
       actualDepth: state.depth,
       depthDataset: null,
       seaTemperature: valueAt(marineHourly.sea_surface_temperature, index),
+      seaLevel: valueAt(marineHourly.sea_level_height_msl, index),
       sunrise: daylight.sunrise,
       sunset: daylight.sunset,
     };
@@ -2992,6 +2996,13 @@ function buildDailySummaries(hours) {
       actualDepth: average(pluck(realDepthRows, "actualDepth")) ?? state.depth,
       depthDataset: realDepthRows[0]?.depthDataset ?? null,
       seaTemperature: average(pluck(rows, "seaTemperature")),
+      seaTemperatureTrend: valueDelta(pluck(rows, "seaTemperature")),
+      seaTemperatureRange: valueRange(pluck(rows, "seaTemperature")),
+      seaLevelMin: min(pluck(rows, "seaLevel")),
+      seaLevelMax: max(pluck(rows, "seaLevel")),
+      seaLevelRange: valueRange(pluck(rows, "seaLevel")),
+      tideEvents: tideEvents(rows),
+      turbidity: turbidityEstimate(rows),
       score: Math.round(average(hourlyScores) ?? 0),
       bestWindow: bestWindow(rows),
     };
@@ -3005,6 +3016,7 @@ function renderAll() {
   renderDayTabs();
   renderActivity(selected);
   renderMetrics(selected);
+  renderWaterInsights(selected);
   drawCompass();
   renderChart();
   renderDailyCards();
@@ -3399,6 +3411,63 @@ function renderMetrics(day) {
   els.bestWindow.textContent = day.bestWindow.label;
 }
 
+function renderWaterInsights(day) {
+  if (!els.waterInsights) return;
+
+  if (!day) {
+    els.waterInsights.innerHTML = "";
+    return;
+  }
+
+  const insights = isSeaMode()
+    ? [
+        {
+          label: "SST",
+          value: `${formatNumber(day.seaTemperature, 1)} °C`,
+          detail: seaTemperatureDetail(day),
+        },
+        {
+          label: "Front thermique",
+          value: thermalFrontLabel(day.seaTemperatureRange),
+          detail: `écart jour ${formatNumber(day.seaTemperatureRange, 1)} °C`,
+        },
+        {
+          label: "Marée",
+          value: tideRangeLabel(day.seaLevelRange),
+          detail: tideSummary(day),
+        },
+      ]
+    : [
+        {
+          label: "Turbidité",
+          value: day.turbidity.label,
+          detail: day.turbidity.detail,
+        },
+        {
+          label: "Pression",
+          value: formatPressureTrend(day.pressureTrend).replace("tendance ", ""),
+          detail: pressureFishingHint(day.pressureTrend),
+        },
+        {
+          label: "Pluie",
+          value: `${formatNumber(day.precipitationTotal, 1)} mm`,
+          detail: "cumul 24 h estimé",
+        },
+      ];
+
+  els.waterInsights.innerHTML = "";
+  insights.forEach((insight) => {
+    const card = document.createElement("article");
+    card.className = "water-insight";
+    card.innerHTML = `
+      <span>${escapeHtml(insight.label)}</span>
+      <strong>${escapeHtml(insight.value)}</strong>
+      <small>${escapeHtml(insight.detail)}</small>
+    `;
+    els.waterInsights.append(card);
+  });
+}
+
 function depthDetail(day) {
   const depth = formatNumber(day.actualDepth ?? state.depth, 0);
   const direction = compassLabel(day.depthDirection);
@@ -3414,6 +3483,44 @@ function formatPressureTrend(value) {
   if (!isValidNumber(value)) return "tendance --";
   const sign = value > 0 ? "+" : "";
   return `tendance ${sign}${formatNumber(value, 1)} hPa`;
+}
+
+function pressureFishingHint(value) {
+  if (!isValidNumber(value)) return "tendance indisponible";
+  if (value <= -2) return "baisse favorable aux carnassiers";
+  if (value >= 2) return "hausse souvent plus dure";
+  return "pression stable";
+}
+
+function seaTemperatureDetail(day) {
+  if (!isValidNumber(day.seaTemperatureTrend)) return "tendance SST indisponible";
+  const sign = day.seaTemperatureTrend > 0 ? "+" : "";
+  return `${sign}${formatNumber(day.seaTemperatureTrend, 1)} °C sur la journée`;
+}
+
+function thermalFrontLabel(range) {
+  if (!isValidNumber(range)) return "--";
+  if (range >= 1.2) return "Marqué";
+  if (range >= 0.5) return "Présent";
+  return "Faible";
+}
+
+function tideRangeLabel(range) {
+  if (!isValidNumber(range)) return "--";
+  if (range >= 4) return "Fort";
+  if (range >= 1.2) return "Modéré";
+  if (range >= 0.2) return "Faible";
+  return "Très faible";
+}
+
+function tideSummary(day) {
+  if (!isValidNumber(day.seaLevelRange)) return "hauteur d'eau indisponible";
+  const events = day.tideEvents ?? {};
+  const labels = [];
+  if (events.high?.hour) labels.push(`pleine ${events.high.hour}`);
+  if (events.low?.hour) labels.push(`basse ${events.low.hour}`);
+  const range = `marnage ${formatNumber(day.seaLevelRange, 2)} m`;
+  return labels.length ? `${labels.join(" · ")} · ${range}` : range;
 }
 
 function depthSeriesLabel(day) {
@@ -3546,7 +3653,9 @@ function renderChart() {
   renderLegend(config.series);
 
   const values = config.series.flatMap((serie) => serie.values).filter(isValidNumber);
-  const maxValue = niceMax(max(values) ?? 1);
+  const minValue = isValidNumber(config.minValue) ? config.minValue : 0;
+  const maxValue = isValidNumber(config.maxValue) ? config.maxValue : niceMax(max(values) ?? 1);
+  const valueRangeSize = Math.max(0.01, maxValue - minValue);
 
   ctx.strokeStyle = "#d9e2dc";
   ctx.lineWidth = 1;
@@ -3556,18 +3665,18 @@ function renderChart() {
   ctx.textBaseline = "middle";
 
   for (let step = 0; step <= 4; step += 1) {
-    const value = (maxValue / 4) * step;
-    const y = padding.top + chartHeight - (value / maxValue) * chartHeight;
+    const displayValue = minValue + (valueRangeSize / 4) * step;
+    const y = padding.top + chartHeight - ((displayValue - minValue) / valueRangeSize) * chartHeight;
     ctx.beginPath();
     ctx.moveTo(padding.left, y);
     ctx.lineTo(width - padding.right, y);
     ctx.stroke();
-    ctx.fillText(formatNumber(value, value >= 10 ? 0 : 1), padding.left - 10, y);
+    ctx.fillText(formatNumber(displayValue, displayValue >= 10 ? 0 : 1), padding.left - 10, y);
   }
 
   const rows = day.rows;
   const pointX = (index) => padding.left + (rows.length <= 1 ? 0 : (index / (rows.length - 1)) * chartWidth);
-  const pointY = (value) => padding.top + chartHeight - ((value ?? 0) / maxValue) * chartHeight;
+  const pointY = (value) => padding.top + chartHeight - (((value ?? minValue) - minValue) / valueRangeSize) * chartHeight;
 
   config.series.forEach((serie) => {
     ctx.save();
@@ -3631,6 +3740,23 @@ function chartConfig(day) {
       series: [
         { label: "Surface", color: colors.current, values: pluck(rows, "surfaceCurrent") },
         { label: depthSeriesLabel(day), color: colors.depth, values: pluck(rows, "depthCurrent"), dash: [7, 6] },
+      ],
+    };
+  }
+
+  if (state.activeChart === "pressure") {
+    const pressureValues = pluck(rows, "pressure").filter(isValidNumber);
+    const low = min(pressureValues);
+    const high = max(pressureValues);
+    const padding = Math.max(1.5, ((high ?? 1020) - (low ?? 1016)) * 0.25);
+
+    return {
+      title: "Pression",
+      unit: "hPa",
+      minValue: low == null ? 1008 : Math.floor(low - padding),
+      maxValue: high == null ? 1028 : Math.ceil(high + padding),
+      series: [
+        { label: "Pression", color: colors.pressure, values: pluck(rows, "pressure") },
       ],
     };
   }
@@ -4075,16 +4201,73 @@ function sum(values) {
   return clean.reduce((total, value) => total + value, 0);
 }
 
+function valueDelta(values) {
+  const clean = values.filter(isValidNumber);
+  if (clean.length < 2) return null;
+  return clean.at(-1) - clean[0];
+}
+
+function valueRange(values) {
+  const clean = values.filter(isValidNumber);
+  if (!clean.length) return null;
+  return Math.max(...clean) - Math.min(...clean);
+}
+
 function pressureTrend(rows) {
   const clean = rows.filter((row) => isValidNumber(row.pressure));
   if (clean.length < 2) return null;
   return clean.at(-1).pressure - clean[0].pressure;
 }
 
+function tideEvents(rows) {
+  const seaLevelRows = rows.filter((row) => isValidNumber(row.seaLevel));
+  if (!seaLevelRows.length) return {};
+
+  return {
+    high: seaLevelRows.reduce((best, row) => (row.seaLevel > best.seaLevel ? row : best), seaLevelRows[0]),
+    low: seaLevelRows.reduce((best, row) => (row.seaLevel < best.seaLevel ? row : best), seaLevelRows[0]),
+  };
+}
+
+function turbidityEstimate(rows) {
+  const precipitationTotal = sum(pluck(rows, "precipitation")) ?? 0;
+  const maxHourlyRain = max(pluck(rows, "precipitation")) ?? 0;
+  const pressureMove = Math.abs(pressureTrend(rows) ?? 0);
+  const score = clamp(precipitationTotal * 18 + maxHourlyRain * 32 + pressureMove * 5, 0, 100);
+
+  if (score >= 62) {
+    return {
+      score,
+      label: "Élevée",
+      detail: "eau probablement teintée",
+    };
+  }
+
+  if (score >= 32) {
+    return {
+      score,
+      label: "Moyenne",
+      detail: "clarté à surveiller",
+    };
+  }
+
+  return {
+    score,
+    label: "Faible",
+    detail: "eau plutôt claire",
+  };
+}
+
 function max(values) {
   const clean = values.filter(isValidNumber);
   if (!clean.length) return null;
   return Math.max(...clean);
+}
+
+function min(values) {
+  const clean = values.filter(isValidNumber);
+  if (!clean.length) return null;
+  return Math.min(...clean);
 }
 
 function circularMean(degrees, weights = []) {

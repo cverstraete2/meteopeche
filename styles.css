@@ -1274,6 +1274,39 @@ button:focus-visible {
   min-width: 0;
 }
 
+.water-insights {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.water-insight {
+  display: grid;
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfdfb;
+  padding: 12px;
+}
+
+.water-insight span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.water-insight strong {
+  color: var(--ink);
+  font-size: 1.02rem;
+  line-height: 1.1;
+}
+
+.water-insight small {
+  color: var(--muted);
+  line-height: 1.25;
+}
+
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1665,6 +1698,31 @@ footer {
   }
 
   .metric-detail {
+    display: none;
+  }
+
+  .water-insights {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .water-insight {
+    min-height: 70px;
+    gap: 4px;
+    padding: 8px 6px;
+    text-align: center;
+  }
+
+  .water-insight span {
+    font-size: 0.58rem;
+    line-height: 1;
+  }
+
+  .water-insight strong {
+    font-size: 0.9rem;
+  }
+
+  .water-insight small {
     display: none;
   }
 
