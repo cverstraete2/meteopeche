@@ -8,7 +8,7 @@ const WATER_MODES = {
   SEA: "sea",
   FRESHWATER: "freshwater",
 };
-const MOBILE_VIEWS = ["map", "activity", "weather", "forecast"];
+const MOBILE_VIEWS = ["map", "activity", "weather", "journal"];
 const MARINE_OVERLAY_MODES = ["none", "surface", "depth", "wave"];
 const waterModeConfig = {
   [WATER_MODES.SEA]: {
@@ -1381,6 +1381,12 @@ const els = {
   activityCanvas: document.querySelector("#activityCanvas"),
   activityMajor: document.querySelector("#activityMajor"),
   activityMinor: document.querySelector("#activityMinor"),
+  catchForm: document.querySelector("#catchForm"),
+  catchSpecies: document.querySelector("#catchSpecies"),
+  catchLength: document.querySelector("#catchLength"),
+  catchWeight: document.querySelector("#catchWeight"),
+  catchNotes: document.querySelector("#catchNotes"),
+  catchLogList: document.querySelector("#catchLogList"),
   conditionBrief: document.querySelector("#conditionBrief"),
   conditionDecision: document.querySelector("#conditionDecision"),
   conditionReason: document.querySelector("#conditionReason"),
@@ -1453,6 +1459,7 @@ function init() {
   restoreState();
   state.favorites = readFavorites();
   populateActivityFish();
+  populateCatchSpecies();
   initMapEngine();
   bindEvents();
   updateDepth();
@@ -1576,6 +1583,23 @@ function populateActivityFish() {
   els.activityFish.value = state.activityFish;
 }
 
+function populateCatchSpecies() {
+  if (!els.catchSpecies) return;
+
+  const previous = els.catchSpecies.value || state.activityFish;
+  els.catchSpecies.innerHTML = "";
+  getFishFilters()
+    .filter((filter) => filter.id !== "all")
+    .forEach((filter) => {
+      const option = document.createElement("option");
+      option.value = filter.id;
+      option.textContent = filter.label;
+      els.catchSpecies.append(option);
+    });
+
+  els.catchSpecies.value = normalizeActivityFish(previous);
+}
+
 function restoreState() {
   const saved = readSavedSettings();
   state.waterMode = normalizeWaterMode(saved.waterMode);
@@ -1661,6 +1685,7 @@ function setWaterMode(mode, options = {}) {
   if (!isSeaMode()) state.activeChart = "pressure";
   state.fishFilterOpen = false;
   populateActivityFish();
+  populateCatchSpecies();
   applyWaterModeUI();
   renderSpotTools();
   saveSettings();
@@ -1673,6 +1698,7 @@ function setWaterMode(mode, options = {}) {
 }
 
 function normalizeMobileView(view) {
+  if (view === "forecast") return "weather";
   return MOBILE_VIEWS.includes(view) ? view : "map";
 }
 
@@ -3574,8 +3600,34 @@ function bindEvents() {
   });
   els.activityFish.addEventListener("change", () => {
     state.activityFish = normalizeActivityFish(els.activityFish.value);
+    if (els.catchSpecies) els.catchSpecies.value = state.activityFish;
     renderAll();
     saveSettings();
+  });
+  els.catchForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const entry = saveCatchLogEntry(createCatchLogEntry({
+      species: els.catchSpecies.value || state.activityFish,
+      measurements: {
+        lengthCm: readOptionalNumber(els.catchLength.value),
+        weightKg: readOptionalNumber(els.catchWeight.value),
+      },
+      notes: els.catchNotes.value.trim(),
+    }));
+
+    if (!entry) return;
+    els.catchLength.value = "";
+    els.catchWeight.value = "";
+    els.catchNotes.value = "";
+    renderCatchJournal();
+  });
+  els.catchLogList?.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const deleteButton = target.closest("[data-catch-delete]");
+    if (!deleteButton) return;
+    deleteCatchLogEntry(deleteButton.dataset.catchDelete);
+    renderCatchJournal();
   });
   document.addEventListener("click", () => {
     if (!state.fishFilterOpen) return;
@@ -3925,6 +3977,7 @@ function renderAll() {
   drawCompass();
   renderChart();
   renderDailyCards();
+  renderCatchJournal();
   renderMarineOverlay();
 }
 
@@ -4888,6 +4941,112 @@ function renderDailyCards() {
   });
 }
 
+function renderCatchJournal() {
+  if (!els.catchLogList) return;
+
+  const entries = readCatchLog();
+  if (!entries.length) {
+    els.catchLogList.innerHTML = `
+      <div class="journal-empty">
+        <strong>Aucune prise enregistrée</strong>
+        <span>Ajoute une prise pour conserver le spot, la météo, la pression et la lune du moment.</span>
+      </div>
+    `;
+    return;
+  }
+
+  els.catchLogList.innerHTML = entries.map((entry) => {
+    const measurements = formatCatchMeasurements(entry.measurements);
+    const notes = entry.notes
+      ? `<p class="journal-notes">${escapeHtml(entry.notes)}</p>`
+      : "";
+    const tags = catchWeatherTags(entry)
+      .map((tag) => `<span class="journal-tag">${escapeHtml(tag)}</span>`)
+      .join("");
+
+    return `
+      <article class="journal-entry">
+        <div class="journal-entry-head">
+          <div class="journal-title">
+            <strong>${escapeHtml(getFishLabel(entry.species))}</strong>
+            <span>${escapeHtml(formatCatchDate(entry.caughtAt))}</span>
+          </div>
+          <button class="icon-button journal-delete" type="button" data-catch-delete="${escapeHtml(entry.id)}" aria-label="Supprimer cette prise">
+            ${trashIcon()}
+          </button>
+        </div>
+        <div class="journal-meta">
+          <span>${escapeHtml(entry.spot.name)}</span>
+          <span>${escapeHtml(formatCoordinates(entry.spot.lat, entry.spot.lon))}</span>
+          <span>${escapeHtml(waterModeConfig[entry.waterMode]?.label ?? "Mode")}</span>
+          ${measurements ? `<span>${escapeHtml(measurements)}</span>` : ""}
+        </div>
+        ${tags ? `<div class="journal-tags">${tags}</div>` : ""}
+        ${notes}
+      </article>
+    `;
+  }).join("");
+}
+
+function formatCatchMeasurements(measurements = {}) {
+  const parts = [];
+  if (isValidNumber(measurements.lengthCm)) parts.push(`${formatNumber(measurements.lengthCm, 0)} cm`);
+  if (isValidNumber(measurements.weightKg)) parts.push(`${formatNumber(measurements.weightKg, 1)} kg`);
+  return parts.join(" · ");
+}
+
+function catchWeatherTags(entry) {
+  const snapshot = entry.weatherSnapshot ?? {};
+  const tags = [];
+
+  if (isValidNumber(snapshot.windSpeed)) {
+    tags.push(`Vent ${formatNumber(snapshot.windSpeed, 0)} kt ${compassLabel(snapshot.windDirection)}`);
+  }
+  if (isValidNumber(snapshot.pressure)) {
+    tags.push(`Pression ${formatNumber(snapshot.pressure, 0)} hPa`);
+  }
+
+  if (entry.waterMode === WATER_MODES.SEA) {
+    if (isValidNumber(snapshot.seaTemperature)) tags.push(`Eau ${formatNumber(snapshot.seaTemperature, 1)} °C`);
+    if (isValidNumber(snapshot.waveHeight)) tags.push(`Houle ${formatNumber(snapshot.waveHeight, 1)} m`);
+    if (isValidNumber(snapshot.surfaceCurrent)) tags.push(`Surface ${formatNumber(snapshot.surfaceCurrent, 1)} kt`);
+    if (isValidNumber(snapshot.depthCurrent)) tags.push(`Prof. ${formatNumber(snapshot.depthCurrent, 1)} kt`);
+  } else {
+    if (isValidNumber(snapshot.airTemperature)) tags.push(`Air ${formatNumber(snapshot.airTemperature, 1)} °C`);
+    if (isValidNumber(snapshot.precipitation)) tags.push(`Pluie ${formatNumber(snapshot.precipitation, 1)} mm`);
+    if (isValidNumber(snapshot.cloudCover)) tags.push(`Nuages ${formatNumber(snapshot.cloudCover, 0)} %`);
+  }
+
+  if (isValidNumber(snapshot.moonPhase)) {
+    tags.push(`Lune ${moonPhaseLabel(snapshot.moonPhase)}`);
+  }
+
+  return tags;
+}
+
+function formatCatchDate(value) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "--";
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function moonPhaseLabel(phase) {
+  const value = ((phase % 1) + 1) % 1;
+  if (value < 0.04 || value >= 0.96) return "nouvelle";
+  if (value < 0.22) return "croissante";
+  if (value < 0.29) return "1er quartier";
+  if (value < 0.46) return "gibbeuse +";
+  if (value < 0.54) return "pleine";
+  if (value < 0.72) return "gibbeuse -";
+  if (value < 0.79) return "dernier quartier";
+  return "décroissante";
+}
+
 function locateUser() {
   if (!navigator.geolocation) {
     setStatus("Localisation absente", "error");
@@ -5466,6 +5625,13 @@ function formatNumber(value, digits = 0) {
   }).format(value);
 }
 
+function readOptionalNumber(value) {
+  const normalized = String(value ?? "").trim().replace(",", ".");
+  if (!normalized) return null;
+  const number = Number(normalized);
+  return Number.isFinite(number) && number >= 0 ? number : null;
+}
+
 function colorWash(color) {
   return `${color}1f`;
 }
@@ -5556,6 +5722,13 @@ function saveCatchLogEntry(entry) {
     store.catchLog = [normalizedEntry, ...store.catchLog.filter((item) => item.id !== normalizedEntry.id)];
   });
   return normalizedEntry;
+}
+
+function deleteCatchLogEntry(id) {
+  if (!id) return;
+  updateAppStore((store) => {
+    store.catchLog = store.catchLog.filter((entry) => entry.id !== id);
+  });
 }
 
 function createCatchLogEntry(input = {}) {

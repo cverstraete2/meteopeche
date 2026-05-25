@@ -250,7 +250,7 @@
           </aside>
         </section>
 
-        <section class="day-strip" id="dayTabs" data-mobile-view="activity weather forecast" aria-label="Jours disponibles"></section>
+        <section class="day-strip" id="dayTabs" data-mobile-view="activity weather" aria-label="Jours disponibles"></section>
 
         <section class="activity-panel" data-mobile-view="activity" aria-label="Activité des poissons">
           <div class="section-head">
@@ -341,7 +341,7 @@
           <div class="chart-legend" id="chartLegend"></div>
         </section>
 
-        <section class="daily-panel" data-mobile-view="forecast" aria-label="Moyennes des prochains jours">
+        <section class="daily-panel" data-mobile-view="weather" aria-label="Moyennes des prochains jours">
           <div class="section-head">
             <div>
               <span class="eyebrow">Prévision</span>
@@ -349,6 +349,35 @@
             </div>
           </div>
           <div class="daily-grid" id="dailyGrid"></div>
+        </section>
+
+        <section class="journal-panel" data-mobile-view="journal" aria-label="Journal de prises">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Journal</span>
+              <h2>Journal de prises</h2>
+            </div>
+          </div>
+          <form class="catch-form" id="catchForm">
+            <label class="field" for="catchSpecies">
+              <span>Espèce</span>
+              <select id="catchSpecies"></select>
+            </label>
+            <label class="field" for="catchLength">
+              <span>Taille cm</span>
+              <input id="catchLength" type="number" min="0" step="1" inputmode="decimal" placeholder="42" />
+            </label>
+            <label class="field" for="catchWeight">
+              <span>Poids kg</span>
+              <input id="catchWeight" type="number" min="0" step="0.1" inputmode="decimal" placeholder="1.2" />
+            </label>
+            <label class="field catch-notes" for="catchNotes">
+              <span>Notes</span>
+              <input id="catchNotes" type="text" maxlength="120" autocomplete="off" placeholder="Leurre, poste, comportement..." />
+            </label>
+            <button class="primary-button" type="submit">Ajouter prise</button>
+          </form>
+          <div class="journal-list" id="catchLogList"></div>
         </section>
       </main>
 
@@ -378,19 +407,15 @@
           </svg>
           <span>Météo</span>
         </button>
-        <button class="mobile-tab" type="button" data-mobile-tab="forecast">
+        <button class="mobile-tab" type="button" data-mobile-tab="journal">
           <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M7 3v3" />
-            <path d="M17 3v3" />
-            <path d="M4 8h16" />
-            <path d="M5 5h14v16H5Z" />
-            <path d="M8 12h2" />
-            <path d="M12 12h2" />
-            <path d="M16 12h2" />
-            <path d="M8 16h2" />
-            <path d="M12 16h2" />
+            <path d="M8 5h8" />
+            <path d="M9 3h6l1 3H8Z" />
+            <path d="M6 5h12v16H6Z" />
+            <path d="M9 11h6" />
+            <path d="M9 15h4" />
           </svg>
-          <span>Jours</span>
+          <span>Journal</span>
         </button>
       </nav>
 
@@ -411,6 +436,6 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-    <script src="app.js?v=20260525-condition-brief" defer></script>
+    <script src="app.js?v=20260525-journal-ui" defer></script>
   </body>
 </html>
