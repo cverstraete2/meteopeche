@@ -166,6 +166,12 @@ footer {
   color: var(--good);
 }
 
+.preferences-nav-button.is-active {
+  border-color: rgba(8, 125, 114, 0.34);
+  background: rgba(8, 125, 114, 0.12);
+  color: var(--teal-dark);
+}
+
 main {
   display: grid;
   gap: 18px;
@@ -199,11 +205,34 @@ main {
   padding: 16px;
 }
 
+.preferences-page {
+  max-width: 1040px;
+  justify-self: center;
+  width: 100%;
+}
+
+.preference-head-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.preferences-back {
+  white-space: nowrap;
+}
+
 .preference-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(160px, 1fr)) minmax(180px, 0.85fr) minmax(220px, 1.1fr);
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
   gap: 12px;
   align-items: end;
+}
+
+.preference-control-mode,
+.preference-depth {
+  grid-column: span 2;
 }
 
 .preference-control,
@@ -2770,6 +2799,7 @@ footer {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .preference-control-mode,
   .preference-depth {
     grid-column: 1 / -1;
   }
@@ -2866,9 +2896,19 @@ footer {
     padding: 12px;
   }
 
+  .preference-head-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .preference-grid {
     grid-template-columns: 1fr;
     gap: 10px;
+  }
+
+  .preference-control-mode,
+  .preference-depth {
+    grid-column: auto;
   }
 
   .preference-summary {
@@ -3400,7 +3440,7 @@ footer {
     left: 10px;
     z-index: 1200;
     display: grid;
-    grid-template-columns: repeat(7, minmax(64px, 1fr));
+    grid-template-columns: repeat(8, minmax(64px, 1fr));
     gap: 4px;
     overflow-x: auto;
     overscroll-behavior-x: contain;

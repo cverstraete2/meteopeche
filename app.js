@@ -10,7 +10,7 @@ const WATER_MODES = {
   SEA: "sea",
   FRESHWATER: "freshwater",
 };
-const MOBILE_VIEWS = ["map", "activity", "tides", "weather", "astro", "rigging", "journal"];
+const MOBILE_VIEWS = ["map", "activity", "tides", "weather", "astro", "rigging", "journal", "preferences"];
 const MARINE_OVERLAY_MODES = ["none", "surface", "depth", "wave"];
 const waterModeConfig = {
   [WATER_MODES.SEA]: {
@@ -1429,6 +1429,7 @@ const els = {
   preferenceDepth: document.querySelector("#preferenceDepth"),
   preferenceDepthOutput: document.querySelector("#preferenceDepthOutput"),
   preferenceSummary: document.querySelector("#preferenceSummary"),
+  preferencesBack: document.querySelector("#preferencesBack"),
   activityFish: document.querySelector("#activityFish"),
   activityRing: document.querySelector("#activityRing"),
   activityScore: document.querySelector("#activityScore"),
@@ -1902,6 +1903,7 @@ function sectionSupportsMobileView(section, view) {
 
 function applyMobileNavigationUI() {
   const mobile = isMobileLayout();
+  const standaloneView = state.activeMobileView === "preferences";
   document.documentElement.dataset.currentMobileView = state.activeMobileView;
 
   els.mobileTabButtons.forEach((button) => {
@@ -1911,14 +1913,10 @@ function applyMobileNavigationUI() {
   });
 
   els.mobileViewSections.forEach((section) => {
-    section.hidden = mobile && !sectionSupportsMobileView(section, state.activeMobileView);
+    const preferenceSection = sectionSupportsMobileView(section, "preferences");
+    const supportsActiveView = sectionSupportsMobileView(section, state.activeMobileView);
+    section.hidden = standaloneView ? !supportsActiveView : preferenceSection || (mobile && !supportsActiveView);
   });
-
-  if (!mobile) {
-    els.mobileViewSections.forEach((section) => {
-      section.hidden = false;
-    });
-  }
 }
 
 function refreshVisibleView() {
@@ -1937,7 +1935,7 @@ function refreshVisibleView() {
 function setMobileView(view) {
   state.activeMobileView = normalizeMobileView(view);
   applyMobileNavigationUI();
-  if (isMobileLayout()) {
+  if (isMobileLayout() || state.activeMobileView === "preferences") {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   refreshVisibleView();
@@ -3929,6 +3927,7 @@ function bindEvents() {
   els.mobileTabButtons.forEach((button) => {
     button.addEventListener("click", () => setMobileView(button.dataset.mobileTab));
   });
+  els.preferencesBack?.addEventListener("click", () => setMobileView("map"));
 
   els.spotPanelButton.addEventListener("click", () => setSpotPanelOpen(!state.spotPanelOpen));
   els.spotPanelClose.addEventListener("click", () => setSpotPanelOpen(false));

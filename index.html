@@ -24,6 +24,7 @@
           </div>
         </div>
         <div class="topbar-actions">
+          <button class="ghost-button preferences-nav-button" type="button" data-mobile-tab="preferences">Préférences</button>
           <div class="status-pill" id="statusPill">Prêt</div>
         </div>
       </header>
@@ -66,13 +67,16 @@
           </form>
         </section>
 
-        <section class="preferences-panel" data-mobile-view="map activity weather" aria-label="Préférences pêche">
+        <section class="preferences-panel preferences-page" id="preferencesPage" data-mobile-view="preferences" aria-label="Préférences pêche" hidden>
           <div class="section-head">
             <div>
               <span class="eyebrow">Profil</span>
               <h2>Préférences pêche</h2>
             </div>
-            <div class="preference-summary" id="preferenceSummary" aria-live="polite"></div>
+            <div class="preference-head-actions">
+              <div class="preference-summary" id="preferenceSummary" aria-live="polite"></div>
+              <button class="ghost-button preferences-back" id="preferencesBack" type="button">Retour carte</button>
+            </div>
           </div>
           <div class="preference-grid">
             <div class="preference-control preference-control-mode">
@@ -615,6 +619,13 @@
           </svg>
           <span>Journal</span>
         </button>
+        <button class="mobile-tab" type="button" data-mobile-tab="preferences">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.2 2.2-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21h-3.2v-.6a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1-2.2-2.2.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H4v-3.2h.6a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1 2.2-2.2.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V3h3.2v.6a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1 2.2 2.2-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.6v3.2h-.6a1.7 1.7 0 0 0-1.6 1Z" />
+          </svg>
+          <span>Prefs</span>
+        </button>
       </nav>
 
       <footer>
@@ -634,6 +645,6 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-    <script src="app.js?v=20260525-compass-hourly" defer></script>
+    <script src="app.js?v=20260525-preferences-page" defer></script>
   </body>
 </html>
