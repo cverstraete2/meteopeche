@@ -318,7 +318,10 @@
           <div class="weather-summary">
             <article class="condition-brief" id="conditionBrief">
               <div class="condition-brief-main">
-                <span class="eyebrow">Décision rapide</span>
+                <div class="condition-status-row">
+                  <span class="eyebrow">Décision rapide</span>
+                  <span class="condition-go-nogo" id="conditionGoNoGo">--</span>
+                </div>
                 <h2 id="conditionDecision">--</h2>
                 <p id="conditionReason">--</p>
               </div>
@@ -495,6 +498,6 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-    <script src="app.js?v=20260525-overlay-all-zooms" defer></script>
+    <script src="app.js?v=20260525-go-no-go" defer></script>
   </body>
 </html>

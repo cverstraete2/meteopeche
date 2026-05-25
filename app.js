@@ -1511,6 +1511,7 @@ const els = {
   catchNotes: document.querySelector("#catchNotes"),
   catchLogList: document.querySelector("#catchLogList"),
   conditionBrief: document.querySelector("#conditionBrief"),
+  conditionGoNoGo: document.querySelector("#conditionGoNoGo"),
   conditionDecision: document.querySelector("#conditionDecision"),
   conditionReason: document.querySelector("#conditionReason"),
   conditionScore: document.querySelector("#conditionScore"),
@@ -4741,6 +4742,8 @@ function renderConditionBrief(day) {
   if (!els.conditionBrief) return;
 
   if (!day) {
+    els.conditionGoNoGo.textContent = "--";
+    els.conditionGoNoGo.className = "condition-go-nogo";
     els.conditionDecision.textContent = "--";
     els.conditionReason.textContent = "Données indisponibles.";
     els.conditionScore.textContent = "--";
@@ -4749,16 +4752,20 @@ function renderConditionBrief(day) {
   }
 
   const score = dayActivityScore(day);
+  const goNoGo = weatherGoNoGo(day);
   const decision = conditionDecision(day, score);
-  const facts = conditionFacts(day, score);
+  const facts = conditionFacts(day, score, goNoGo);
 
+  els.conditionGoNoGo.textContent = goNoGo.label;
+  els.conditionGoNoGo.className = `condition-go-nogo ${goNoGo.tone}`.trim();
+  els.conditionGoNoGo.title = goNoGo.detail;
   els.conditionDecision.textContent = decision.title;
-  els.conditionReason.textContent = decision.detail;
+  els.conditionReason.textContent = goNoGo.tone === "good" ? decision.detail : `${goNoGo.detail} ${decision.detail}`;
   els.conditionScore.textContent = String(score);
   els.conditionFacts.innerHTML = "";
-  els.conditionBrief.classList.toggle("is-good", decision.tone === "good");
-  els.conditionBrief.classList.toggle("is-warn", decision.tone === "warn");
-  els.conditionBrief.classList.toggle("is-bad", decision.tone === "bad");
+  els.conditionBrief.classList.toggle("is-good", goNoGo.tone === "good");
+  els.conditionBrief.classList.toggle("is-warn", goNoGo.tone === "warn");
+  els.conditionBrief.classList.toggle("is-bad", goNoGo.tone === "bad");
 
   facts.forEach((fact) => {
     const item = document.createElement("span");
@@ -4766,6 +4773,56 @@ function renderConditionBrief(day) {
     item.innerHTML = `<strong>${escapeHtml(fact.label)}</strong>${escapeHtml(fact.value)}`;
     els.conditionFacts.append(item);
   });
+}
+
+function weatherGoNoGo(day) {
+  const warnings = [];
+  const blockers = [];
+
+  const addLimit = (label, value, warningLimit, blockerLimit, unit, digits = 0) => {
+    if (!isValidNumber(value)) return;
+    const formatted = `${label} ${formatNumber(value, digits)} ${unit}`;
+    if (value >= blockerLimit) blockers.push(formatted);
+    else if (value >= warningLimit) warnings.push(formatted);
+  };
+
+  addLimit("Vent", day.windAvg, 16, 22, "kt");
+  addLimit("Rafales", day.windGustMax, 24, 32, "kt");
+  addLimit("Pluie", day.precipitationTotal, isSeaMode() ? 5 : 6, 15, "mm", 1);
+
+  if (isSeaMode()) {
+    addLimit("Houle moy.", day.waveAvg, 0.9, 1.4, "m", 1);
+    addLimit("Houle max", day.waveMax, 1.2, 1.8, "m", 1);
+    addLimit("Courant", day.surfaceCurrent, 1, 1.5, "kt", 1);
+  } else if (day.turbidity) {
+    if (day.turbidity.score >= 70) blockers.push(`Eau ${day.turbidity.label.toLowerCase()}`);
+    else if (day.turbidity.score >= 45) warnings.push(`Eau ${day.turbidity.label.toLowerCase()}`);
+  }
+
+  if (blockers.length) {
+    return {
+      tone: "bad",
+      label: "NO GO",
+      detail: `Météo défavorable: ${blockers.slice(0, 2).join(", ")}.`,
+      reasons: blockers,
+    };
+  }
+
+  if (warnings.length) {
+    return {
+      tone: "warn",
+      label: "À surveiller",
+      detail: `Sortie possible avec prudence: ${warnings.slice(0, 2).join(", ")}.`,
+      reasons: warnings,
+    };
+  }
+
+  return {
+    tone: "good",
+    label: "GO",
+    detail: "Météo exploitable sur les seuils principaux.",
+    reasons: ["Météo stable"],
+  };
 }
 
 function conditionDecision(day, score) {
@@ -4840,8 +4897,13 @@ function conditionDecision(day, score) {
   };
 }
 
-function conditionFacts(day, score) {
+function conditionFacts(day, score, goNoGo = weatherGoNoGo(day)) {
   const facts = [
+    {
+      label: "Avis",
+      value: goNoGo.label,
+      tone: goNoGo.tone === "good" ? "" : goNoGo.tone,
+    },
     {
       label: "Score",
       value: `${score}/100`,
@@ -4858,16 +4920,17 @@ function conditionFacts(day, score) {
       {
         label: "Vent",
         value: `${formatNumber(day.windAvg, 0)} kt`,
-        tone: (day.windAvg ?? 0) >= 16 ? "warn" : "",
+        tone: (day.windAvg ?? 0) >= 22 ? "bad" : (day.windAvg ?? 0) >= 16 ? "warn" : "",
       },
       {
         label: "Houle",
         value: `${formatNumber(day.waveAvg, 1)} m`,
-        tone: (day.waveAvg ?? 0) >= 1 ? "warn" : "",
+        tone: (day.waveAvg ?? 0) >= 1.4 ? "bad" : (day.waveAvg ?? 0) >= 0.9 ? "warn" : "",
       },
       {
         label: "Courant",
         value: `${formatNumber(day.surfaceCurrent, 1)} kt`,
+        tone: (day.surfaceCurrent ?? 0) >= 1.5 ? "bad" : (day.surfaceCurrent ?? 0) >= 1 ? "warn" : "",
       },
     );
   } else {

@@ -1946,6 +1946,46 @@ body.is-map-fullscreen-active {
   min-width: 0;
 }
 
+.condition-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.condition-go-nogo {
+  flex: 0 0 auto;
+  border: 1px solid rgba(89, 101, 111, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--muted);
+  padding: 5px 10px;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1;
+  box-shadow: 0 6px 16px rgba(23, 32, 29, 0.08);
+}
+
+.condition-go-nogo.good {
+  border-color: rgba(22, 135, 95, 0.34);
+  background: rgba(22, 135, 95, 0.12);
+  color: #16875f;
+}
+
+.condition-go-nogo.warn {
+  border-color: rgba(185, 115, 34, 0.34);
+  background: rgba(185, 115, 34, 0.12);
+  color: var(--warn);
+}
+
+.condition-go-nogo.bad {
+  border-color: rgba(180, 66, 59, 0.36);
+  background: rgba(180, 66, 59, 0.12);
+  color: var(--bad);
+}
+
 .condition-brief h2 {
   font-size: clamp(1.25rem, 2vw, 1.75rem);
 }
