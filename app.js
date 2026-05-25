@@ -1341,6 +1341,8 @@ const state = {
   leafletMarkers: null,
   nauticalLayer: null,
   nauticalEnabled: true,
+  coastalLayer: null,
+  coastalEnabled: true,
   emodnetBathymetryLayer: null,
   bathymetryLayer: null,
   bathymetryEnabled: true,
@@ -1446,6 +1448,7 @@ const els = {
   mapLayerClose: document.querySelector("#mapLayerClose"),
   mapLayerBackdrop: document.querySelector("#mapLayerBackdrop"),
   mapNauticalToggle: document.querySelector("#mapNauticalToggle"),
+  mapCoastalToggle: document.querySelector("#mapCoastalToggle"),
   mapBathymetryToggle: document.querySelector("#mapBathymetryToggle"),
   mapFishingToggle: document.querySelector("#mapFishingToggle"),
   mapRegulationToggle: document.querySelector("#mapRegulationToggle"),
@@ -1542,7 +1545,33 @@ function initMapEngine() {
     opacity: 0.92,
     crossOrigin: true,
   });
+
+  state.coastalLayer = L.layerGroup([
+    L.tileLayer.wms(BATHYMETRY_WMS, {
+      layers: "coastlines",
+      styles: "coastline_osm",
+      format: "image/png",
+      transparent: true,
+      version: "1.3.0",
+      opacity: 0.86,
+      minZoom: MAP_MIN_ZOOM,
+      maxZoom: MAP_MAX_ZOOM,
+      attribution: "EMODnet Bathymetry",
+    }),
+    L.tileLayer.wms(BATHYMETRY_WMS, {
+      layers: "world:sea_names",
+      styles: "sea_names",
+      format: "image/png",
+      transparent: true,
+      version: "1.3.0",
+      opacity: 0.72,
+      minZoom: MAP_MIN_ZOOM,
+      maxZoom: MAP_MAX_ZOOM,
+      attribution: "SeaDataNet",
+    }),
+  ]);
   updateNauticalOverlay();
+  updateCoastalOverlay();
 
   L.DomEvent.disableClickPropagation(els.spotNameSheet);
   L.DomEvent.disableScrollPropagation(els.spotNameSheet);
@@ -1684,6 +1713,7 @@ function restoreState() {
   state.depth = Number(els.depth.value);
   state.selectedSpotName = spot.custom ? saved.customName ?? getCustomSpotName() : spot.name;
   state.nauticalEnabled = saved.nauticalEnabled !== false;
+  state.coastalEnabled = saved.coastalEnabled !== false;
   state.bathymetryEnabled = saved.bathymetryEnabled !== false;
   state.knownFishingEnabled = saved.knownFishingEnabled !== false;
   state.regulationEnabled = saved.regulationEnabled !== false;
@@ -1721,6 +1751,7 @@ function applyWaterModeUI() {
   const marineOnlyControls = [
     els.depth?.closest(".depth-control"),
     els.mapNauticalToggle,
+    els.mapCoastalToggle,
     els.mapBathymetryToggle,
   ].filter(Boolean);
   marineOnlyControls.forEach((element) => {
@@ -2053,6 +2084,7 @@ function renderSpotTools() {
   updateMapZoomControls();
   updateMapScale();
   updateNauticalOverlay();
+  updateCoastalOverlay();
   updateBathymetryOverlay();
   scheduleBathymetryFocusRefresh();
   renderKnownFishingMarkers();
@@ -2078,13 +2110,6 @@ function updateNauticalOverlay() {
     els.mapNauticalToggle.setAttribute("aria-pressed", String(nauticalEnabled));
   }
 
-  if (els.mapAttribution) {
-    const credits = ["© OpenStreetMap"];
-    if (nauticalEnabled) credits.push("OpenSeaMap");
-    if (state.bathymetryEnabled && isSeaMode()) credits.push("EMODnet Bathymetry");
-    els.mapAttribution.textContent = credits.join(" · ");
-  }
-
   if (!state.leafletMap || !state.nauticalLayer) return;
 
   const hasLayer = state.leafletMap.hasLayer(state.nauticalLayer);
@@ -2093,6 +2118,28 @@ function updateNauticalOverlay() {
   } else if (!nauticalEnabled && hasLayer) {
     state.leafletMap.removeLayer(state.nauticalLayer);
   }
+
+  updateMapAttribution();
+}
+
+function updateCoastalOverlay() {
+  const enabled = state.coastalEnabled && isSeaMode();
+
+  if (els.mapCoastalToggle) {
+    els.mapCoastalToggle.classList.toggle("is-active", enabled);
+    els.mapCoastalToggle.setAttribute("aria-pressed", String(enabled));
+  }
+
+  if (!state.leafletMap || !state.coastalLayer) return;
+
+  const hasLayer = state.leafletMap.hasLayer(state.coastalLayer);
+  if (enabled && !hasLayer) {
+    state.coastalLayer.addTo(state.leafletMap);
+  } else if (!enabled && hasLayer) {
+    state.leafletMap.removeLayer(state.coastalLayer);
+  }
+
+  updateMapAttribution();
 }
 
 function updateBathymetryOverlay() {
@@ -2118,6 +2165,18 @@ function updateBathymetryOverlay() {
   } else if (!enabled && hasVectorLayer) {
     state.leafletMap.removeLayer(state.bathymetryLayer);
   }
+
+  updateMapAttribution();
+}
+
+function updateMapAttribution() {
+  if (!els.mapAttribution) return;
+
+  const credits = ["© OpenStreetMap"];
+  if (state.nauticalEnabled && isSeaMode()) credits.push("OpenSeaMap");
+  if (state.coastalEnabled && isSeaMode()) credits.push("EMODnet littoral");
+  if (state.bathymetryEnabled && isSeaMode()) credits.push("EMODnet Bathymetry");
+  els.mapAttribution.textContent = credits.join(" · ");
 }
 
 function updateKnownFishingOverlay() {
@@ -3895,6 +3954,13 @@ function bindEvents() {
     if (!isSeaMode()) return;
     state.nauticalEnabled = !state.nauticalEnabled;
     updateNauticalOverlay();
+    saveSettings();
+  });
+  els.mapCoastalToggle?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    if (!isSeaMode()) return;
+    state.coastalEnabled = !state.coastalEnabled;
+    updateCoastalOverlay();
     saveSettings();
   });
   els.mapBathymetryToggle?.addEventListener("click", (event) => {
@@ -6243,6 +6309,7 @@ function saveSettings() {
     lon: Number(els.longitude.value),
     depth: Number(els.depth.value),
     nauticalEnabled: state.nauticalEnabled,
+    coastalEnabled: state.coastalEnabled,
     bathymetryEnabled: state.bathymetryEnabled,
     knownFishingEnabled: state.knownFishingEnabled,
     regulationEnabled: state.regulationEnabled,
@@ -6418,6 +6485,7 @@ function normalizeSettings(settings) {
     lon: isValidNumber(settings.lon) ? settings.lon : null,
     depth: isValidNumber(settings.depth) ? settings.depth : state.depth,
     nauticalEnabled: settings.nauticalEnabled !== false,
+    coastalEnabled: settings.coastalEnabled !== false,
     bathymetryEnabled: settings.bathymetryEnabled !== false,
     knownFishingEnabled: settings.knownFishingEnabled !== false,
     regulationEnabled: settings.regulationEnabled !== false,
