@@ -624,6 +624,43 @@ button:focus-visible {
   gap: 5px;
 }
 
+.marine-overlay-control {
+  position: absolute;
+  right: 10px;
+  bottom: 52px;
+  z-index: 900;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, auto));
+  gap: 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 4px;
+  box-shadow: 0 8px 22px rgba(23, 32, 29, 0.14);
+}
+
+.marine-overlay-control.is-loading {
+  opacity: 0.72;
+}
+
+.marine-overlay-option {
+  min-height: 30px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  padding: 0 8px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.marine-overlay-option.is-active {
+  border-color: rgba(8, 125, 114, 0.4);
+  background: rgba(8, 125, 114, 0.13);
+  color: var(--teal-dark);
+}
+
 .fish-filter-option {
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr);
@@ -781,6 +818,55 @@ button:focus-visible {
 .known-fishing-marker.fish-truite svg,
 .fish-filter-option.fish-truite .fish-filter-icon svg {
   fill: #c85c45;
+}
+
+.marine-overlay-icon {
+  border: 0;
+  background: transparent;
+}
+
+.marine-flow-marker {
+  display: grid;
+  width: 68px;
+  height: 52px;
+  place-items: center;
+  gap: 1px;
+  color: var(--teal-dark);
+  pointer-events: none;
+}
+
+.marine-flow-arrow {
+  display: grid;
+  width: calc(24px * var(--flow-strength, 1));
+  height: calc(24px * var(--flow-strength, 1));
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: currentColor;
+  font-size: calc(22px * var(--flow-strength, 1));
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 1px 0 #fff;
+  transform: rotate(var(--flow-rotation, 0deg));
+  box-shadow: 0 4px 12px rgba(23, 32, 29, 0.22);
+}
+
+.marine-flow-marker strong {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink);
+  padding: 2px 6px;
+  font-size: 0.68rem;
+  line-height: 1;
+  box-shadow: 0 3px 10px rgba(23, 32, 29, 0.14);
+}
+
+.marine-overlay-depth .marine-flow-marker {
+  color: var(--ink);
+}
+
+.marine-overlay-wave .marine-flow-marker {
+  color: var(--blue);
 }
 
 .leaflet-popup-content {
@@ -1750,6 +1836,19 @@ footer {
     max-height: 220px;
     overflow: auto;
     padding-right: 2px;
+  }
+
+  .marine-overlay-control {
+    right: 8px;
+    bottom: 46px;
+    left: 8px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .marine-overlay-option {
+    min-width: 0;
+    padding: 0 4px;
+    font-size: 0.64rem;
   }
 
   .day-strip {

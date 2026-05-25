@@ -9,6 +9,7 @@ const WATER_MODES = {
   FRESHWATER: "freshwater",
 };
 const MOBILE_VIEWS = ["map", "activity", "weather", "forecast"];
+const MARINE_OVERLAY_MODES = ["none", "surface", "depth", "wave"];
 const waterModeConfig = {
   [WATER_MODES.SEA]: {
     label: "Mer",
@@ -1189,6 +1190,14 @@ const state = {
   nauticalEnabled: true,
   knownFishingLayer: null,
   knownFishingEnabled: true,
+  marineOverlayLayer: null,
+  marineOverlayMode: "none",
+  marineOverlayCache: new Map(),
+  marineOverlayData: [],
+  marineOverlayKey: "",
+  marineOverlayRequestId: 0,
+  marineOverlayTimer: null,
+  marineOverlayLoading: false,
   activeFishFilters: new Set(["all"]),
   fishFilterOpen: false,
   activityFish: "loup",
@@ -1246,6 +1255,8 @@ const els = {
   fishFilterButton: document.querySelector("#fishFilterButton"),
   fishFilterLabel: document.querySelector("#fishFilterLabel"),
   fishFilterPanel: document.querySelector("#fishFilterPanel"),
+  marineOverlayControl: document.querySelector("#marineOverlayControl"),
+  marineOverlayButtons: [...document.querySelectorAll("[data-marine-overlay]")],
   spotNameSheet: document.querySelector("#spotNameSheet"),
   spotNameCoords: document.querySelector("#spotNameCoords"),
   spotNameInput: document.querySelector("#spotNameInput"),
@@ -1324,6 +1335,7 @@ function initMapEngine() {
   state.knownFishingLayer = L.layerGroup();
   updateKnownFishingOverlay();
 
+  state.marineOverlayLayer = L.layerGroup().addTo(state.leafletMap);
   state.leafletMarkers = L.layerGroup().addTo(state.leafletMap);
   state.leafletMap.on("click", selectLeafletMapPoint);
   state.leafletMap.on("moveend zoomend", syncLeafletState);
@@ -1405,6 +1417,7 @@ function restoreState() {
   state.selectedSpotName = spot.custom ? saved.customName ?? getCustomSpotName() : spot.name;
   state.nauticalEnabled = saved.nauticalEnabled !== false;
   state.knownFishingEnabled = saved.knownFishingEnabled !== false;
+  state.marineOverlayMode = normalizeMarineOverlayMode(saved.marineOverlayMode);
   state.activeFishFilters = normalizeFishFilters(saved.fishFilters);
   state.activityFish = normalizeActivityFish(saved.activityFish);
 }
@@ -1423,6 +1436,10 @@ function applyWaterModeUI() {
     els.mapTitle.textContent = config.mapTitle;
   }
 
+  if (els.marineOverlayControl) {
+    els.marineOverlayControl.hidden = !isSeaMode();
+  }
+
   const marineOnlyControls = [
     els.depth?.closest(".depth-control"),
     els.mapNauticalToggle,
@@ -1438,6 +1455,7 @@ function applyWaterModeUI() {
   });
 
   if (!isSeaMode()) {
+    state.marineOverlayMode = "none";
     if (state.activeChart === "wave" || state.activeChart === "current") {
       state.activeChart = "pressure";
     }
@@ -1447,6 +1465,8 @@ function applyWaterModeUI() {
     button.classList.toggle("is-active", button.dataset.chart === state.activeChart);
   });
   updateNauticalOverlay();
+  updateMarineOverlayControls();
+  renderMarineOverlay();
 }
 
 function setWaterMode(mode, options = {}) {
@@ -1472,6 +1492,10 @@ function setWaterMode(mode, options = {}) {
 
 function normalizeMobileView(view) {
   return MOBILE_VIEWS.includes(view) ? view : "map";
+}
+
+function normalizeMarineOverlayMode(mode) {
+  return MARINE_OVERLAY_MODES.includes(mode) ? mode : "none";
 }
 
 function isMobileLayout() {
@@ -1524,6 +1548,26 @@ function setMobileView(view) {
   }
   refreshVisibleView();
   saveSettings();
+}
+
+function setMarineOverlayMode(mode) {
+  state.marineOverlayMode = normalizeMarineOverlayMode(mode);
+  if (!isSeaMode()) state.marineOverlayMode = "none";
+  updateMarineOverlayControls();
+  renderMarineOverlay();
+  saveSettings();
+}
+
+function updateMarineOverlayControls() {
+  els.marineOverlayButtons.forEach((button) => {
+    const active = button.dataset.marineOverlay === state.marineOverlayMode;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+
+  if (els.marineOverlayControl) {
+    els.marineOverlayControl.classList.toggle("is-loading", state.marineOverlayLoading);
+  }
 }
 
 function getSelectedPreset() {
@@ -1702,6 +1746,235 @@ function updateKnownFishingOverlay() {
   } else if (!state.knownFishingEnabled && hasLayer) {
     state.leafletMap.removeLayer(state.knownFishingLayer);
   }
+}
+
+function scheduleMarineOverlayRefresh() {
+  window.clearTimeout(state.marineOverlayTimer);
+  if (!canShowMarineOverlay()) {
+    renderMarineOverlay();
+    return;
+  }
+
+  state.marineOverlayTimer = window.setTimeout(renderMarineOverlay, 420);
+}
+
+function canShowMarineOverlay() {
+  return isSeaMode() && state.marineOverlayMode !== "none" && Boolean(state.leafletMap && state.marineOverlayLayer);
+}
+
+function renderMarineOverlay() {
+  updateMarineOverlayControls();
+  if (!state.marineOverlayLayer) return;
+
+  state.marineOverlayLayer.clearLayers();
+  if (!canShowMarineOverlay()) return;
+
+  const samples = regionalMarineSamplePoints();
+  const key = regionalMarineCacheKey(samples);
+  const cached = state.marineOverlayCache.get(key);
+
+  if (cached) {
+    state.marineOverlayData = cached;
+    drawMarineOverlayMarkers(cached);
+    return;
+  }
+
+  state.marineOverlayLoading = true;
+  updateMarineOverlayControls();
+  const requestId = state.marineOverlayRequestId + 1;
+  state.marineOverlayRequestId = requestId;
+
+  loadRegionalMarineOverlay(samples)
+    .then((data) => {
+      if (requestId !== state.marineOverlayRequestId) return;
+      state.marineOverlayCache.set(key, data);
+      state.marineOverlayData = data;
+      state.marineOverlayLoading = false;
+      updateMarineOverlayControls();
+      drawMarineOverlayMarkers(data);
+    })
+    .catch((error) => {
+      if (requestId !== state.marineOverlayRequestId) return;
+      console.info("Overlay régional marin indisponible.", error);
+      state.marineOverlayLoading = false;
+      updateMarineOverlayControls();
+    });
+}
+
+async function loadRegionalMarineOverlay(samples) {
+  const payload = await fetchJson(buildRegionalMarineUrl(samples));
+  const entries = Array.isArray(payload) ? payload : [payload];
+  const seen = new Set();
+
+  return entries
+    .map((entry, index) => parseRegionalMarinePoint(entry, samples[index]))
+    .filter(Boolean)
+    .filter((entry) => {
+      const key = `${entry.lat.toFixed(3)},${entry.lon.toFixed(3)}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function buildRegionalMarineUrl(samples) {
+  const url = new URL(MARINE_API);
+  url.searchParams.set("latitude", samples.map((sample) => sample.lat.toFixed(4)).join(","));
+  url.searchParams.set("longitude", samples.map((sample) => sample.lon.toFixed(4)).join(","));
+  url.searchParams.set("hourly", [
+    "wave_height",
+    "wave_direction",
+    "ocean_current_velocity",
+    "ocean_current_direction",
+  ].join(","));
+  url.searchParams.set("timezone", "auto");
+  url.searchParams.set("forecast_days", "7");
+  url.searchParams.set("cell_selection", "sea");
+  return url;
+}
+
+function regionalMarineSamplePoints() {
+  const center = state.leafletMap?.getCenter() ?? { lat: getActiveSpot().lat, lng: getActiveSpot().lon };
+  const bounds = state.leafletMap?.getBounds();
+  const rawLatSpan = bounds ? Math.abs(bounds.getNorth() - bounds.getSouth()) : 0.55;
+  const rawLonSpan = bounds ? Math.abs(bounds.getEast() - bounds.getWest()) : 0.75;
+  const latSpan = clamp(rawLatSpan, 0.18, 2.4);
+  const lonSpan = clamp(rawLonSpan, 0.18, 3.2);
+  const rows = isMobileLayout() ? 3 : 4;
+  const cols = isMobileLayout() ? 3 : 4;
+  const samples = [];
+
+  for (let row = 0; row < rows; row += 1) {
+    for (let col = 0; col < cols; col += 1) {
+      const lat = center.lat + latSpan * (0.5 - (row + 0.5) / rows);
+      const lon = center.lng + lonSpan * ((col + 0.5) / cols - 0.5);
+      samples.push({ lat, lon });
+    }
+  }
+
+  return samples;
+}
+
+function regionalMarineCacheKey(samples) {
+  return samples.map((sample) => `${sample.lat.toFixed(3)},${sample.lon.toFixed(3)}`).join("|");
+}
+
+function parseRegionalMarinePoint(payload, sample) {
+  const hourly = payload?.hourly;
+  if (!hourly?.time?.length) return null;
+
+  const dayGroups = groupBy(
+    hourly.time.map((time, index) => ({
+      time,
+      date: time.slice(0, 10),
+      hour: time.slice(11, 16),
+      surfaceCurrent: kmhToKnots(valueAt(hourly.ocean_current_velocity, index)),
+      currentDirection: valueAt(hourly.ocean_current_direction, index),
+      waveHeight: valueAt(hourly.wave_height, index),
+      waveDirection: valueAt(hourly.wave_direction, index),
+    })),
+    "date",
+  );
+  const days = {};
+
+  Object.entries(dayGroups).forEach(([date, rows]) => {
+    const surfaceCurrent = average(pluck(rows, "surfaceCurrent"));
+    const currentDirection = circularMean(pluck(rows, "currentDirection"), pluck(rows, "surfaceCurrent"));
+    const waveHeight = average(pluck(rows, "waveHeight"));
+    const waveDirection = circularMean(pluck(rows, "waveDirection"), pluck(rows, "waveHeight"));
+    days[date] = {
+      date,
+      surfaceCurrent,
+      currentDirection,
+      depthCurrent: surfaceCurrent == null ? null : surfaceCurrent * depthFactor(state.depth),
+      depthDirection: estimatedDepthDirection(currentDirection, state.depth),
+      waveHeight,
+      waveDirection,
+    };
+  });
+
+  return {
+    lat: payload.latitude ?? sample.lat,
+    lon: payload.longitude ?? sample.lon,
+    days,
+  };
+}
+
+function drawMarineOverlayMarkers(data) {
+  if (!state.marineOverlayLayer || !canShowMarineOverlay()) return;
+
+  state.marineOverlayLayer.clearLayers();
+  const day = getSelectedDay();
+  const selectedDate = day?.date ?? state.selectedDate;
+
+  data.forEach((point) => {
+    const dayData = point.days[selectedDate] ?? Object.values(point.days)[0];
+    const metric = marineOverlayMetric(dayData);
+    if (!metric || !isValidNumber(metric.value) || !isValidNumber(metric.direction)) return;
+
+    const marker = L.marker([point.lat, point.lon], {
+      icon: L.divIcon({
+        className: `marine-overlay-icon marine-overlay-${state.marineOverlayMode}`,
+        html: marineOverlayMarkerHtml(metric),
+        iconSize: [68, 52],
+        iconAnchor: [34, 26],
+        tooltipAnchor: [0, -24],
+      }),
+      keyboard: false,
+      zIndexOffset: 180,
+    });
+
+    marker.bindTooltip(metric.tooltip, {
+      direction: "top",
+      offset: [0, -18],
+      opacity: 0.96,
+      sticky: true,
+    });
+    marker.addTo(state.marineOverlayLayer);
+  });
+}
+
+function marineOverlayMetric(dayData) {
+  if (!dayData) return null;
+
+  if (state.marineOverlayMode === "depth") {
+    return {
+      value: dayData.surfaceCurrent == null ? null : dayData.surfaceCurrent * depthFactor(state.depth),
+      direction: estimatedDepthDirection(dayData.currentDirection, state.depth),
+      label: `${formatNumber(dayData.surfaceCurrent == null ? null : dayData.surfaceCurrent * depthFactor(state.depth), 1)} kt`,
+      tooltip: `Courant ${state.depth} m · ${formatNumber(dayData.surfaceCurrent == null ? null : dayData.surfaceCurrent * depthFactor(state.depth), 1)} kt vers ${compassLabel(estimatedDepthDirection(dayData.currentDirection, state.depth))}`,
+    };
+  }
+
+  if (state.marineOverlayMode === "wave") {
+    return {
+      value: dayData.waveHeight,
+      direction: reverseDirection(dayData.waveDirection),
+      label: `${formatNumber(dayData.waveHeight, 1)} m`,
+      tooltip: `Houle ${formatNumber(dayData.waveHeight, 1)} m · de ${compassLabel(dayData.waveDirection)}`,
+    };
+  }
+
+  if (state.marineOverlayMode === "surface") {
+    return {
+      value: dayData.surfaceCurrent,
+      direction: dayData.currentDirection,
+      label: `${formatNumber(dayData.surfaceCurrent, 1)} kt`,
+      tooltip: `Courant surface · ${formatNumber(dayData.surfaceCurrent, 1)} kt vers ${compassLabel(dayData.currentDirection)}`,
+    };
+  }
+
+  return null;
+}
+
+function marineOverlayMarkerHtml(metric) {
+  const strength = clamp(metric.value / (state.marineOverlayMode === "wave" ? 1.8 : 1.1), 0.35, 1.35);
+  return `
+    <div class="marine-flow-marker" style="--flow-rotation:${metric.direction}deg; --flow-strength:${strength}">
+      <span class="marine-flow-arrow">↑</span>
+      <strong>${escapeHtml(metric.label)}</strong>
+    </div>
+  `;
 }
 
 function renderFishFilterControls() {
@@ -2063,6 +2336,7 @@ function syncLeafletState() {
   state.mapCenter = { lat: center.lat, lon: center.lng };
   updateMapZoomControls();
   updateMapScale();
+  scheduleMarineOverlayRefresh();
 }
 
 function renderMapMarkers() {
@@ -2587,6 +2861,13 @@ function bindEvents() {
     button.addEventListener("click", () => setMobileView(button.dataset.mobileTab));
   });
 
+  els.marineOverlayButtons.forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setMarineOverlayMode(button.dataset.marineOverlay);
+    });
+  });
+
   els.spotPreset.addEventListener("change", () => {
     selectSpot(Number(els.spotPreset.value), { load: true });
   });
@@ -3020,6 +3301,7 @@ function renderAll() {
   drawCompass();
   renderChart();
   renderDailyCards();
+  renderMarineOverlay();
 }
 
 function updateSpotMeta() {
@@ -4189,6 +4471,10 @@ function valueAt(values, index) {
   return isValidNumber(value) ? value : null;
 }
 
+function kmhToKnots(value) {
+  return isValidNumber(value) ? value * 0.539957 : null;
+}
+
 function average(values) {
   const clean = values.filter(isValidNumber);
   if (!clean.length) return null;
@@ -4418,6 +4704,7 @@ function saveSettings() {
     depth: Number(els.depth.value),
     nauticalEnabled: state.nauticalEnabled,
     knownFishingEnabled: state.knownFishingEnabled,
+    marineOverlayMode: state.marineOverlayMode,
     fishFilters: [...state.activeFishFilters],
     activityFish: state.activityFish,
   };
@@ -4583,6 +4870,7 @@ function normalizeSettings(settings) {
     depth: isValidNumber(settings.depth) ? settings.depth : state.depth,
     nauticalEnabled: settings.nauticalEnabled !== false,
     knownFishingEnabled: settings.knownFishingEnabled !== false,
+    marineOverlayMode: normalizeMarineOverlayMode(settings.marineOverlayMode),
     fishFilters: Array.isArray(settings.fishFilters) ? settings.fishFilters : ["all"],
     activityFish: typeof settings.activityFish === "string" ? settings.activityFish : "",
   };

@@ -120,6 +120,12 @@
                 </button>
                 <div class="fish-filter-panel" id="fishFilterPanel" aria-hidden="true"></div>
               </div>
+              <div class="marine-overlay-control" id="marineOverlayControl" aria-label="Overlay conditions marines">
+                <button class="marine-overlay-option is-active" type="button" data-marine-overlay="none" aria-pressed="true">Off</button>
+                <button class="marine-overlay-option" type="button" data-marine-overlay="surface" aria-pressed="false">Surface</button>
+                <button class="marine-overlay-option" type="button" data-marine-overlay="depth" aria-pressed="false">Profondeur</button>
+                <button class="marine-overlay-option" type="button" data-marine-overlay="wave" aria-pressed="false">Houle</button>
+              </div>
               <form class="spot-name-sheet" id="spotNameSheet" aria-hidden="true" role="dialog" aria-labelledby="spotNameTitle" inert>
                 <div class="spot-name-head">
                   <div>
@@ -311,6 +317,6 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-    <script src="app.js?v=20260525-step2-weather" defer></script>
+    <script src="app.js?v=20260525-marine-overlay" defer></script>
   </body>
 </html>
