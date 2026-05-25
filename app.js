@@ -10,7 +10,7 @@ const WATER_MODES = {
   SEA: "sea",
   FRESHWATER: "freshwater",
 };
-const MOBILE_VIEWS = ["map", "activity", "weather", "rigging", "journal"];
+const MOBILE_VIEWS = ["map", "activity", "tides", "weather", "astro", "rigging", "journal"];
 const MARINE_OVERLAY_MODES = ["none", "surface", "depth", "wave"];
 const waterModeConfig = {
   [WATER_MODES.SEA]: {
@@ -1408,6 +1408,15 @@ const els = {
   activityCanvas: document.querySelector("#activityCanvas"),
   activityMajor: document.querySelector("#activityMajor"),
   activityMinor: document.querySelector("#activityMinor"),
+  tideLocation: document.querySelector("#tideLocation"),
+  tideCanvas: document.querySelector("#tideCanvas"),
+  tideSummaryGrid: document.querySelector("#tideSummaryGrid"),
+  tideEventsList: document.querySelector("#tideEventsList"),
+  astroLocation: document.querySelector("#astroLocation"),
+  astroCanvas: document.querySelector("#astroCanvas"),
+  moonCard: document.querySelector("#moonCard"),
+  astroSummaryGrid: document.querySelector("#astroSummaryGrid"),
+  solunarWindowGrid: document.querySelector("#solunarWindowGrid"),
   catchForm: document.querySelector("#catchForm"),
   catchSpecies: document.querySelector("#catchSpecies"),
   catchLength: document.querySelector("#catchLength"),
@@ -1492,6 +1501,10 @@ const colors = {
   rain: "#2f74c0",
   cloud: "#7357b8",
   temperature: "#c85c45",
+  good: "#16875f",
+  amber: "#b97322",
+  violet: "#7357b8",
+  coral: "#c85c45",
 };
 
 function init() {
@@ -1854,7 +1867,9 @@ function refreshVisibleView() {
     updateMapScale();
     drawCompass();
     renderActivity(getSelectedDay());
+    renderTides(getSelectedDay());
     renderChart();
+    renderAstro(getSelectedDay());
   });
 }
 
@@ -4388,12 +4403,14 @@ function renderAll() {
   renderSpotTools();
   renderDayTabs();
   renderActivity(selected);
+  renderTides(selected);
   renderConditionBrief(selected);
   renderMetrics(selected);
   renderWaterInsights(selected);
   renderRiggingCalculator(selected);
   drawCompass();
   renderChart();
+  renderAstro(selected);
   renderCatchJournal();
   renderMarineOverlay();
 }
@@ -5265,6 +5282,578 @@ function tideSummary(day) {
   if (events.low?.hour) labels.push(`basse ${events.low.hour}`);
   const range = `marnage ${formatNumber(day.seaLevelRange, 2)} m`;
   return labels.length ? `${labels.join(" · ")} · ${range}` : range;
+}
+
+function renderTides(day) {
+  if (!els.tideCanvas || !els.tideSummaryGrid || !els.tideEventsList) return;
+
+  if (els.tideLocation) {
+    els.tideLocation.textContent = `${getActiveSpot().name} · ${day?.shortLabel ?? "--"}`;
+  }
+
+  const rows = tideRows(day);
+  if (!day || !isSeaMode() || rows.length < 2) {
+    drawEmptyPanelCanvas(els.tideCanvas, isSeaMode() ? "Marées indisponibles" : "Marées réservées aux spots mer");
+    els.tideSummaryGrid.innerHTML = unavailableCards([
+      ["Marnage", "--", "Aucune hauteur d'eau exploitable"],
+      ["Pleine mer", "--", "Station marine indisponible"],
+      ["Basse mer", "--", "Station marine indisponible"],
+    ]);
+    els.tideEventsList.innerHTML = "";
+    return;
+  }
+
+  const extrema = tideExtrema(rows);
+  const focusRow = focusedTimeRow(rows);
+  const tideState = tideTrendLabel(rows, focusRow);
+  drawTideChart(day, rows, extrema, focusRow);
+
+  const highLabels = extrema.highs.slice(0, 2).map((row) => `${row.hour} · ${formatTideHeight(row.seaLevel)}`);
+  const lowLabels = extrema.lows.slice(0, 2).map((row) => `${row.hour} · ${formatTideHeight(row.seaLevel)}`);
+  const nextEvent = nextTideEvent(rows, extrema, focusRow);
+  const summary = [
+    {
+      label: "Marnage",
+      value: `${formatNumber(day.seaLevelRange, 2)} m`,
+      detail: tideRangeLabel(day.seaLevelRange),
+    },
+    {
+      label: "Repère",
+      value: formatTideHeight(focusRow?.seaLevel),
+      detail: tideState,
+    },
+    {
+      label: "Pleine mer",
+      value: highLabels[0] ?? "--",
+      detail: highLabels[1] ?? "prochain pic détecté",
+    },
+    {
+      label: "Basse mer",
+      value: lowLabels[0] ?? "--",
+      detail: lowLabels[1] ?? "prochain creux détecté",
+    },
+  ];
+
+  if (nextEvent) {
+    summary.push({
+      label: "Prochaine",
+      value: `${nextEvent.type === "high" ? "Haute" : "Basse"} ${nextEvent.row.hour}`,
+      detail: formatTideHeight(nextEvent.row.seaLevel),
+    });
+  }
+
+  els.tideSummaryGrid.innerHTML = summaryCards(summary);
+  renderTideEvents(rows, extrema);
+}
+
+function tideRows(day) {
+  return (day?.rows ?? []).filter((row) => isValidNumber(row.seaLevel));
+}
+
+function tideExtrema(rows) {
+  const highs = [];
+  const lows = [];
+
+  for (let index = 1; index < rows.length - 1; index += 1) {
+    const previous = rows[index - 1].seaLevel;
+    const current = rows[index].seaLevel;
+    const next = rows[index + 1].seaLevel;
+    const peak = current >= previous && current >= next && (current > previous || current > next);
+    const trough = current <= previous && current <= next && (current < previous || current < next);
+    if (peak) highs.push(rows[index]);
+    if (trough) lows.push(rows[index]);
+  }
+
+  if (!highs.length) highs.push(rows.reduce((best, row) => (row.seaLevel > best.seaLevel ? row : best), rows[0]));
+  if (!lows.length) lows.push(rows.reduce((best, row) => (row.seaLevel < best.seaLevel ? row : best), rows[0]));
+
+  return {
+    highs: uniqueTideRows(highs).sort((a, b) => Date.parse(a.time) - Date.parse(b.time)),
+    lows: uniqueTideRows(lows).sort((a, b) => Date.parse(a.time) - Date.parse(b.time)),
+  };
+}
+
+function uniqueTideRows(rows) {
+  const seen = new Set();
+  return rows.filter((row) => {
+    if (seen.has(row.time)) return false;
+    seen.add(row.time);
+    return true;
+  });
+}
+
+function focusedTimeRow(rows) {
+  if (!rows.length) return null;
+  const today = new Date().toISOString().slice(0, 10);
+  const selectedDate = rows[0]?.date;
+  if (selectedDate !== today) {
+    return rows[Math.min(rows.length - 1, Math.floor(rows.length / 2))];
+  }
+
+  const now = new Date();
+  const target = now.getHours() * 60 + now.getMinutes();
+  return rows.reduce((best, row) => {
+    const bestDiff = Math.abs(minutesFromClock(best.hour) - target);
+    const diff = Math.abs(minutesFromClock(row.hour) - target);
+    return diff < bestDiff ? row : best;
+  }, rows[0]);
+}
+
+function tideTrendLabel(rows, focusRow) {
+  if (!focusRow) return "tendance indisponible";
+  const index = rows.findIndex((row) => row.time === focusRow.time);
+  const before = rows[Math.max(0, index - 1)]?.seaLevel;
+  const after = rows[Math.min(rows.length - 1, index + 1)]?.seaLevel;
+  if (!isValidNumber(before) || !isValidNumber(after)) return "tendance stable";
+  const delta = after - before;
+  if (delta > 0.015) return "marée montante";
+  if (delta < -0.015) return "marée descendante";
+  return "étale ou faible variation";
+}
+
+function nextTideEvent(rows, extrema, focusRow) {
+  if (!focusRow) return null;
+  const focusTime = Date.parse(focusRow.time);
+  const events = [
+    ...extrema.highs.map((row) => ({ type: "high", row })),
+    ...extrema.lows.map((row) => ({ type: "low", row })),
+  ]
+    .filter((event) => Date.parse(event.row.time) >= focusTime)
+    .sort((a, b) => Date.parse(a.row.time) - Date.parse(b.row.time));
+  return events[0] ?? null;
+}
+
+function renderTideEvents(rows, extrema) {
+  const events = [
+    ...extrema.highs.map((row) => ({ type: "high", row })),
+    ...extrema.lows.map((row) => ({ type: "low", row })),
+  ]
+    .sort((a, b) => Date.parse(a.row.time) - Date.parse(b.row.time))
+    .slice(0, 6);
+
+  els.tideEventsList.innerHTML = events.map((event) => `
+    <article class="tide-event ${event.type}">
+      <span>${event.type === "high" ? "Pleine mer" : "Basse mer"}</span>
+      <strong>${escapeHtml(event.row.hour)}</strong>
+      <small>${escapeHtml(formatTideHeight(event.row.seaLevel))}</small>
+    </article>
+  `).join("");
+}
+
+function drawTideChart(day, rows, extrema, focusRow) {
+  const canvas = els.tideCanvas;
+  const ctx = setupCanvas(canvas);
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  const padding = { top: 28, right: 22, bottom: 42, left: 56 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  if (width <= 1 || height <= 1) return;
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = "#fbfdfb";
+  roundRect(ctx, 0, 0, width, height, 8);
+  ctx.fill();
+
+  const values = rows.map((row) => row.seaLevel).filter(isValidNumber);
+  const low = min(values) ?? 0;
+  const high = max(values) ?? 1;
+  const range = Math.max(0.04, high - low);
+  const minValue = low - range * 0.16;
+  const maxValue = high + range * 0.16;
+  const valueSpan = Math.max(0.04, maxValue - minValue);
+
+  const pointX = (index) => padding.left + (rows.length <= 1 ? 0 : (index / (rows.length - 1)) * chartWidth);
+  const pointY = (value) => padding.top + chartHeight - ((value - minValue) / valueSpan) * chartHeight;
+
+  ctx.strokeStyle = "#d9e2dc";
+  ctx.lineWidth = 1;
+  ctx.fillStyle = "#62706a";
+  ctx.font = "700 12px Inter, system-ui, sans-serif";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+
+  for (let step = 0; step <= 4; step += 1) {
+    const value = minValue + (valueSpan / 4) * step;
+    const y = pointY(value);
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(width - padding.right, y);
+    ctx.stroke();
+    ctx.fillText(`${formatNumber(value, 2)} m`, padding.left - 10, y);
+  }
+
+  const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight);
+  gradient.addColorStop(0, "rgba(47, 116, 192, 0.28)");
+  gradient.addColorStop(1, "rgba(47, 116, 192, 0.04)");
+
+  ctx.beginPath();
+  rows.forEach((row, index) => {
+    const x = pointX(index);
+    const y = pointY(row.seaLevel);
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.lineTo(pointX(rows.length - 1), padding.top + chartHeight);
+  ctx.lineTo(pointX(0), padding.top + chartHeight);
+  ctx.closePath();
+  ctx.fillStyle = gradient;
+  ctx.fill();
+
+  ctx.beginPath();
+  rows.forEach((row, index) => {
+    const x = pointX(index);
+    const y = pointY(row.seaLevel);
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = colors.wave;
+  ctx.lineWidth = 4;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.stroke();
+
+  if (focusRow) {
+    const focusIndex = rows.findIndex((row) => row.time === focusRow.time);
+    if (focusIndex >= 0) {
+      const x = pointX(focusIndex);
+      ctx.strokeStyle = "rgba(200, 92, 69, 0.42)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, padding.top);
+      ctx.lineTo(x, padding.top + chartHeight);
+      ctx.stroke();
+    }
+  }
+
+  [
+    ...extrema.highs.slice(0, 3).map((row) => ({ row, color: colors.good })),
+    ...extrema.lows.slice(0, 3).map((row) => ({ row, color: colors.coral })),
+  ].forEach((event) => {
+    const index = rows.findIndex((row) => row.time === event.row.time);
+    if (index < 0) return;
+    const x = pointX(index);
+    const y = pointY(event.row.seaLevel);
+    ctx.fillStyle = event.color;
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x, y, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  });
+
+  ctx.fillStyle = "#62706a";
+  ctx.font = "700 11px Inter, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  rows.forEach((row, index) => {
+    if (index % 4 !== 0 && index !== rows.length - 1) return;
+    ctx.fillText(row.hour, pointX(index), height - padding.bottom + 14);
+  });
+
+  ctx.fillStyle = "#17201d";
+  ctx.font = "800 12px Inter, system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText(`${day.shortLabel} · hauteur relative au niveau moyen`, padding.left, padding.top - 12);
+}
+
+function renderAstro(day) {
+  if (!els.astroCanvas || !els.moonCard || !els.astroSummaryGrid || !els.solunarWindowGrid) return;
+
+  if (els.astroLocation) {
+    els.astroLocation.textContent = `${getActiveSpot().name} · ${day?.shortLabel ?? "--"}`;
+  }
+
+  if (!day) {
+    drawEmptyPanelCanvas(els.astroCanvas, "Cycle lumineux indisponible");
+    els.moonCard.innerHTML = "";
+    els.astroSummaryGrid.innerHTML = "";
+    els.solunarWindowGrid.innerHTML = "";
+    return;
+  }
+
+  const astro = buildAstroData(day);
+  drawAstroChart(day, astro);
+  renderMoonCard(astro);
+  renderAstroSummary(astro);
+  renderSolunarWindows(astro);
+}
+
+function buildAstroData(day) {
+  const firstRow = day.rows?.[0] ?? {};
+  const sunrise = minutesFromDateTime(firstRow.sunrise);
+  const sunset = minutesFromDateTime(firstRow.sunset);
+  const solarNoon = sunrise != null && sunset != null ? (sunrise + sunset) / 2 : null;
+  const dayLength = sunrise != null && sunset != null ? Math.max(0, sunset - sunrise) : null;
+  const phase = lunarPhase(day.date);
+  const windows = solunarWindows(day);
+  const illumination = ((1 - Math.cos(phase * Math.PI * 2)) / 2) * 100;
+
+  return {
+    sunrise,
+    sunset,
+    solarNoon,
+    dayLength,
+    nightLength: dayLength == null ? null : 1440 - dayLength,
+    phase,
+    moonAge: phase * 29.530588853,
+    illumination,
+    moonrise: windows.minor[0]?.center ?? null,
+    moonset: windows.minor[1]?.center ?? null,
+    windows,
+  };
+}
+
+function renderMoonCard(astro) {
+  const waxing = astro.phase < 0.5;
+  els.moonCard.innerHTML = `
+    <div class="moon-orb-wrap">
+      <span class="moon-orb ${waxing ? "is-waxing" : "is-waning"}" style="--moon-illumination:${astro.illumination}"></span>
+    </div>
+    <div class="moon-card-copy">
+      <span>Lune</span>
+      <strong>${escapeHtml(moonPhaseFullLabel(astro.phase))}</strong>
+      <small>${formatNumber(astro.illumination, 0)} % éclairée · âge ${formatNumber(astro.moonAge, 1)} j</small>
+    </div>
+  `;
+}
+
+function renderAstroSummary(astro) {
+  const summary = [
+    {
+      label: "Lever soleil",
+      value: formatAstroMinute(astro.sunrise),
+      detail: "début du jour",
+    },
+    {
+      label: "Coucher soleil",
+      value: formatAstroMinute(astro.sunset),
+      detail: "fin du jour",
+    },
+    {
+      label: "Durée jour",
+      value: formatDurationMinutes(astro.dayLength),
+      detail: `nuit ${formatDurationMinutes(astro.nightLength)}`,
+    },
+    {
+      label: "Lune",
+      value: `${formatNumber(astro.illumination, 0)} %`,
+      detail: `${formatAstroMinute(astro.moonrise)} lever estimé`,
+    },
+  ];
+  els.astroSummaryGrid.innerHTML = summaryCards(summary);
+}
+
+function renderSolunarWindows(astro) {
+  const windows = [
+    { label: "Majeur 1", value: astro.windows.major[0]?.label ?? "--", detail: "lune au-dessus" },
+    { label: "Majeur 2", value: astro.windows.major[1]?.label ?? "--", detail: "lune sous les pieds" },
+    { label: "Mineur 1", value: astro.windows.minor[0]?.label ?? "--", detail: "lever lune estimé" },
+    { label: "Mineur 2", value: astro.windows.minor[1]?.label ?? "--", detail: "coucher lune estimé" },
+  ];
+  els.solunarWindowGrid.innerHTML = summaryCards(windows);
+}
+
+function drawAstroChart(day, astro) {
+  const canvas = els.astroCanvas;
+  const ctx = setupCanvas(canvas);
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  const padding = { top: 28, right: 22, bottom: 42, left: 44 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  if (width <= 1 || height <= 1) return;
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = "#fbfdfb";
+  roundRect(ctx, 0, 0, width, height, 8);
+  ctx.fill();
+
+  const baseY = padding.top + chartHeight * 0.74;
+  const amplitude = chartHeight * 0.48;
+  ctx.strokeStyle = "#d9e2dc";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padding.left, baseY);
+  ctx.lineTo(width - padding.right, baseY);
+  ctx.stroke();
+
+  for (let hour = 0; hour <= 24; hour += 6) {
+    const x = padding.left + (hour / 24) * chartWidth;
+    ctx.strokeStyle = "rgba(89, 101, 111, 0.2)";
+    ctx.beginPath();
+    ctx.moveTo(x, padding.top);
+    ctx.lineTo(x, padding.top + chartHeight);
+    ctx.stroke();
+    ctx.fillStyle = "#62706a";
+    ctx.font = "700 11px Inter, system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText(`${String(hour).padStart(2, "0")}:00`, x, height - padding.bottom + 14);
+  }
+
+  drawVisibilityArc(ctx, {
+    padding,
+    chartWidth,
+    baseY,
+    amplitude,
+    start: astro.sunrise,
+    end: astro.sunset,
+    color: colors.amber,
+    width: 4,
+  });
+  drawVisibilityArc(ctx, {
+    padding,
+    chartWidth,
+    baseY,
+    amplitude: amplitude * 0.52,
+    start: astro.moonrise,
+    end: astro.moonset,
+    color: colors.violet,
+    width: 3,
+    dash: [7, 7],
+  });
+
+  drawTimePoint(ctx, padding, chartWidth, baseY, astro.sunrise, colors.amber, "Lever");
+  drawTimePoint(ctx, padding, chartWidth, baseY, astro.sunset, colors.amber, "Coucher");
+  drawTimePoint(ctx, padding, chartWidth, baseY, astro.moonrise, colors.violet, "Lune");
+
+  const today = new Date().toISOString().slice(0, 10);
+  if (day.date === today) {
+    const now = new Date();
+    const minute = now.getHours() * 60 + now.getMinutes();
+    const x = padding.left + (minute / 1440) * chartWidth;
+    ctx.strokeStyle = "rgba(200, 92, 69, 0.42)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, padding.top);
+    ctx.lineTo(x, padding.top + chartHeight);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = "#17201d";
+  ctx.font = "800 12px Inter, system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(`${day.shortLabel} · trajectoires estimées`, padding.left, padding.top - 12);
+}
+
+function drawVisibilityArc(ctx, options) {
+  const { start, end } = options;
+  if (start == null || end == null) return;
+  const duration = end > start ? end - start : end + 1440 - start;
+  if (duration <= 0) return;
+  const segments = end > start
+    ? [[start, end]]
+    : [[start, 1440], [0, end]];
+
+  ctx.save();
+  ctx.strokeStyle = options.color;
+  ctx.lineWidth = options.width ?? 3;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.setLineDash(options.dash ?? []);
+
+  segments.forEach(([segmentStart, segmentEnd]) => {
+    ctx.beginPath();
+    let started = false;
+    for (let minute = segmentStart; minute <= segmentEnd; minute += 12) {
+      const absoluteMinute = minute < start ? minute + 1440 : minute;
+      const progress = clamp((absoluteMinute - start) / duration, 0, 1);
+      const x = options.padding.left + (minute / 1440) * options.chartWidth;
+      const y = options.baseY - Math.sin(Math.PI * progress) * options.amplitude;
+      if (!started) {
+        ctx.moveTo(x, y);
+        started = true;
+      } else {
+        ctx.lineTo(x, y);
+      }
+    }
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
+function drawTimePoint(ctx, padding, chartWidth, baseY, minute, color, label) {
+  if (minute == null) return;
+  const x = padding.left + (minute / 1440) * chartWidth;
+  ctx.fillStyle = color;
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(x, baseY, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "#62706a";
+  ctx.font = "800 11px Inter, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.fillText(label, x, baseY - 10);
+}
+
+function drawEmptyPanelCanvas(canvas, message) {
+  const ctx = setupCanvas(canvas);
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  if (width <= 1 || height <= 1) return;
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = "#fbfdfb";
+  roundRect(ctx, 0, 0, width, height, 8);
+  ctx.fill();
+  ctx.fillStyle = "#62706a";
+  ctx.font = "900 16px Inter, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(message, width / 2, height / 2);
+}
+
+function summaryCards(items) {
+  return items.map((item) => `
+    <article class="summary-card">
+      <span>${escapeHtml(item.label)}</span>
+      <strong>${escapeHtml(item.value)}</strong>
+      <small>${escapeHtml(item.detail)}</small>
+    </article>
+  `).join("");
+}
+
+function unavailableCards(rows) {
+  return rows.map(([label, value, detail]) => ({ label, value, detail })).map((item) => `
+    <article class="summary-card is-muted">
+      <span>${escapeHtml(item.label)}</span>
+      <strong>${escapeHtml(item.value)}</strong>
+      <small>${escapeHtml(item.detail)}</small>
+    </article>
+  `).join("");
+}
+
+function formatTideHeight(value) {
+  return isValidNumber(value) ? `${formatNumber(value, 2)} m` : "--";
+}
+
+function formatAstroMinute(value) {
+  return value == null ? "--" : formatMinute(value);
+}
+
+function formatDurationMinutes(value) {
+  if (!isValidNumber(value)) return "--";
+  const minutes = Math.round(Math.max(0, value));
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return `${hours} h ${String(rest).padStart(2, "0")}`;
+}
+
+function moonPhaseFullLabel(phase) {
+  const value = ((phase % 1) + 1) % 1;
+  if (value < 0.04 || value >= 0.96) return "Nouvelle lune";
+  if (value < 0.22) return "Premier croissant";
+  if (value < 0.29) return "Premier quartier";
+  if (value < 0.46) return "Lune gibbeuse croissante";
+  if (value < 0.54) return "Pleine lune";
+  if (value < 0.72) return "Lune gibbeuse décroissante";
+  if (value < 0.79) return "Dernier quartier";
+  return "Dernier croissant";
 }
 
 function depthSeriesLabel(day) {

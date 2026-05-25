@@ -290,7 +290,7 @@
           </aside>
         </section>
 
-        <section class="day-strip" id="dayTabs" data-mobile-view="activity weather" aria-label="Prévisions 6 jours"></section>
+        <section class="day-strip" id="dayTabs" data-mobile-view="activity tides weather astro" aria-label="Prévisions 6 jours"></section>
 
         <section class="activity-panel" data-mobile-view="activity" aria-label="Activité des poissons">
           <div class="section-head">
@@ -328,6 +328,23 @@
               <strong id="activityMinor">--</strong>
             </div>
           </div>
+        </section>
+
+        <section class="tide-panel" data-mobile-view="tides" aria-label="Marées">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Marées</span>
+              <h2>Hauteur d'eau</h2>
+            </div>
+            <span class="panel-location" id="tideLocation">--</span>
+          </div>
+          <div class="tide-layout">
+            <div class="tide-chart-card">
+              <canvas id="tideCanvas" width="1180" height="420"></canvas>
+            </div>
+            <div class="tide-summary-grid" id="tideSummaryGrid"></div>
+          </div>
+          <div class="tide-events" id="tideEventsList"></div>
         </section>
 
         <section class="dashboard-grid" data-mobile-view="weather" aria-label="Synthèse du jour">
@@ -420,6 +437,24 @@
           <div class="chart-legend" id="chartLegend"></div>
         </section>
 
+        <section class="astro-panel" data-mobile-view="astro" aria-label="Soleil et lune">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Soleil & lune</span>
+              <h2>Cycle lumineux</h2>
+            </div>
+            <span class="panel-location" id="astroLocation">--</span>
+          </div>
+          <div class="astro-layout">
+            <div class="astro-chart-card">
+              <canvas id="astroCanvas" width="1180" height="420"></canvas>
+            </div>
+            <aside class="moon-card" id="moonCard"></aside>
+          </div>
+          <div class="astro-summary-grid" id="astroSummaryGrid"></div>
+          <div class="solunar-window-grid" id="solunarWindowGrid"></div>
+        </section>
+
         <section class="journal-panel" data-mobile-view="journal" aria-label="Journal de prises">
           <div class="section-head">
             <div>
@@ -467,6 +502,14 @@
           </svg>
           <span>Activité</span>
         </button>
+        <button class="mobile-tab" type="button" data-mobile-tab="tides">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 16c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2S19.4 16 22 16" />
+            <path d="M4 11c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2S19.4 11 22 11" />
+            <path d="M7 20h10" />
+          </svg>
+          <span>Marées</span>
+        </button>
         <button class="mobile-tab" type="button" data-mobile-tab="weather">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M5 17h14" />
@@ -475,6 +518,20 @@
             <path d="M4 21c3-3 4-8 8-8s5 5 8 8" />
           </svg>
           <span>Météo</span>
+        </button>
+        <button class="mobile-tab" type="button" data-mobile-tab="astro">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 4v2" />
+            <path d="M12 18v2" />
+            <path d="M4 12h2" />
+            <path d="M18 12h2" />
+            <path d="m6.5 6.5 1.4 1.4" />
+            <path d="m16.1 16.1 1.4 1.4" />
+            <path d="m17.5 6.5-1.4 1.4" />
+            <path d="m7.9 16.1-1.4 1.4" />
+            <circle cx="12" cy="12" r="3.5" />
+          </svg>
+          <span>Soleil</span>
         </button>
         <button class="mobile-tab" type="button" data-mobile-tab="rigging">
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -514,6 +571,6 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-    <script src="app.js?v=20260525-coastal-layer" defer></script>
+    <script src="app.js?v=20260525-tides-astro" defer></script>
   </body>
 </html>
