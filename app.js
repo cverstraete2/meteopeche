@@ -1316,6 +1316,7 @@ const state = {
   mapDrag: null,
   mapPinch: null,
   mapPointers: new Map(),
+  mapLayerOpen: false,
   mapClickStart: null,
   suppressNextMapClick: false,
   mapTilePruneTimer: null,
@@ -1395,6 +1396,10 @@ const els = {
   activeSpotCoords: document.querySelector("#activeSpotCoords"),
   mapZoomIn: document.querySelector("#mapZoomIn"),
   mapZoomOut: document.querySelector("#mapZoomOut"),
+  mapLayersButton: document.querySelector("#mapLayersButton"),
+  mapLayerSheet: document.querySelector("#mapLayerSheet"),
+  mapLayerClose: document.querySelector("#mapLayerClose"),
+  mapLayerBackdrop: document.querySelector("#mapLayerBackdrop"),
   mapNauticalToggle: document.querySelector("#mapNauticalToggle"),
   mapFishingToggle: document.querySelector("#mapFishingToggle"),
   mapRegulationToggle: document.querySelector("#mapRegulationToggle"),
@@ -1629,6 +1634,7 @@ function applyWaterModeUI() {
   updateNauticalOverlay();
   updateRegulationOverlay();
   updateMarineOverlayControls();
+  updateMapLayerPanel();
   renderMarineOverlay();
   renderSafetyStatus();
 }
@@ -1718,6 +1724,7 @@ function setMarineOverlayMode(mode) {
   state.marineOverlayMode = normalizeMarineOverlayMode(mode);
   if (!isSeaMode()) state.marineOverlayMode = "none";
   updateMarineOverlayControls();
+  updateMapLayerPanel();
   renderMarineOverlay();
   saveSettings();
 }
@@ -1731,6 +1738,28 @@ function updateMarineOverlayControls() {
 
   if (els.marineOverlayControl) {
     els.marineOverlayControl.classList.toggle("is-loading", state.marineOverlayLoading);
+  }
+}
+
+function setMapLayerOpen(open) {
+  state.mapLayerOpen = Boolean(open);
+  updateMapLayerPanel();
+}
+
+function updateMapLayerPanel() {
+  if (els.mapLayersButton) {
+    els.mapLayersButton.classList.toggle("is-active", state.mapLayerOpen);
+    els.mapLayersButton.setAttribute("aria-expanded", String(state.mapLayerOpen));
+  }
+
+  if (els.mapLayerSheet) {
+    els.mapLayerSheet.classList.toggle("is-open", state.mapLayerOpen);
+    els.mapLayerSheet.setAttribute("aria-hidden", String(!state.mapLayerOpen));
+    els.mapLayerSheet.inert = !state.mapLayerOpen;
+  }
+
+  if (els.mapLayerBackdrop) {
+    els.mapLayerBackdrop.hidden = !state.mapLayerOpen;
   }
 }
 
@@ -1867,6 +1896,7 @@ function renderSpotTools() {
   updateRegulationOverlay();
   renderAnchorWatch();
   renderSafetyStatus();
+  updateMapLayerPanel();
   renderSpotNameSheet();
 
   const active = getActiveSpot();
@@ -3450,6 +3480,24 @@ function bindEvents() {
     event.stopPropagation();
     changeMapZoom(-1);
   });
+  els.mapLayersButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setMapLayerOpen(!state.mapLayerOpen);
+  });
+  els.mapLayerClose.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setMapLayerOpen(false);
+  });
+  els.mapLayerBackdrop.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setMapLayerOpen(false);
+  });
+  ["pointerdown", "touchstart", "wheel"].forEach((eventName) => {
+    els.mapLayerBackdrop.addEventListener(eventName, (event) => event.stopPropagation(), { passive: eventName === "touchstart" });
+  });
+  ["click", "pointerdown", "touchstart", "wheel"].forEach((eventName) => {
+    els.mapLayerSheet.addEventListener(eventName, (event) => event.stopPropagation(), { passive: eventName === "touchstart" });
+  });
   els.mapNauticalToggle.addEventListener("click", (event) => {
     event.stopPropagation();
     if (!isSeaMode()) return;
@@ -3491,6 +3539,11 @@ function bindEvents() {
     if (!state.fishFilterOpen) return;
     state.fishFilterOpen = false;
     renderFishFilterControls();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && state.mapLayerOpen) {
+      setMapLayerOpen(false);
+    }
   });
 
   [els.latitude, els.longitude].forEach((input) => {
