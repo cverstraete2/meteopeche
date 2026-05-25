@@ -1614,7 +1614,52 @@ footer {
   }
 
   .metric-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .metric-card {
+    min-height: 74px;
+    align-content: start;
+    gap: 6px;
+    padding: 8px 5px;
+    text-align: center;
+    box-shadow: none;
+  }
+
+  .metric-top {
+    justify-content: center;
+    gap: 0;
+  }
+
+  .metric-icon {
+    display: none;
+  }
+
+  .metric-label {
+    font-size: 0;
+    line-height: 1;
+  }
+
+  .metric-label::after {
+    content: attr(data-short-label);
+    display: block;
+    color: var(--muted);
+    font-size: 0.62rem;
+    font-weight: 900;
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .metric-value {
+    font-size: 0.98rem;
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+  }
+
+  .metric-detail {
+    display: none;
   }
 
   .activity-fish-field,

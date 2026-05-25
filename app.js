@@ -3310,6 +3310,7 @@ function renderMetrics(day) {
     ? [
         {
           label: "Courant surface",
+          shortLabel: "Surface",
           value: `${formatNumber(day.surfaceCurrent, 1)} kt`,
           detail: `vers ${compassLabel(day.surfaceCurrentDirection)} · moy. journée`,
           color: "current",
@@ -3317,29 +3318,33 @@ function renderMetrics(day) {
         },
         {
           label: "Courant profondeur",
+          shortLabel: "Profondeur",
           value: `${formatNumber(day.depthCurrent, 1)} kt`,
           detail: depthDetail(day),
           color: "depth",
           icon: depthIcon(),
         },
         {
-          label: "Vent moyen",
-          value: `${formatNumber(day.windAvg, 0)} kt`,
-          detail: `de ${compassLabel(day.windDirection)} · raf. ${formatNumber(day.windGustMax, 0)} kt`,
-          color: "wind",
-          icon: windIcon(),
-        },
-        {
           label: "Houle totale",
+          shortLabel: "Houle",
           value: `${formatNumber(day.waveAvg, 1)} m`,
           detail: `de ${compassLabel(day.waveDirection)} · ${formatNumber(day.wavePeriod, 0)} s`,
           color: "wave",
           icon: waveIcon(),
         },
+        {
+          label: "Vent moyen",
+          shortLabel: "Vent",
+          value: `${formatNumber(day.windAvg, 0)} kt`,
+          detail: `de ${compassLabel(day.windDirection)} · raf. ${formatNumber(day.windGustMax, 0)} kt`,
+          color: "wind",
+          icon: windIcon(),
+        },
       ]
     : [
         {
           label: "Vent moyen",
+          shortLabel: "Vent",
           value: `${formatNumber(day.windAvg, 0)} kt`,
           detail: `de ${compassLabel(day.windDirection)} · raf. ${formatNumber(day.windGustMax, 0)} kt`,
           color: "wind",
@@ -3347,6 +3352,7 @@ function renderMetrics(day) {
         },
         {
           label: "Pression",
+          shortLabel: "Pression",
           value: `${formatNumber(day.pressureAvg, 0)} hPa`,
           detail: `${formatPressureTrend(day.pressureTrend)} · moyenne journée`,
           color: "pressure",
@@ -3354,6 +3360,7 @@ function renderMetrics(day) {
         },
         {
           label: "Pluie 24h",
+          shortLabel: "Pluie",
           value: `${formatNumber(day.precipitationTotal, 1)} mm`,
           detail: "indice turbidité à affiner au Ticket 5",
           color: "rain",
@@ -3361,6 +3368,7 @@ function renderMetrics(day) {
         },
         {
           label: "Nuages",
+          shortLabel: "Nuages",
           value: `${formatNumber(day.cloudCoverAvg, 0)} %`,
           detail: `air ${formatNumber(day.airTemperature, 1)} °C · moyenne`,
           color: "cloud",
@@ -3381,6 +3389,7 @@ function renderMetrics(day) {
     icon.style.color = colors[metric.color];
     icon.innerHTML = metric.icon;
     label.textContent = metric.label;
+    label.dataset.shortLabel = metric.shortLabel ?? metric.label;
     value.textContent = metric.value;
     detail.textContent = metric.detail;
     card.style.borderTopColor = colors[metric.color];
