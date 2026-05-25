@@ -19,6 +19,7 @@ async function copyVendor(target) {
   await Promise.all([
     mkdir(join(target, "leaflet"), { recursive: true }),
     mkdir(join(target, "tabler"), { recursive: true }),
+    mkdir(join(target, "tabler", "fonts"), { recursive: true }),
     mkdir(join(target, "capacitor"), { recursive: true }),
   ]);
 
@@ -32,10 +33,10 @@ async function copyVendor(target) {
     copyFile(join(root, "node_modules", "@capacitor", "core", "dist", "capacitor.js"), join(target, "capacitor", "capacitor.js")),
     copyFile(join(root, "node_modules", "@capacitor", "status-bar", "dist", "plugin.js"), join(target, "capacitor", "status-bar.js")),
     copyFile(join(root, "node_modules", "@capacitor", "splash-screen", "dist", "plugin.js"), join(target, "capacitor", "splash-screen.js")),
+    copyFile(join(root, "node_modules", "@tabler", "icons-webfont", "dist", "fonts", "tabler-icons.woff2"), join(target, "tabler", "fonts", "tabler-icons.woff2")),
+    copyFile(join(root, "node_modules", "@tabler", "icons-webfont", "dist", "fonts", "tabler-icons.woff"), join(target, "tabler", "fonts", "tabler-icons.woff")),
+    copyFile(join(root, "node_modules", "@tabler", "icons-webfont", "dist", "fonts", "tabler-icons.ttf"), join(target, "tabler", "fonts", "tabler-icons.ttf")),
   ]);
 
-  await Promise.all([
-    cp(join(root, "node_modules", "leaflet", "dist", "images"), join(target, "leaflet", "images"), { recursive: true }),
-    cp(join(root, "node_modules", "@tabler", "icons-webfont", "dist", "fonts"), join(target, "tabler", "fonts"), { recursive: true }),
-  ]);
+  await cp(join(root, "node_modules", "leaflet", "dist", "images"), join(target, "leaflet", "images"), { recursive: true });
 }
