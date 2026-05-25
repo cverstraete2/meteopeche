@@ -373,6 +373,21 @@
               <input id="depth" type="range" min="0" max="80" step="1" value="15" />
             </div>
             <div class="water-insights" id="waterInsights"></div>
+            <div class="day-timeline" id="dayTimeline">
+              <div class="day-timeline-head">
+                <span class="eyebrow">Timeline journée</span>
+                <strong id="dayTimelineTime">--</strong>
+              </div>
+              <input id="dayTimeRange" type="range" min="0" max="1425" step="15" value="720" aria-label="Sélectionner l'heure de la journée" />
+              <div class="day-timeline-scale" aria-hidden="true">
+                <span>00h</span>
+                <span>06h</span>
+                <span>12h</span>
+                <span>18h</span>
+                <span>24h</span>
+              </div>
+              <div class="day-timeline-readout" id="dayTimelineDetail">--</div>
+            </div>
           </div>
 
           <aside class="compass-panel" aria-label="Directions moyennes">
@@ -428,7 +443,7 @@
             </div>
             <div class="segmented" role="tablist" aria-label="Type de courbe">
               <button class="segment is-active" type="button" data-chart="wind">Vent</button>
-              <button class="segment" type="button" data-chart="pressure">Pression</button>
+              <button class="segment" type="button" data-chart="cloud">Nuages</button>
               <button class="segment" type="button" data-chart="wave">Houle</button>
               <button class="segment" type="button" data-chart="current">Courant</button>
             </div>
@@ -571,6 +586,6 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-    <script src="app.js?v=20260525-tides-astro" defer></script>
+    <script src="app.js?v=20260525-timeline" defer></script>
   </body>
 </html>

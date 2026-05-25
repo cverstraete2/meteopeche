@@ -1321,6 +1321,7 @@ const state = {
   days: [],
   hours: [],
   selectedDate: "",
+  timelineMinute: 12 * 60,
   selectedSpotName: spots[0].name,
   depth: 15,
   realDepthAvailable: false,
@@ -1432,6 +1433,10 @@ const els = {
   metricGrid: document.querySelector("#metricGrid"),
   metricTemplate: document.querySelector("#metricTemplate"),
   waterInsights: document.querySelector("#waterInsights"),
+  dayTimeline: document.querySelector("#dayTimeline"),
+  dayTimeRange: document.querySelector("#dayTimeRange"),
+  dayTimelineTime: document.querySelector("#dayTimelineTime"),
+  dayTimelineDetail: document.querySelector("#dayTimelineDetail"),
   compassCanvas: document.querySelector("#compassCanvas"),
   chartCanvas: document.querySelector("#chartCanvas"),
   chartLegend: document.querySelector("#chartLegend"),
@@ -1777,10 +1782,14 @@ function applyWaterModeUI() {
     button.disabled = marineOnly && !isSeaMode();
   });
 
+  if (state.activeChart === "pressure") {
+    state.activeChart = "cloud";
+  }
+
   if (!isSeaMode()) {
     state.marineOverlayMode = "none";
     if (state.activeChart === "wave" || state.activeChart === "current") {
-      state.activeChart = "pressure";
+      state.activeChart = "cloud";
     }
   }
 
@@ -1803,7 +1812,7 @@ function setWaterMode(mode, options = {}) {
   state.waterMode = nextMode;
   state.activeFishFilters = normalizeFishFilters(["all"]);
   state.activityFish = normalizeActivityFish(state.activityFish);
-  if (!isSeaMode()) state.activeChart = "pressure";
+  if (!isSeaMode()) state.activeChart = "cloud";
   state.fishFilterOpen = false;
   populateActivityFish();
   populateCatchSpecies();
@@ -1867,6 +1876,7 @@ function refreshVisibleView() {
     updateMapScale();
     drawCompass();
     renderActivity(getSelectedDay());
+    renderDayTimeline(getSelectedDay());
     renderTides(getSelectedDay());
     renderChart();
     renderAstro(getSelectedDay());
@@ -4043,6 +4053,9 @@ function bindEvents() {
     deleteCatchLogEntry(deleteButton.dataset.catchDelete);
     renderCatchJournal();
   });
+  els.dayTimeRange?.addEventListener("input", () => {
+    setTimelineMinute(els.dayTimeRange.value);
+  });
   ["input", "change"].forEach((eventName) => {
     els.riggingForm?.addEventListener(eventName, () => {
       state.riggingDirty = true;
@@ -4097,7 +4110,9 @@ function bindEvents() {
     }
     drawCompass();
     renderActivity(getSelectedDay());
+    renderTides(getSelectedDay());
     renderChart();
+    renderAstro(getSelectedDay());
     updateMapScale();
   });
 }
@@ -4113,6 +4128,17 @@ function recomputeDepthSensitiveViews() {
   state.days = buildDailySummaries(state.hours);
   renderAll();
   saveSettings();
+}
+
+function setTimelineMinute(value) {
+  state.timelineMinute = normalizeTimelineMinute(value);
+  const selected = getSelectedDay();
+  renderDayTimeline(selected);
+  renderActivity(selected);
+  renderTides(selected);
+  renderChart();
+  renderAstro(selected);
+  drawCompass();
 }
 
 async function loadForecast() {
@@ -4134,6 +4160,7 @@ async function loadForecast() {
     state.hours = mergeHourlyData(weather, marine);
     state.days = buildDailySummaries(state.hours);
     state.selectedDate = state.days[0]?.date ?? "";
+    state.timelineMinute = defaultTimelineMinute(getSelectedDay());
 
     if (!state.days.length) {
       throw new Error("Aucune donnée horaire exploitable pour ce spot.");
@@ -4407,6 +4434,7 @@ function renderAll() {
   renderConditionBrief(selected);
   renderMetrics(selected);
   renderWaterInsights(selected);
+  renderDayTimeline(selected);
   renderRiggingCalculator(selected);
   drawCompass();
   renderChart();
@@ -4532,12 +4560,13 @@ function renderActivity(day) {
   const highlighted = highlightedActivityIndex(day, rows);
   const highlightedRow = rows[highlighted] ?? rows[0];
   const averageScore = Math.round(average(rows.map((row) => row.score)) ?? 0);
+  const timelineScore = timelineSample(day).score ?? highlightedRow?.score ?? averageScore;
   const windows = solunarWindows(day);
 
   els.activityScore.textContent = String(averageScore);
   els.activityRing.style.setProperty("--activity-score", averageScore);
   els.activityLabel.textContent = activityLabel(averageScore);
-  els.activityContext.textContent = `${fishActivityProfiles[fish].label} · ${highlightedRow?.hour ?? "--"} · ${activityLabel(highlightedRow?.score ?? averageScore).toLowerCase()}`;
+  els.activityContext.textContent = `${fishActivityProfiles[fish].label} · ${formatHourCompact(selectedTimelineMinute())} · ${activityLabel(timelineScore).toLowerCase()}`;
   els.activityMajor.textContent = `${windows.major.map((window) => window.label).join(" · ")} · estimation`;
   els.activityMinor.textContent = `${windows.minor.map((window) => window.label).join(" · ")} · estimation`;
   renderActivityReasons(highlightedRow ?? rows[0], fish);
@@ -4639,17 +4668,12 @@ function activityReasons(row, fish) {
 }
 
 function highlightedActivityIndex(day, rows) {
-  const today = new Date().toISOString().slice(0, 10);
-  if (day.date !== today) {
-    return rows.reduce((best, row, index) => (row.score > (rows[best]?.score ?? -1) ? index : best), 0);
-  }
-
-  const now = new Date();
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  if (!rows.length) return 0;
+  const target = selectedTimelineMinute();
   let bestIndex = 0;
   let bestDiff = Infinity;
   rows.forEach((row, index) => {
-    const diff = Math.abs(minutesFromClock(row.hour) - nowMinutes);
+    const diff = Math.abs(minutesFromClock(row.hour) - target);
     if (diff < bestDiff) {
       bestDiff = diff;
       bestIndex = index;
@@ -4707,6 +4731,7 @@ function drawActivityChart(day, rows, highlightedIndex) {
 
   const pointX = (index) => padding.left + (rows.length <= 1 ? 0 : (index / (rows.length - 1)) * chartWidth);
   const pointY = (score) => padding.top + chartHeight - (score / 100) * chartHeight;
+  drawTwoHourGrid(ctx, rows, pointX, padding, chartHeight);
 
   const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight);
   gradient.addColorStop(0, "rgba(8, 125, 114, 0.32)");
@@ -4724,6 +4749,7 @@ function drawActivityChart(day, rows, highlightedIndex) {
   ctx.closePath();
   ctx.fillStyle = gradient;
   ctx.fill();
+  drawTimelineMarker(ctx, timelineX(rows, pointX), padding, chartHeight);
 
   ctx.beginPath();
   rows.forEach((row, index) => {
@@ -4751,14 +4777,7 @@ function drawActivityChart(day, rows, highlightedIndex) {
     ctx.stroke();
   }
 
-  ctx.fillStyle = "#62706a";
-  ctx.font = "700 11px Inter, system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "top";
-  rows.forEach((row, index) => {
-    if (index % 4 !== 0 && index !== rows.length - 1) return;
-    ctx.fillText(row.hour, pointX(index), height - padding.bottom + 13);
-  });
+  drawHourTickLabels(ctx, rows, pointX, height - padding.bottom + 13);
 
   ctx.fillStyle = "#17201d";
   ctx.font = "800 12px Inter, system-ui, sans-serif";
@@ -5102,6 +5121,11 @@ function renderWaterInsights(day) {
   const insights = isSeaMode()
     ? [
         {
+          label: "Marée",
+          value: tideRangeLabel(day.seaLevelRange),
+          detail: tideSummary(day),
+        },
+        {
           label: "SST",
           value: `${formatNumber(day.seaTemperature, 1)} °C`,
           detail: seaTemperatureDetail(day),
@@ -5110,11 +5134,6 @@ function renderWaterInsights(day) {
           label: "Front thermique",
           value: thermalFrontLabel(day.seaTemperatureRange),
           detail: `écart jour ${formatNumber(day.seaTemperatureRange, 1)} °C`,
-        },
-        {
-          label: "Marée",
-          value: tideRangeLabel(day.seaLevelRange),
-          detail: tideSummary(day),
         },
       ]
     : [
@@ -5146,6 +5165,27 @@ function renderWaterInsights(day) {
     `;
     els.waterInsights.append(card);
   });
+}
+
+function renderDayTimeline(day) {
+  if (!els.dayTimeline || !els.dayTimeRange || !els.dayTimelineTime || !els.dayTimelineDetail) return;
+
+  if (!day) {
+    els.dayTimeline.hidden = true;
+    return;
+  }
+
+  const minute = selectedTimelineMinute();
+  const sample = timelineSample(day, minute);
+  const tide = isSeaMode() ? `Marée ${formatTideHeight(sample.seaLevel)}` : `Air ${formatTemperatureBrief(sample.airTemperature)}`;
+  const water = `Eau ${formatTemperatureBrief(sample.seaTemperature ?? dailyWaterTemperature(day))}`;
+  const activity = `Activité ${formatNumber(sample.score, 0)}/100`;
+
+  els.dayTimeline.hidden = false;
+  els.dayTimeRange.value = String(minute);
+  els.dayTimeRange.style.setProperty("--timeline-progress", `${(minute / 1425) * 100}%`);
+  els.dayTimelineTime.textContent = formatHourCompact(minute);
+  els.dayTimelineDetail.textContent = [tide, water, activity].join(" · ");
 }
 
 function renderRiggingCalculator(day) {
@@ -5384,14 +5424,7 @@ function uniqueTideRows(rows) {
 
 function focusedTimeRow(rows) {
   if (!rows.length) return null;
-  const today = new Date().toISOString().slice(0, 10);
-  const selectedDate = rows[0]?.date;
-  if (selectedDate !== today) {
-    return rows[Math.min(rows.length - 1, Math.floor(rows.length / 2))];
-  }
-
-  const now = new Date();
-  const target = now.getHours() * 60 + now.getMinutes();
+  const target = selectedTimelineMinute();
   return rows.reduce((best, row) => {
     const bestDiff = Math.abs(minutesFromClock(best.hour) - target);
     const diff = Math.abs(minutesFromClock(row.hour) - target);
@@ -5483,6 +5516,8 @@ function drawTideChart(day, rows, extrema, focusRow) {
     ctx.fillText(`${formatNumber(value, 2)} m`, padding.left - 10, y);
   }
 
+  drawTwoHourGrid(ctx, rows, pointX, padding, chartHeight);
+
   const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight);
   gradient.addColorStop(0, "rgba(47, 116, 192, 0.28)");
   gradient.addColorStop(1, "rgba(47, 116, 192, 0.04)");
@@ -5516,13 +5551,7 @@ function drawTideChart(day, rows, extrema, focusRow) {
   if (focusRow) {
     const focusIndex = rows.findIndex((row) => row.time === focusRow.time);
     if (focusIndex >= 0) {
-      const x = pointX(focusIndex);
-      ctx.strokeStyle = "rgba(200, 92, 69, 0.42)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(x, padding.top);
-      ctx.lineTo(x, padding.top + chartHeight);
-      ctx.stroke();
+      drawTimelineMarker(ctx, timelineX(rows, pointX) ?? pointX(focusIndex), padding, chartHeight);
     }
   }
 
@@ -5543,14 +5572,7 @@ function drawTideChart(day, rows, extrema, focusRow) {
     ctx.stroke();
   });
 
-  ctx.fillStyle = "#62706a";
-  ctx.font = "700 11px Inter, system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "top";
-  rows.forEach((row, index) => {
-    if (index % 4 !== 0 && index !== rows.length - 1) return;
-    ctx.fillText(row.hour, pointX(index), height - padding.bottom + 14);
-  });
+  drawHourTickLabels(ctx, rows, pointX, height - padding.bottom + 14);
 
   ctx.fillStyle = "#17201d";
   ctx.font = "800 12px Inter, system-ui, sans-serif";
@@ -5679,18 +5701,19 @@ function drawAstroChart(day, astro) {
   ctx.lineTo(width - padding.right, baseY);
   ctx.stroke();
 
-  for (let hour = 0; hour <= 24; hour += 6) {
+  for (let hour = 0; hour <= 24; hour += 2) {
     const x = padding.left + (hour / 24) * chartWidth;
     ctx.strokeStyle = "rgba(89, 101, 111, 0.2)";
     ctx.beginPath();
     ctx.moveTo(x, padding.top);
     ctx.lineTo(x, padding.top + chartHeight);
     ctx.stroke();
+    if (hour % 4 !== 0) continue;
     ctx.fillStyle = "#62706a";
     ctx.font = "700 11px Inter, system-ui, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.fillText(`${String(hour).padStart(2, "0")}:00`, x, height - padding.bottom + 14);
+    ctx.fillText(formatHourTick(hour * 60), x, height - padding.bottom + 14);
   }
 
   drawVisibilityArc(ctx, {
@@ -5719,18 +5742,7 @@ function drawAstroChart(day, astro) {
   drawTimePoint(ctx, padding, chartWidth, baseY, astro.sunset, colors.amber, "Coucher");
   drawTimePoint(ctx, padding, chartWidth, baseY, astro.moonrise, colors.violet, "Lune");
 
-  const today = new Date().toISOString().slice(0, 10);
-  if (day.date === today) {
-    const now = new Date();
-    const minute = now.getHours() * 60 + now.getMinutes();
-    const x = padding.left + (minute / 1440) * chartWidth;
-    ctx.strokeStyle = "rgba(200, 92, 69, 0.42)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(x, padding.top);
-    ctx.lineTo(x, padding.top + chartHeight);
-    ctx.stroke();
-  }
+  drawTimelineMarker(ctx, padding.left + (selectedTimelineMinute() / 1440) * chartWidth, padding, chartHeight);
 
   ctx.fillStyle = "#17201d";
   ctx.font = "800 12px Inter, system-ui, sans-serif";
@@ -5790,6 +5802,59 @@ function drawTimePoint(ctx, padding, chartWidth, baseY, minute, color, label) {
   ctx.textAlign = "center";
   ctx.textBaseline = "bottom";
   ctx.fillText(label, x, baseY - 10);
+}
+
+function drawTwoHourGrid(ctx, rows, pointX, padding, chartHeight) {
+  if (!rows?.length) return;
+
+  ctx.save();
+  ctx.strokeStyle = "rgba(89, 101, 111, 0.2)";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([]);
+  rows.forEach((row, index) => {
+    const minutes = minutesFromClockOrNull(row.hour);
+    if (minutes == null || minutes % 120 !== 0) return;
+    const x = pointX(index);
+    ctx.beginPath();
+    ctx.moveTo(x, padding.top);
+    ctx.lineTo(x, padding.top + chartHeight);
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
+function drawTimelineMarker(ctx, x, padding, chartHeight) {
+  if (!isValidNumber(x)) return;
+
+  ctx.save();
+  ctx.strokeStyle = "rgba(200, 92, 69, 0.45)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x, padding.top);
+  ctx.lineTo(x, padding.top + chartHeight);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawHourTickLabels(ctx, rows, pointX, y) {
+  if (!rows?.length) return;
+
+  let lastX = -Infinity;
+  ctx.save();
+  ctx.fillStyle = "#62706a";
+  ctx.font = "700 11px Inter, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  rows.forEach((row, index) => {
+    const minutes = minutesFromClockOrNull(row.hour);
+    if (minutes == null || minutes % 120 !== 0) return;
+    const x = pointX(index);
+    const isLast = index === rows.length - 1;
+    if (x - lastX < (isLast ? 32 : 42)) return;
+    ctx.fillText(formatHourTick(minutes), x, y);
+    lastX = x;
+  });
+  ctx.restore();
 }
 
 function drawEmptyPanelCanvas(canvas, message) {
@@ -5923,13 +5988,60 @@ function drawCompass() {
     drawCompassArrow(ctx, cx, cy, radius * 0.76, reverseDirection(day.windDirection), colors.wind, "Vent", true);
   }
 
-  ctx.fillStyle = "#17201d";
-  ctx.font = "900 18px Inter, system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText(day.shortLabel, cx, cy - 7);
-  ctx.fillStyle = "#62706a";
-  ctx.font = "700 12px Inter, system-ui, sans-serif";
-  ctx.fillText(`activité ${dayActivityScore(day)}/100`, cx, cy + 14);
+  drawCompassStatusBadge(ctx, width, day);
+}
+
+function drawCompassStatusBadge(ctx, width, day) {
+  const minute = selectedTimelineMinute();
+  const sample = timelineSample(day, minute);
+  const score = sample.score ?? dayActivityScore(day);
+  const waterTemperature = sample.seaTemperature ?? dailyWaterTemperature(day);
+  const lines = [
+    {
+      text: `${day.shortLabel} · ${formatHourCompact(minute)}`,
+      font: "900 12px Inter, system-ui, sans-serif",
+      color: "#17201d",
+    },
+    {
+      text: `Eau ${formatTemperatureBrief(waterTemperature)}`,
+      font: "800 11px Inter, system-ui, sans-serif",
+      color: "#62706a",
+    },
+    {
+      text: `Activité ${Math.round(score)}/100`,
+      font: "800 11px Inter, system-ui, sans-serif",
+      color: colors.current,
+    },
+  ];
+
+  const paddingX = 10;
+  const paddingY = 8;
+  let textWidth = 0;
+  lines.forEach((line) => {
+    ctx.font = line.font;
+    textWidth = Math.max(textWidth, ctx.measureText(line.text).width);
+  });
+  const badgeWidth = Math.min(width - 24, textWidth + paddingX * 2);
+  const badgeHeight = 62;
+  const x = width - badgeWidth - 12;
+  const y = 12;
+
+  ctx.save();
+  ctx.fillStyle = "rgba(255, 255, 255, 0.88)";
+  ctx.strokeStyle = "rgba(189, 203, 195, 0.88)";
+  ctx.lineWidth = 1;
+  roundRect(ctx, x, y, badgeWidth, badgeHeight, 8);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.textAlign = "right";
+  ctx.textBaseline = "top";
+  lines.forEach((line, index) => {
+    ctx.font = line.font;
+    ctx.fillStyle = line.color;
+    ctx.fillText(line.text, x + badgeWidth - paddingX, y + paddingY + index * 16);
+  });
+  ctx.restore();
 }
 
 function drawCompassArrow(ctx, cx, cy, length, direction, color, label, dashed) {
@@ -6010,6 +6122,8 @@ function renderChart() {
   const rows = day.rows;
   const pointX = (index) => padding.left + (rows.length <= 1 ? 0 : (index / (rows.length - 1)) * chartWidth);
   const pointY = (value) => padding.top + chartHeight - (((value ?? minValue) - minValue) / valueRangeSize) * chartHeight;
+  drawTwoHourGrid(ctx, rows, pointX, padding, chartHeight);
+  drawTimelineMarker(ctx, timelineX(rows, pointX), padding, chartHeight);
 
   config.series.forEach((serie) => {
     ctx.save();
@@ -6035,16 +6149,7 @@ function renderChart() {
     ctx.restore();
   });
 
-  ctx.fillStyle = "#62706a";
-  ctx.font = "700 11px Inter, system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "top";
-
-  rows.forEach((row, index) => {
-    if (index % 3 !== 0 && index !== rows.length - 1) return;
-    const x = pointX(index);
-    ctx.fillText(row.hour, x, height - padding.bottom + 14);
-  });
+  drawHourTickLabels(ctx, rows, pointX, height - padding.bottom + 14);
 
   ctx.fillStyle = "#17201d";
   ctx.font = "800 12px Inter, system-ui, sans-serif";
@@ -6077,19 +6182,14 @@ function chartConfig(day) {
     };
   }
 
-  if (state.activeChart === "pressure") {
-    const pressureValues = pluck(rows, "pressure").filter(isValidNumber);
-    const low = min(pressureValues);
-    const high = max(pressureValues);
-    const padding = Math.max(1.5, ((high ?? 1020) - (low ?? 1016)) * 0.25);
-
+  if (state.activeChart === "cloud") {
     return {
-      title: "Pression",
-      unit: "hPa",
-      minValue: low == null ? 1008 : Math.floor(low - padding),
-      maxValue: high == null ? 1028 : Math.ceil(high + padding),
+      title: "Couverture nuageuse",
+      unit: "%",
+      minValue: 0,
+      maxValue: 100,
       series: [
-        { label: "Pression", color: colors.pressure, values: pluck(rows, "pressure") },
+        { label: "Nuages", color: colors.cloud, values: pluck(rows, "cloudCover") },
       ],
     };
   }
@@ -6408,11 +6508,109 @@ function minutesFromDateTime(value) {
   return minutesFromClock(value.slice(11, 16));
 }
 
-function minutesFromClock(value) {
-  if (typeof value !== "string") return 0;
+function minutesFromClockOrNull(value) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value !== "string") return null;
   const [hour, minute] = value.split(":").map(Number);
-  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return 0;
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
   return hour * 60 + minute;
+}
+
+function minutesFromClock(value) {
+  return minutesFromClockOrNull(value) ?? 0;
+}
+
+function normalizeTimelineMinute(value) {
+  const fallback = isValidNumber(state.timelineMinute) ? state.timelineMinute : 12 * 60;
+  const minute = Number.isFinite(Number(value)) ? Number(value) : fallback;
+  return clamp(Math.round(minute / 15) * 15, 0, 23 * 60 + 45);
+}
+
+function selectedTimelineMinute() {
+  state.timelineMinute = normalizeTimelineMinute(state.timelineMinute);
+  return state.timelineMinute;
+}
+
+function localDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function defaultTimelineMinute(day) {
+  if (!day) return 12 * 60;
+  const today = localDateKey();
+  if (day.date !== today) return 12 * 60;
+  const now = new Date();
+  return normalizeTimelineMinute(now.getHours() * 60 + now.getMinutes());
+}
+
+function timelineSample(day, minute = selectedTimelineMinute()) {
+  const activity = activityRows(day, state.activityFish);
+  const nearest = nearestTimelineRow(activity, minute) ?? activity[0] ?? null;
+
+  return {
+    row: nearest,
+    score: interpolateTimelineValue(activity, minute, "score") ?? nearest?.score ?? dayActivityScore(day),
+    airTemperature: interpolateTimelineValue(day.rows, minute, "airTemperature"),
+    seaTemperature: interpolateTimelineValue(day.rows, minute, "seaTemperature"),
+    seaLevel: interpolateTimelineValue(day.rows, minute, "seaLevel"),
+  };
+}
+
+function timelineBounds(rows, minute = selectedTimelineMinute()) {
+  const points = (rows ?? [])
+    .map((row, index) => ({ row, index, minute: minutesFromClockOrNull(row.hour) }))
+    .filter((point) => point.minute != null);
+
+  if (!points.length) return null;
+
+  let before = points[0];
+  let after = points.at(-1);
+  for (const point of points) {
+    if (point.minute <= minute) before = point;
+    if (point.minute >= minute) {
+      after = point;
+      break;
+    }
+  }
+
+  return { before, after };
+}
+
+function nearestTimelineRow(rows, minute = selectedTimelineMinute()) {
+  const bounds = timelineBounds(rows, minute);
+  if (!bounds) return null;
+  const beforeDistance = Math.abs(bounds.before.minute - minute);
+  const afterDistance = Math.abs(bounds.after.minute - minute);
+  return beforeDistance <= afterDistance ? bounds.before.row : bounds.after.row;
+}
+
+function interpolateTimelineValue(rows, minute, key) {
+  const bounds = timelineBounds(rows, minute);
+  if (!bounds) return null;
+
+  const beforeValue = bounds.before.row?.[key];
+  const afterValue = bounds.after.row?.[key];
+  const span = bounds.after.minute - bounds.before.minute;
+
+  if (isValidNumber(beforeValue) && isValidNumber(afterValue) && span > 0) {
+    return beforeValue + ((afterValue - beforeValue) * (minute - bounds.before.minute)) / span;
+  }
+
+  const nearestValue = nearestTimelineRow(rows, minute)?.[key];
+  return isValidNumber(nearestValue) ? nearestValue : null;
+}
+
+function timelineX(rows, pointX, minute = selectedTimelineMinute()) {
+  const bounds = timelineBounds(rows, minute);
+  if (!bounds) return null;
+  const beforeX = pointX(bounds.before.index);
+  const afterX = pointX(bounds.after.index);
+  const span = bounds.after.minute - bounds.before.minute;
+  if (span <= 0) return beforeX;
+  return beforeX + ((afterX - beforeX) * (minute - bounds.before.minute)) / span;
 }
 
 function wrapMinute(value) {
@@ -6429,6 +6627,27 @@ function formatMinute(value) {
   const hour = Math.floor(minutes / 60) % 24;
   const minute = minutes % 60;
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function formatHourTick(value) {
+  const rawMinutes = minutesFromClockOrNull(value);
+  if (rawMinutes == null) return "--";
+  if (Math.round(rawMinutes) === 1440) return "24h";
+  const minutes = Math.round(wrapMinute(rawMinutes));
+  const hour = Math.floor(minutes / 60) % 24;
+  return `${String(hour).padStart(2, "0")}h`;
+}
+
+function formatHourCompact(value) {
+  const rawMinutes = minutesFromClockOrNull(value);
+  if (rawMinutes == null) return "--";
+  if (Math.round(rawMinutes) === 1440) return "24h";
+  const minutes = Math.round(wrapMinute(rawMinutes));
+  const hour = Math.floor(minutes / 60) % 24;
+  const minute = minutes % 60;
+  return minute === 0
+    ? `${String(hour).padStart(2, "0")}h`
+    : `${String(hour).padStart(2, "0")}h${String(minute).padStart(2, "0")}`;
 }
 
 function groupBy(items, key) {

@@ -2309,6 +2309,49 @@ body.is-map-fullscreen-active {
   line-height: 1.25;
 }
 
+.day-timeline {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfdfb;
+  padding: 12px;
+}
+
+.day-timeline-head,
+.day-timeline-scale,
+.day-timeline-readout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.day-timeline-head strong {
+  color: var(--teal-dark);
+  font-size: 1.28rem;
+  line-height: 1;
+}
+
+.day-timeline input {
+  width: 100%;
+  accent-color: var(--teal);
+}
+
+.day-timeline-scale {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.day-timeline-readout {
+  justify-content: flex-start;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2877,6 +2920,19 @@ footer {
 
   .water-insight small {
     display: none;
+  }
+
+  .day-timeline {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .day-timeline-head strong {
+    font-size: 1.08rem;
+  }
+
+  .day-timeline-readout {
+    font-size: 0.78rem;
   }
 
   .activity-fish-field,
