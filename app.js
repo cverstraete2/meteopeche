@@ -2814,9 +2814,9 @@ function drawMarineOverlayMarkers(data) {
       icon: L.divIcon({
         className: `marine-overlay-icon marine-overlay-${state.marineOverlayMode}`,
         html: marineOverlayMarkerHtml(metric),
-        iconSize: [68, 52],
-        iconAnchor: [34, 26],
-        tooltipAnchor: [0, -24],
+        iconSize: [84, 68],
+        iconAnchor: [42, 34],
+        tooltipAnchor: [0, -30],
       }),
       keyboard: false,
       zIndexOffset: 180,
@@ -2884,9 +2884,9 @@ function drawFocusedMarineOverlayMarker() {
     icon: L.divIcon({
       className: `marine-overlay-icon marine-overlay-${state.marineOverlayMode} marine-overlay-focus`,
       html: marineOverlayMarkerHtml(metric),
-      iconSize: [76, 58],
-      iconAnchor: [38, 29],
-      tooltipAnchor: [0, -28],
+      iconSize: [92, 74],
+      iconAnchor: [46, 37],
+      tooltipAnchor: [0, -34],
     }),
     keyboard: false,
     zIndexOffset: 210,
@@ -2901,7 +2901,7 @@ function drawFocusedMarineOverlayMarker() {
 }
 
 function marineOverlayMarkerHtml(metric) {
-  const strength = clamp(metric.value / (state.marineOverlayMode === "wave" ? 1.8 : 1.1), 0.35, 1.35);
+  const strength = clamp(metric.value / (state.marineOverlayMode === "wave" ? 1.8 : 1.1), 0.72, 1.4);
   return `
     <div class="marine-flow-marker" style="--flow-rotation:${metric.direction}deg; --flow-strength:${strength}">
       <span class="marine-flow-arrow">↑</span>
