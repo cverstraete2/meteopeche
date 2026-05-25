@@ -333,7 +333,7 @@
           </aside>
         </section>
 
-        <section class="rigging-panel" data-mobile-view="weather" aria-label="Calculateur de lestage">
+        <section class="rigging-panel" data-mobile-view="rigging" aria-label="Calculateur de lestage">
           <div class="section-head">
             <div>
               <span class="eyebrow">Outil terrain</span>
@@ -442,6 +442,15 @@
           </svg>
           <span>Météo</span>
         </button>
+        <button class="mobile-tab" type="button" data-mobile-tab="rigging">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3v5" />
+            <path d="M9 8h6" />
+            <path d="m8 11 4 9 4-9Z" />
+            <path d="M8 11h8" />
+          </svg>
+          <span>Lestage</span>
+        </button>
         <button class="mobile-tab" type="button" data-mobile-tab="journal">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M8 5h8" />
@@ -471,6 +480,6 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-    <script src="app.js?v=20260525-combined-forecast-strip" defer></script>
+    <script src="app.js?v=20260525-rigging-tab" defer></script>
   </body>
 </html>

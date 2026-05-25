@@ -8,7 +8,7 @@ const WATER_MODES = {
   SEA: "sea",
   FRESHWATER: "freshwater",
 };
-const MOBILE_VIEWS = ["map", "activity", "weather", "journal"];
+const MOBILE_VIEWS = ["map", "activity", "weather", "rigging", "journal"];
 const MARINE_OVERLAY_MODES = ["none", "surface", "depth", "wave"];
 const waterModeConfig = {
   [WATER_MODES.SEA]: {
