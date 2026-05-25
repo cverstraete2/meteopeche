@@ -187,15 +187,72 @@ main {
 .controls-band {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 18px;
-  padding: 16px;
+  gap: 0;
+  padding: 12px;
+}
+
+.spot-quickbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 44px;
+  align-items: center;
+  gap: 10px;
+}
+
+.spot-current {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.spot-current span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.spot-current strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 1.08rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spot-current small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .spot-form {
   display: grid;
-  grid-template-columns: minmax(210px, 1.2fr) minmax(130px, 0.55fr) minmax(130px, 0.55fr) 44px auto;
+  grid-template-columns: minmax(210px, 1.2fr) minmax(130px, 0.55fr) minmax(130px, 0.55fr) auto auto;
   align-items: end;
   gap: 12px;
+  max-height: 0;
+  overflow: hidden;
+  border-top: 0 solid transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: max-height 220ms ease, opacity 180ms ease, padding-top 180ms ease, margin-top 180ms ease;
+}
+
+.controls-band.is-open .spot-form {
+  max-height: 180px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.spot-edit-toggle,
+.spot-panel-close {
+  padding: 0 14px;
+  font-weight: 900;
 }
 
 .field {
@@ -1949,18 +2006,29 @@ footer {
     gap: 10px;
   }
 
+  .spot-quickbar {
+    grid-template-columns: minmax(0, 1fr) 92px 44px;
+    gap: 8px;
+  }
+
+  .spot-current strong {
+    font-size: 1rem;
+  }
+
   .spot-form {
     grid-template-columns: minmax(0, 1fr) 44px;
     gap: 8px;
   }
 
-  .spot-form .field:not(.field-wide) {
-    display: none;
+  .field-wide,
+  .spot-form .field,
+  .primary-button,
+  .spot-panel-close {
+    grid-column: 1 / -1;
   }
 
-  .field-wide,
-  .primary-button {
-    grid-column: 1 / -1;
+  .controls-band.is-open .spot-form {
+    max-height: 420px;
   }
 
   .icon-button {

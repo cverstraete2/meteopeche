@@ -1317,6 +1317,7 @@ const state = {
   mapPinch: null,
   mapPointers: new Map(),
   mapLayerOpen: false,
+  spotPanelOpen: false,
   mapClickStart: null,
   suppressNextMapClick: false,
   mapTilePruneTimer: null,
@@ -1358,6 +1359,11 @@ const els = {
   modeButtons: [...document.querySelectorAll("[data-water-mode]")],
   mobileTabButtons: [...document.querySelectorAll("[data-mobile-tab]")],
   mobileViewSections: [...document.querySelectorAll("[data-mobile-view]")],
+  spotControls: document.querySelector("#spotControls"),
+  spotPanelButton: document.querySelector("#spotPanelButton"),
+  spotPanelClose: document.querySelector("#spotPanelClose"),
+  spotSummaryName: document.querySelector("#spotSummaryName"),
+  spotSummaryCoords: document.querySelector("#spotSummaryCoords"),
   spotPreset: document.querySelector("#spotPreset"),
   latitude: document.querySelector("#latitude"),
   longitude: document.querySelector("#longitude"),
@@ -1763,6 +1769,28 @@ function updateMapLayerPanel() {
   }
 }
 
+function setSpotPanelOpen(open) {
+  state.spotPanelOpen = Boolean(open);
+  updateSpotPanel();
+}
+
+function updateSpotPanel() {
+  if (els.spotControls) {
+    els.spotControls.classList.toggle("is-open", state.spotPanelOpen);
+  }
+
+  if (els.spotPanelButton) {
+    els.spotPanelButton.setAttribute("aria-expanded", String(state.spotPanelOpen));
+    els.spotPanelButton.textContent = state.spotPanelOpen ? "Masquer" : "Modifier";
+  }
+
+  if (els.spotForm) {
+    els.spotForm.setAttribute("aria-hidden", String(!state.spotPanelOpen));
+    els.spotForm.inert = !state.spotPanelOpen;
+    els.spotForm.toggleAttribute("inert", !state.spotPanelOpen);
+  }
+}
+
 function getSelectedPreset() {
   return spots[Number(els.spotPreset.value)] ?? spots[0];
 }
@@ -1897,6 +1925,7 @@ function renderSpotTools() {
   renderAnchorWatch();
   renderSafetyStatus();
   updateMapLayerPanel();
+  updateSpotPanel();
   renderSpotNameSheet();
 
   const active = getActiveSpot();
@@ -3411,6 +3440,9 @@ function bindEvents() {
     button.addEventListener("click", () => setMobileView(button.dataset.mobileTab));
   });
 
+  els.spotPanelButton.addEventListener("click", () => setSpotPanelOpen(!state.spotPanelOpen));
+  els.spotPanelClose.addEventListener("click", () => setSpotPanelOpen(false));
+
   els.marineOverlayButtons.forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -3426,6 +3458,7 @@ function bindEvents() {
     event.preventDefault();
     state.selectedSpotName = getSelectedPreset().custom ? getCustomSpotName() : getSelectedPreset().name;
     centerMapOn(Number(els.latitude.value), Number(els.longitude.value));
+    setSpotPanelOpen(false);
     renderSpotTools();
     loadForecast();
   });
@@ -3888,7 +3921,11 @@ function renderAll() {
 function updateSpotMeta() {
   const lat = Number(els.latitude.value);
   const lon = Number(els.longitude.value);
-  els.spotMeta.textContent = `${waterModeConfig[state.waterMode].metaPrefix} · ${state.selectedSpotName} · ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+  const name = getActiveSpot().name;
+  const coords = formatCoordinates(lat, lon);
+  els.spotMeta.textContent = `${waterModeConfig[state.waterMode].metaPrefix} · ${name} · ${coords}`;
+  if (els.spotSummaryName) els.spotSummaryName.textContent = name;
+  if (els.spotSummaryCoords) els.spotSummaryCoords.textContent = coords;
 }
 
 function renderDayTabs() {
