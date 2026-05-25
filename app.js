@@ -1299,6 +1299,19 @@ const fishActivityProfiles = {
   },
 };
 
+const riggingProfiles = {
+  [WATER_MODES.SEA]: [
+    { id: "shore", label: "Bord / pêche calée", base: 30, depth: 0.7, current: 58, wind: 1.25 },
+    { id: "drift", label: "Bateau / dérive", base: 20, depth: 1.15, current: 76, wind: 0.85 },
+    { id: "vertical", label: "Verticale profonde", base: 30, depth: 1.55, current: 92, wind: 0.55 },
+  ],
+  [WATER_MODES.FRESHWATER]: [
+    { id: "river", label: "Rivière / plombée", base: 10, depth: 0.8, current: 44, wind: 0.25 },
+    { id: "lake", label: "Lac / posé", base: 14, depth: 0.9, current: 22, wind: 0.55 },
+    { id: "carp", label: "Carpe / tenue", base: 42, depth: 0.35, current: 30, wind: 0.5 },
+  ],
+};
+
 const state = {
   waterMode: WATER_MODES.SEA,
   activeChart: "wind",
@@ -1317,6 +1330,7 @@ const state = {
   mapPinch: null,
   mapPointers: new Map(),
   mapLayerOpen: false,
+  mapFullscreen: false,
   spotPanelOpen: false,
   mapClickStart: null,
   suppressNextMapClick: false,
@@ -1351,6 +1365,7 @@ const state = {
   activeFishFilters: new Set(["all"]),
   fishFilterOpen: false,
   activityFish: "loup",
+  riggingDirty: false,
   renamingFavoriteId: null,
   pendingSpot: null,
 };
@@ -1404,6 +1419,7 @@ const els = {
   statusPill: document.querySelector("#statusPill"),
   spotMeta: document.querySelector("#spotMeta"),
   mapTitle: document.querySelector("#mapTitle"),
+  mapPanel: document.querySelector("#mapPanel"),
   spotMap: document.querySelector("#spotMap"),
   mapTiles: document.querySelector("#mapTiles"),
   mapMarkers: document.querySelector("#mapMarkers"),
@@ -1414,6 +1430,7 @@ const els = {
   activeSpotCoords: document.querySelector("#activeSpotCoords"),
   mapZoomIn: document.querySelector("#mapZoomIn"),
   mapZoomOut: document.querySelector("#mapZoomOut"),
+  mapFullscreenButton: document.querySelector("#mapFullscreenButton"),
   mapLayersButton: document.querySelector("#mapLayersButton"),
   mapLayerSheet: document.querySelector("#mapLayerSheet"),
   mapLayerClose: document.querySelector("#mapLayerClose"),
@@ -1439,6 +1456,15 @@ const els = {
   spotNameClose: document.querySelector("#spotNameClose"),
   spotNameCancel: document.querySelector("#spotNameCancel"),
   spotNameFavorite: document.querySelector("#spotNameFavorite"),
+  riggingForm: document.querySelector("#riggingForm"),
+  riggingTechnique: document.querySelector("#riggingTechnique"),
+  riggingDepth: document.querySelector("#riggingDepth"),
+  riggingCurrent: document.querySelector("#riggingCurrent"),
+  riggingWind: document.querySelector("#riggingWind"),
+  riggingAutoFill: document.querySelector("#riggingAutoFill"),
+  riggingWeight: document.querySelector("#riggingWeight"),
+  riggingRange: document.querySelector("#riggingRange"),
+  riggingAdvice: document.querySelector("#riggingAdvice"),
 };
 
 const colors = {
@@ -1460,6 +1486,7 @@ function init() {
   state.favorites = readFavorites();
   populateActivityFish();
   populateCatchSpecies();
+  populateRiggingTechniques();
   initMapEngine();
   bindEvents();
   updateDepth();
@@ -1600,6 +1627,23 @@ function populateCatchSpecies() {
   els.catchSpecies.value = normalizeActivityFish(previous);
 }
 
+function populateRiggingTechniques() {
+  if (!els.riggingTechnique) return;
+
+  const profiles = riggingProfiles[state.waterMode] ?? riggingProfiles[WATER_MODES.SEA];
+  const previous = els.riggingTechnique.value;
+  els.riggingTechnique.innerHTML = "";
+  profiles.forEach((profile) => {
+    const option = document.createElement("option");
+    option.value = profile.id;
+    option.textContent = profile.label;
+    els.riggingTechnique.append(option);
+  });
+  els.riggingTechnique.value = profiles.some((profile) => profile.id === previous)
+    ? previous
+    : profiles[0]?.id ?? "";
+}
+
 function restoreState() {
   const saved = readSavedSettings();
   state.waterMode = normalizeWaterMode(saved.waterMode);
@@ -1686,6 +1730,8 @@ function setWaterMode(mode, options = {}) {
   state.fishFilterOpen = false;
   populateActivityFish();
   populateCatchSpecies();
+  populateRiggingTechniques();
+  state.riggingDirty = false;
   applyWaterModeUI();
   renderSpotTools();
   saveSettings();
@@ -1782,6 +1828,25 @@ function updateMarineOverlayControls() {
 function setMapLayerOpen(open) {
   state.mapLayerOpen = Boolean(open);
   updateMapLayerPanel();
+}
+
+function setMapFullscreen(open) {
+  state.mapFullscreen = Boolean(open);
+  els.mapPanel?.classList.toggle("is-map-fullscreen", state.mapFullscreen);
+  document.body.classList.toggle("is-map-fullscreen-active", state.mapFullscreen);
+
+  if (els.mapFullscreenButton) {
+    const label = state.mapFullscreen ? "Quitter le plein écran" : "Carte plein écran";
+    els.mapFullscreenButton.classList.toggle("is-active", state.mapFullscreen);
+    els.mapFullscreenButton.setAttribute("aria-pressed", String(state.mapFullscreen));
+    els.mapFullscreenButton.setAttribute("aria-label", label);
+    els.mapFullscreenButton.title = label;
+  }
+
+  window.requestAnimationFrame(() => {
+    state.leafletMap?.invalidateSize(false);
+    updateMapScale();
+  });
 }
 
 function updateMapLayerPanel() {
@@ -3548,6 +3613,10 @@ function bindEvents() {
     event.stopPropagation();
     changeMapZoom(-1);
   });
+  els.mapFullscreenButton?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setMapFullscreen(!state.mapFullscreen);
+  });
   els.mapLayersButton.addEventListener("click", (event) => {
     event.stopPropagation();
     setMapLayerOpen(!state.mapLayerOpen);
@@ -3629,12 +3698,27 @@ function bindEvents() {
     deleteCatchLogEntry(deleteButton.dataset.catchDelete);
     renderCatchJournal();
   });
+  ["input", "change"].forEach((eventName) => {
+    els.riggingForm?.addEventListener(eventName, () => {
+      state.riggingDirty = true;
+      updateRiggingRecommendation();
+    });
+  });
+  els.riggingAutoFill?.addEventListener("click", () => {
+    state.riggingDirty = false;
+    fillRiggingFromConditions(getSelectedDay());
+    updateRiggingRecommendation();
+  });
   document.addEventListener("click", () => {
     if (!state.fishFilterOpen) return;
     state.fishFilterOpen = false;
     renderFishFilterControls();
   });
   document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && state.mapFullscreen) {
+      setMapFullscreen(false);
+      return;
+    }
     if (event.key === "Escape" && state.mapLayerOpen) {
       setMapLayerOpen(false);
     }
@@ -3663,6 +3747,9 @@ function bindEvents() {
 
   window.addEventListener("resize", () => {
     applyMobileNavigationUI();
+    if (!isMobileLayout() && state.mapFullscreen) {
+      setMapFullscreen(false);
+    }
     drawCompass();
     renderActivity(getSelectedDay());
     renderChart();
@@ -3974,6 +4061,7 @@ function renderAll() {
   renderConditionBrief(selected);
   renderMetrics(selected);
   renderWaterInsights(selected);
+  renderRiggingCalculator(selected);
   drawCompass();
   renderChart();
   renderDailyCards();
@@ -4585,6 +4673,87 @@ function renderWaterInsights(day) {
     `;
     els.waterInsights.append(card);
   });
+}
+
+function renderRiggingCalculator(day) {
+  if (!els.riggingForm) return;
+
+  if (!state.riggingDirty) {
+    fillRiggingFromConditions(day);
+  }
+  updateRiggingRecommendation();
+}
+
+function fillRiggingFromConditions(day) {
+  if (!els.riggingForm) return;
+
+  const depth = isSeaMode() ? state.depth : 5;
+  const current = isSeaMode()
+    ? day?.depthCurrent ?? day?.surfaceCurrent ?? 0
+    : 0.2;
+  const wind = day?.windAvg ?? 0;
+
+  setNumberInputValue(els.riggingDepth, depth, 0);
+  setNumberInputValue(els.riggingCurrent, current, 1);
+  setNumberInputValue(els.riggingWind, wind, 0);
+}
+
+function updateRiggingRecommendation() {
+  if (!els.riggingWeight) return;
+
+  const profile = selectedRiggingProfile();
+  const depth = readOptionalNumber(els.riggingDepth?.value);
+  const current = readOptionalNumber(els.riggingCurrent?.value);
+  const wind = readOptionalNumber(els.riggingWind?.value);
+
+  if (!profile || depth == null || current == null || wind == null) {
+    els.riggingWeight.textContent = "-- g";
+    els.riggingRange.textContent = "Fourchette --";
+    els.riggingAdvice.textContent = "Renseigne les conditions pour estimer un lestage de départ.";
+    return;
+  }
+
+  const recommendation = calculateRiggingWeight(profile, { depth, current, wind });
+  els.riggingWeight.textContent = `${recommendation.weight} g`;
+  els.riggingRange.textContent = `Fourchette ${recommendation.min}-${recommendation.max} g`;
+  els.riggingAdvice.textContent = riggingAdvice(recommendation, { current, wind });
+}
+
+function selectedRiggingProfile() {
+  const profiles = riggingProfiles[state.waterMode] ?? riggingProfiles[WATER_MODES.SEA];
+  return profiles.find((profile) => profile.id === els.riggingTechnique?.value) ?? profiles[0];
+}
+
+function calculateRiggingWeight(profile, values) {
+  const raw = profile.base +
+    values.depth * profile.depth +
+    values.current * profile.current +
+    values.wind * profile.wind;
+  const cap = isSeaMode() ? 350 : 180;
+  const weight = clamp(roundToStep(raw, 5), 5, cap);
+  return {
+    weight,
+    min: clamp(roundToStep(weight * 0.85, 5), 5, cap),
+    max: clamp(roundToStep(weight * 1.18, 5), 5, cap),
+  };
+}
+
+function riggingAdvice(recommendation, values) {
+  if (values.current >= 1.2) {
+    return "Courant soutenu: privilégie une forme grappin ou pyramidale si le montage décroche.";
+  }
+  if (values.wind >= 20) {
+    return "Vent marqué: garde la fourchette haute pour mieux tenir la bannière et limiter la dérive.";
+  }
+  if (recommendation.weight >= 160) {
+    return "Lestage lourd: démarre dans la fourchette basse, puis monte seulement si le fond ne tient pas.";
+  }
+  return "Estimation de départ: ajuste par pas de 10 g selon la tenue au fond et la sensibilité recherchée.";
+}
+
+function setNumberInputValue(input, value, digits) {
+  if (!input) return;
+  input.value = isValidNumber(value) ? Number(value).toFixed(digits).replace(/\.0$/, "") : "";
 }
 
 function depthDetail(day) {
@@ -5671,6 +5840,10 @@ function scoreClass(score) {
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
+}
+
+function roundToStep(value, step) {
+  return Math.round(value / step) * step;
 }
 
 function isValidNumber(value) {

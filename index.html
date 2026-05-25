@@ -71,7 +71,7 @@
         </section>
 
         <section class="spot-workspace" data-mobile-view="map" aria-label="Carte et favoris">
-          <section class="map-panel" aria-label="Carte des spots">
+          <section class="map-panel" id="mapPanel" aria-label="Carte des spots">
             <div class="section-head">
               <div>
                 <span class="eyebrow">Carte</span>
@@ -107,6 +107,14 @@
                     <path d="M5 14c0 4 3 7 7 7s7-3 7-7" />
                     <path d="M5 14h4" />
                     <path d="M15 14h4" />
+                  </svg>
+                </button>
+                <button class="map-control map-fullscreen-toggle" id="mapFullscreenButton" type="button" title="Carte plein écran" aria-label="Carte plein écran" aria-pressed="false">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M8 3H3v5" />
+                    <path d="M16 3h5v5" />
+                    <path d="M21 16v5h-5" />
+                    <path d="M3 16v5h5" />
                   </svg>
                 </button>
               </div>
@@ -325,6 +333,42 @@
           </aside>
         </section>
 
+        <section class="rigging-panel" data-mobile-view="weather" aria-label="Calculateur de lestage">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Outil terrain</span>
+              <h2>Calculateur de lestage</h2>
+            </div>
+            <button class="ghost-button rigging-autofill" id="riggingAutoFill" type="button">Conditions</button>
+          </div>
+          <div class="rigging-layout">
+            <form class="rigging-form" id="riggingForm">
+              <label class="field" for="riggingTechnique">
+                <span>Technique</span>
+                <select id="riggingTechnique"></select>
+              </label>
+              <label class="field" for="riggingDepth">
+                <span>Profondeur m</span>
+                <input id="riggingDepth" type="number" min="0" max="180" step="1" inputmode="decimal" />
+              </label>
+              <label class="field" for="riggingCurrent">
+                <span>Courant kt</span>
+                <input id="riggingCurrent" type="number" min="0" max="4" step="0.1" inputmode="decimal" />
+              </label>
+              <label class="field" for="riggingWind">
+                <span>Vent kt</span>
+                <input id="riggingWind" type="number" min="0" max="80" step="1" inputmode="decimal" />
+              </label>
+            </form>
+            <div class="rigging-result" aria-live="polite">
+              <span>Plomb conseillé</span>
+              <strong id="riggingWeight">-- g</strong>
+              <small id="riggingRange">Fourchette --</small>
+              <p id="riggingAdvice">Renseigne les conditions pour estimer un lestage de départ.</p>
+            </div>
+          </div>
+        </section>
+
         <section class="chart-panel" data-mobile-view="weather" aria-label="Évolution horaire">
           <div class="section-head">
             <div>
@@ -437,6 +481,6 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-    <script src="app.js?v=20260525-forecast-strip" defer></script>
+    <script src="app.js?v=20260525-map-fullscreen-rigging" defer></script>
   </body>
 </html>
