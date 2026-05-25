@@ -1,5 +1,7 @@
 const WEATHER_API = "https://api.open-meteo.com/v1/forecast";
 const MARINE_API = "https://marine-api.open-meteo.com/v1/marine";
+const BATHYMETRY_WMS = "https://ows.emodnet-bathymetry.eu/wms";
+const BATHYMETRY_REST = "https://rest.emodnet-bathymetry.eu/depth/point";
 const STORE_KEY = "meteo-peche-store-v1";
 const LEGACY_FAVORITES_KEY = "meteo-peche-favorites";
 const LEGACY_SETTINGS_KEY = "meteo-peche-settings";
@@ -1316,20 +1318,20 @@ const bathymetryContours = [
   {
     region: "Méditerranée - Côte Bleue",
     depth: 20,
-    label: [43.276, 5.06],
-    coordinates: [[43.30, 4.98], [43.28, 5.05], [43.24, 5.16], [43.20, 5.28], [43.16, 5.42]],
+    label: [43.32, 5.13],
+    coordinates: [[43.34, 4.88], [43.33, 4.98], [43.32, 5.08], [43.305, 5.18], [43.29, 5.30], [43.27, 5.46]],
   },
   {
     region: "Méditerranée - Côte Bleue",
     depth: 50,
-    label: [43.19, 5.1],
-    coordinates: [[43.20, 4.88], [43.16, 5.02], [43.10, 5.18], [43.04, 5.36], [42.98, 5.55]],
+    label: [43.30, 5.15],
+    coordinates: [[43.315, 4.86], [43.305, 4.98], [43.300, 5.12], [43.292, 5.26], [43.275, 5.42], [43.25, 5.60]],
   },
   {
-    region: "Méditerranée - Provence",
+    region: "Méditerranée - Côte Bleue / Provence",
     depth: 100,
-    label: [42.98, 5.28],
-    coordinates: [[43.02, 4.75], [42.95, 4.95], [42.86, 5.20], [42.78, 5.48], [42.70, 5.78]],
+    label: [43.23, 5.18],
+    coordinates: [[43.25, 4.76], [43.235, 4.98], [43.215, 5.22], [43.19, 5.48], [43.15, 5.78]],
   },
   {
     region: "Méditerranée - Provence",
@@ -1444,8 +1446,13 @@ const state = {
   leafletMarkers: null,
   nauticalLayer: null,
   nauticalEnabled: true,
+  emodnetBathymetryLayer: null,
   bathymetryLayer: null,
   bathymetryEnabled: true,
+  bathymetryFocusDepth: null,
+  bathymetryPointCache: new Map(),
+  bathymetryPointRequestId: 0,
+  bathymetryPointTimer: null,
   knownFishingLayer: null,
   knownFishingEnabled: true,
   regulationLayer: null,
@@ -1648,6 +1655,17 @@ function initMapEngine() {
   state.knownFishingLayer = L.layerGroup();
   updateKnownFishingOverlay();
 
+  state.emodnetBathymetryLayer = L.tileLayer.wms(BATHYMETRY_WMS, {
+    layers: "emodnet:contours",
+    styles: "contours",
+    format: "image/png",
+    transparent: true,
+    version: "1.3.0",
+    opacity: 0.82,
+    minZoom: MAP_MIN_ZOOM,
+    maxZoom: MAP_MAX_ZOOM,
+    attribution: "EMODnet Bathymetry",
+  });
   state.bathymetryLayer = L.layerGroup();
   renderBathymetryLayer();
   updateBathymetryOverlay();
@@ -2140,8 +2158,8 @@ function renderSpotTools() {
   updateMapZoomControls();
   updateMapScale();
   updateNauticalOverlay();
-  renderBathymetryLayer();
   updateBathymetryOverlay();
+  scheduleBathymetryFocusRefresh();
   renderKnownFishingMarkers();
   updateKnownFishingOverlay();
   renderRegulationZones();
@@ -2168,7 +2186,7 @@ function updateNauticalOverlay() {
   if (els.mapAttribution) {
     const credits = ["© OpenStreetMap"];
     if (nauticalEnabled) credits.push("OpenSeaMap");
-    if (state.bathymetryEnabled && isSeaMode()) credits.push("fond estimé");
+    if (state.bathymetryEnabled && isSeaMode()) credits.push("EMODnet Bathymetry");
     els.mapAttribution.textContent = credits.join(" · ");
   }
 
@@ -2192,10 +2210,17 @@ function updateBathymetryOverlay() {
 
   if (!state.leafletMap || !state.bathymetryLayer) return;
 
-  const hasLayer = state.leafletMap.hasLayer(state.bathymetryLayer);
-  if (enabled && !hasLayer) {
+  const hasEmodnetLayer = state.emodnetBathymetryLayer && state.leafletMap.hasLayer(state.emodnetBathymetryLayer);
+  if (enabled && state.emodnetBathymetryLayer && !hasEmodnetLayer) {
+    state.emodnetBathymetryLayer.addTo(state.leafletMap);
+  } else if (!enabled && state.emodnetBathymetryLayer && hasEmodnetLayer) {
+    state.leafletMap.removeLayer(state.emodnetBathymetryLayer);
+  }
+
+  const hasVectorLayer = state.leafletMap.hasLayer(state.bathymetryLayer);
+  if (enabled && !hasVectorLayer) {
     state.bathymetryLayer.addTo(state.leafletMap);
-  } else if (!enabled && hasLayer) {
+  } else if (!enabled && hasVectorLayer) {
     state.leafletMap.removeLayer(state.bathymetryLayer);
   }
 }
@@ -2244,30 +2269,6 @@ function renderBathymetryLayer() {
   state.bathymetryLayer.clearLayers();
   if (!state.bathymetryEnabled || !isSeaMode()) return;
 
-  bathymetryContours.forEach((contour) => {
-    const style = bathymetryStyle(contour.depth);
-    const line = L.polyline(contour.coordinates, {
-      color: style.color,
-      opacity: style.opacity,
-      weight: style.weight,
-      dashArray: style.dashArray,
-      interactive: false,
-    });
-    line.addTo(state.bathymetryLayer);
-
-    const labelPosition = contour.label ?? contour.coordinates[Math.floor(contour.coordinates.length / 2)];
-    L.marker(labelPosition, {
-      icon: L.divIcon({
-        className: "bathymetry-label",
-        html: `${contour.depth} m`,
-        iconSize: [56, 22],
-        iconAnchor: [28, 11],
-      }),
-      interactive: false,
-      zIndexOffset: 120,
-    }).addTo(state.bathymetryLayer);
-  });
-
   renderBathymetryFocusLabel();
 }
 
@@ -2289,27 +2290,101 @@ function bathymetryStyle(depth) {
 
 function renderBathymetryFocusLabel() {
   const center = getLeafletFocusPoint();
-  const estimate = estimateBathymetryAt(center);
+  const estimate = currentBathymetryFocusEstimate(center);
   if (!estimate) return;
+  const source = estimate.source === "emodnet" ? "EMODnet" : "Est.";
+  const detail = estimate.source === "emodnet"
+    ? "Profondeur moyenne EMODnet au centre de la carte"
+    : `Fond estimé depuis l'isobathe ${estimate.depth} m · ${formatMapDistance(estimate.distance)} du repère`;
 
   const marker = L.marker([center.lat, center.lon], {
     icon: L.divIcon({
       className: "bathymetry-label bathymetry-focus-label",
-      html: `<span>Fond</span><strong>~${estimate.depth} m</strong>`,
-      iconSize: [92, 36],
-      iconAnchor: [46, 44],
+      html: `<span>Fond ${source}</span><strong>~${formatNumber(estimate.depth, 0)} m</strong>`,
+      iconSize: [104, 36],
+      iconAnchor: [52, 44],
       tooltipAnchor: [0, -42],
     }),
     interactive: false,
     zIndexOffset: 175,
   });
 
-  marker.bindTooltip(`Fond estimé depuis l'isobathe ${estimate.depth} m · ${formatMapDistance(estimate.distance)} du repère`, {
+  marker.bindTooltip(detail, {
     direction: "top",
     offset: [0, -38],
     opacity: 0.96,
   });
   marker.addTo(state.bathymetryLayer);
+}
+
+function scheduleBathymetryFocusRefresh() {
+  window.clearTimeout(state.bathymetryPointTimer);
+  renderBathymetryLayer();
+
+  if (!state.bathymetryEnabled || !isSeaMode() || !state.leafletMap) return;
+  state.bathymetryPointTimer = window.setTimeout(loadBathymetryFocusDepth, 360);
+}
+
+async function loadBathymetryFocusDepth() {
+  if (!state.bathymetryEnabled || !isSeaMode() || !state.leafletMap) return;
+
+  const point = getLeafletFocusPoint();
+  const key = bathymetryPointKey(point);
+  const cached = state.bathymetryPointCache.get(key);
+  if (cached) {
+    state.bathymetryFocusDepth = cached;
+    renderBathymetryLayer();
+    return;
+  }
+
+  const requestId = state.bathymetryPointRequestId + 1;
+  state.bathymetryPointRequestId = requestId;
+
+  try {
+    const payload = await fetchJson(buildBathymetryPointUrl(point));
+    if (requestId !== state.bathymetryPointRequestId) return;
+    const estimate = parseBathymetryPoint(payload, point, key);
+    if (!estimate) return;
+    state.bathymetryPointCache.set(key, estimate);
+    state.bathymetryFocusDepth = estimate;
+    renderBathymetryLayer();
+  } catch (error) {
+    if (requestId !== state.bathymetryPointRequestId) return;
+    console.info("Bathymétrie EMODnet indisponible, estimation locale conservée.", error);
+  }
+}
+
+function buildBathymetryPointUrl(point) {
+  const url = new URL(BATHYMETRY_REST);
+  url.searchParams.set("geom", `POINT(${point.lon.toFixed(5)} ${point.lat.toFixed(5)})`);
+  return url;
+}
+
+function parseBathymetryPoint(payload, point, key) {
+  const rawDepth = payload?.smoothed ?? payload?.avg ?? payload?.min ?? payload?.max;
+  if (!isValidNumber(rawDepth)) return null;
+
+  return {
+    key,
+    lat: point.lat,
+    lon: point.lon,
+    depth: Math.abs(rawDepth),
+    source: "emodnet",
+  };
+}
+
+function currentBathymetryFocusEstimate(center) {
+  const key = bathymetryPointKey(center);
+  if (state.bathymetryFocusDepth?.key === key) return state.bathymetryFocusDepth;
+
+  const cached = state.bathymetryPointCache.get(key);
+  if (cached) return cached;
+
+  return estimateBathymetryAt(center);
+}
+
+function bathymetryPointKey(point) {
+  return `${point.lat.toFixed(4)},${point.lon.toFixed(4)}`;
 }
 
 function estimateBathymetryAt(point) {
@@ -3316,7 +3391,7 @@ function syncLeafletState() {
   state.mapCenter = { lat: center.lat, lon: center.lng };
   updateMapZoomControls();
   updateMapScale();
-  renderBathymetryLayer();
+  scheduleBathymetryFocusRefresh();
   scheduleMarineOverlayRefresh();
 }
 
@@ -3948,9 +4023,9 @@ function bindEvents() {
     event.stopPropagation();
     if (!isSeaMode()) return;
     state.bathymetryEnabled = !state.bathymetryEnabled;
-    renderBathymetryLayer();
     updateBathymetryOverlay();
     updateNauticalOverlay();
+    scheduleBathymetryFocusRefresh();
     saveSettings();
   });
   els.mapFishingToggle.addEventListener("click", (event) => {

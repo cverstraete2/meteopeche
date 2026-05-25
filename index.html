@@ -172,7 +172,7 @@
                     </span>
                     <span>
                       <strong>Profondeur fond</strong>
-                      <small>Isobathes et repères en mètres</small>
+                      <small>Courbes EMODnet + fond au centre</small>
                     </span>
                     <i aria-hidden="true"></i>
                   </button>
@@ -482,7 +482,7 @@
       </nav>
 
       <footer>
-        Données météo et marine: Open-Meteo. Courant profondeur: Copernicus Marine si configuré, sinon estimation locale depuis le courant de surface.
+        Données météo et marine: Open-Meteo. Bathymétrie: EMODnet. Courant profondeur: Copernicus Marine si configuré, sinon estimation locale depuis le courant de surface.
       </footer>
     </div>
 
@@ -498,6 +498,6 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-    <script src="app.js?v=20260525-overlay-colors" defer></script>
+    <script src="app.js?v=20260525-emodnet-bathy" defer></script>
   </body>
 </html>
