@@ -2266,6 +2266,8 @@ function renderBathymetryLayer() {
       zIndexOffset: 120,
     }).addTo(state.bathymetryLayer);
   });
+
+  renderBathymetryFocusLabel();
 }
 
 function bathymetryStyle(depth) {
@@ -2282,6 +2284,58 @@ function bathymetryStyle(depth) {
     return { color: "#4d91cf", opacity: 0.5, weight: 1.5, dashArray: "5 6" };
   }
   return { color: "#6caad2", opacity: 0.48, weight: 1.4, dashArray: "4 6" };
+}
+
+function renderBathymetryFocusLabel() {
+  const center = getLeafletFocusPoint();
+  const estimate = estimateBathymetryAt(center);
+  if (!estimate) return;
+
+  const marker = L.marker([center.lat, center.lon], {
+    icon: L.divIcon({
+      className: "bathymetry-label bathymetry-focus-label",
+      html: `<span>Fond</span><strong>~${estimate.depth} m</strong>`,
+      iconSize: [92, 36],
+      iconAnchor: [46, 44],
+      tooltipAnchor: [0, -42],
+    }),
+    interactive: false,
+    zIndexOffset: 175,
+  });
+
+  marker.bindTooltip(`Fond estimé depuis l'isobathe ${estimate.depth} m · ${formatMapDistance(estimate.distance)} du repère`, {
+    direction: "top",
+    offset: [0, -38],
+    opacity: 0.96,
+  });
+  marker.addTo(state.bathymetryLayer);
+}
+
+function estimateBathymetryAt(point) {
+  if (!point) return null;
+
+  const candidates = bathymetryContours
+    .map((contour) => ({
+      depth: contour.depth,
+      region: contour.region,
+      distance: distanceToBathymetryContourMeters(point, contour.coordinates),
+    }))
+    .filter((candidate) => isValidNumber(candidate.distance))
+    .sort((a, b) => a.distance - b.distance);
+  const nearest = candidates[0];
+
+  if (!nearest || nearest.distance > 70000) return null;
+  return nearest;
+}
+
+function distanceToBathymetryContourMeters(point, coordinates) {
+  if (!Array.isArray(coordinates) || coordinates.length < 2) return null;
+
+  let nearest = Infinity;
+  for (let index = 0; index < coordinates.length - 1; index += 1) {
+    nearest = Math.min(nearest, distanceToSegmentMeters(point, pointToCoord(coordinates[index]), pointToCoord(coordinates[index + 1])));
+  }
+  return Number.isFinite(nearest) ? nearest : null;
 }
 
 function renderRegulationZones() {
@@ -2671,6 +2725,7 @@ function renderMarineOverlay() {
       console.info("Overlay régional marin indisponible.", error);
       state.marineOverlayLoading = false;
       updateMarineOverlayControls();
+      drawMarineOverlayMarkers([]);
     });
 }
 
@@ -2683,7 +2738,7 @@ async function loadRegionalMarineOverlay(samples) {
     .map((entry, index) => parseRegionalMarinePoint(entry, samples[index]))
     .filter(Boolean)
     .filter((entry) => {
-      const key = `${entry.lat.toFixed(3)},${entry.lon.toFixed(3)}`;
+      const key = `${entry.lat.toFixed(4)},${entry.lon.toFixed(4)}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -2711,17 +2766,30 @@ function regionalMarineSamplePoints() {
   const bounds = state.leafletMap?.getBounds();
   const rawLatSpan = bounds ? Math.abs(bounds.getNorth() - bounds.getSouth()) : 0.55;
   const rawLonSpan = bounds ? Math.abs(bounds.getEast() - bounds.getWest()) : 0.75;
-  const latSpan = clamp(rawLatSpan, 0.18, 2.4);
-  const lonSpan = clamp(rawLonSpan, 0.18, 3.2);
-  const rows = isMobileLayout() ? 3 : 4;
-  const cols = isMobileLayout() ? 3 : 4;
+  const zoom = state.leafletMap?.getZoom() ?? state.mapZoom;
+  const minSpan = zoom >= 16 ? 0 : zoom >= 13 ? 0.05 : 0.18;
+  const latSpan = Math.min(Math.max(rawLatSpan || 0.002, minSpan), 2.4);
+  const lonSpan = Math.min(Math.max(rawLonSpan || 0.002, minSpan), 3.2);
+  const rows = zoom >= 16 || isMobileLayout() ? 3 : 4;
+  const cols = zoom >= 16 || isMobileLayout() ? 3 : 4;
   const samples = [];
+  const seen = new Set();
+
+  function pushSample(lat, lon) {
+    if (!isValidNumber(lat) || !isValidNumber(lon)) return;
+    const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    samples.push({ lat, lon });
+  }
+
+  pushSample(center.lat, center.lng);
 
   for (let row = 0; row < rows; row += 1) {
     for (let col = 0; col < cols; col += 1) {
       const lat = center.lat + latSpan * (0.5 - (row + 0.5) / rows);
       const lon = center.lng + lonSpan * ((col + 0.5) / cols - 0.5);
-      samples.push({ lat, lon });
+      pushSample(lat, lon);
     }
   }
 
@@ -2729,7 +2797,7 @@ function regionalMarineSamplePoints() {
 }
 
 function regionalMarineCacheKey(samples) {
-  return samples.map((sample) => `${sample.lat.toFixed(3)},${sample.lon.toFixed(3)}`).join("|");
+  return samples.map((sample) => `${sample.lat.toFixed(4)},${sample.lon.toFixed(4)}`).join("|");
 }
 
 function parseRegionalMarinePoint(payload, sample) {
@@ -2767,8 +2835,10 @@ function parseRegionalMarinePoint(payload, sample) {
   });
 
   return {
-    lat: payload.latitude ?? sample.lat,
-    lon: payload.longitude ?? sample.lon,
+    lat: sample?.lat ?? payload.latitude,
+    lon: sample?.lon ?? payload.longitude,
+    sourceLat: payload.latitude ?? null,
+    sourceLon: payload.longitude ?? null,
     days,
   };
 }
@@ -2779,6 +2849,7 @@ function drawMarineOverlayMarkers(data) {
   state.marineOverlayLayer.clearLayers();
   const day = getSelectedDay();
   const selectedDate = day?.date ?? state.selectedDate;
+  let markerCount = 0;
 
   data.forEach((point) => {
     const dayData = point.days[selectedDate] ?? Object.values(point.days)[0];
@@ -2804,40 +2875,75 @@ function drawMarineOverlayMarkers(data) {
       sticky: true,
     });
     marker.addTo(state.marineOverlayLayer);
+    markerCount += 1;
   });
+
+  if (!markerCount) {
+    drawFocusedMarineOverlayMarker();
+  }
 }
 
 function marineOverlayMetric(dayData) {
   if (!dayData) return null;
+  const surfaceCurrent = dayData.surfaceCurrent;
+  const currentDirection = dayData.currentDirection ?? dayData.surfaceCurrentDirection;
+  const depthCurrent = dayData.depthCurrent ?? (surfaceCurrent == null ? null : surfaceCurrent * depthFactor(state.depth));
+  const depthDirection = dayData.depthDirection ?? estimatedDepthDirection(currentDirection, state.depth);
+  const waveHeight = dayData.waveHeight ?? dayData.waveAvg;
 
   if (state.marineOverlayMode === "depth") {
     return {
-      value: dayData.surfaceCurrent == null ? null : dayData.surfaceCurrent * depthFactor(state.depth),
-      direction: estimatedDepthDirection(dayData.currentDirection, state.depth),
-      label: `${formatNumber(dayData.surfaceCurrent == null ? null : dayData.surfaceCurrent * depthFactor(state.depth), 1)} kt`,
-      tooltip: `Courant ${state.depth} m · ${formatNumber(dayData.surfaceCurrent == null ? null : dayData.surfaceCurrent * depthFactor(state.depth), 1)} kt vers ${compassLabel(estimatedDepthDirection(dayData.currentDirection, state.depth))}`,
+      value: depthCurrent,
+      direction: depthDirection,
+      label: `${formatNumber(depthCurrent, 1)} kt`,
+      tooltip: `Courant ${state.depth} m · ${formatNumber(depthCurrent, 1)} kt vers ${compassLabel(depthDirection)}`,
     };
   }
 
   if (state.marineOverlayMode === "wave") {
     return {
-      value: dayData.waveHeight,
+      value: waveHeight,
       direction: reverseDirection(dayData.waveDirection),
-      label: `${formatNumber(dayData.waveHeight, 1)} m`,
-      tooltip: `Houle ${formatNumber(dayData.waveHeight, 1)} m · de ${compassLabel(dayData.waveDirection)}`,
+      label: `${formatNumber(waveHeight, 1)} m`,
+      tooltip: `Houle ${formatNumber(waveHeight, 1)} m · de ${compassLabel(dayData.waveDirection)}`,
     };
   }
 
   if (state.marineOverlayMode === "surface") {
     return {
-      value: dayData.surfaceCurrent,
-      direction: dayData.currentDirection,
-      label: `${formatNumber(dayData.surfaceCurrent, 1)} kt`,
-      tooltip: `Courant surface · ${formatNumber(dayData.surfaceCurrent, 1)} kt vers ${compassLabel(dayData.currentDirection)}`,
+      value: surfaceCurrent,
+      direction: currentDirection,
+      label: `${formatNumber(surfaceCurrent, 1)} kt`,
+      tooltip: `Courant surface · ${formatNumber(surfaceCurrent, 1)} kt vers ${compassLabel(currentDirection)}`,
     };
   }
 
   return null;
+}
+
+function drawFocusedMarineOverlayMarker() {
+  const metric = marineOverlayMetric(getSelectedDay());
+  if (!metric || !isValidNumber(metric.value) || !isValidNumber(metric.direction)) return;
+
+  const point = getLeafletFocusPoint();
+  L.marker([point.lat, point.lon], {
+    icon: L.divIcon({
+      className: `marine-overlay-icon marine-overlay-${state.marineOverlayMode} marine-overlay-focus`,
+      html: marineOverlayMarkerHtml(metric),
+      iconSize: [76, 58],
+      iconAnchor: [38, 29],
+      tooltipAnchor: [0, -28],
+    }),
+    keyboard: false,
+    zIndexOffset: 210,
+  })
+    .bindTooltip(`Centre carte · ${metric.tooltip}`, {
+      direction: "top",
+      offset: [0, -20],
+      opacity: 0.96,
+      sticky: true,
+    })
+    .addTo(state.marineOverlayLayer);
 }
 
 function marineOverlayMarkerHtml(metric) {
@@ -3209,6 +3315,7 @@ function syncLeafletState() {
   state.mapCenter = { lat: center.lat, lon: center.lng };
   updateMapZoomControls();
   updateMapScale();
+  renderBathymetryLayer();
   scheduleMarineOverlayRefresh();
 }
 
@@ -5722,6 +5829,15 @@ function getMapCenter() {
   };
 }
 
+function getLeafletFocusPoint() {
+  const center = state.leafletMap?.getCenter();
+  if (center && isValidNumber(center.lat) && isValidNumber(center.lng)) {
+    return { lat: center.lat, lon: center.lng };
+  }
+
+  return getMapCenter();
+}
+
 function mapMetersPerCssPixel() {
   const rect = els.spotMap.getBoundingClientRect();
   if (state.leafletMap) {
@@ -5753,6 +5869,15 @@ function chooseScaleDistance(metersPerPixel, maxPixels) {
 }
 
 function formatScaleDistance(meters) {
+  if (meters >= 1000) {
+    return `${formatNumber(meters / 1000, meters >= 10000 ? 0 : 1)} km`;
+  }
+
+  return `${formatNumber(meters, 0)} m`;
+}
+
+function formatMapDistance(meters) {
+  if (!isValidNumber(meters)) return "--";
   if (meters >= 1000) {
     return `${formatNumber(meters / 1000, meters >= 10000 ? 0 : 1)} km`;
   }

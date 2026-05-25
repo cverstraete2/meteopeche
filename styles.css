@@ -1131,6 +1131,10 @@ body.is-map-fullscreen-active {
   color: var(--blue);
 }
 
+.marine-overlay-focus .marine-flow-arrow {
+  outline: 3px solid rgba(255, 255, 255, 0.72);
+}
+
 .bathymetry-label {
   display: grid;
   place-items: center;
@@ -1143,6 +1147,27 @@ body.is-map-fullscreen-active {
   line-height: 1;
   pointer-events: none;
   box-shadow: 0 4px 12px rgba(23, 32, 29, 0.16);
+}
+
+.bathymetry-focus-label {
+  grid-template-columns: auto auto;
+  gap: 5px;
+  min-width: 92px;
+  border-color: rgba(23, 50, 79, 0.36);
+  background: rgba(255, 255, 255, 0.96);
+  color: #17324f;
+}
+
+.bathymetry-focus-label span {
+  color: var(--muted);
+  font-size: 0.58rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.bathymetry-focus-label strong {
+  font-size: 0.74rem;
+  line-height: 1;
 }
 
 .anchor-watch-marker {
