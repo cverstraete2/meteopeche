@@ -24,10 +24,6 @@
           </div>
         </div>
         <div class="topbar-actions">
-          <div class="mode-switch" id="waterModeSwitch" role="group" aria-label="Mode de pêche">
-            <button class="mode-option is-active" type="button" data-water-mode="sea" aria-pressed="true">Mer</button>
-            <button class="mode-option" type="button" data-water-mode="freshwater" aria-pressed="false">Eau douce</button>
-          </div>
           <div class="status-pill" id="statusPill">Prêt</div>
         </div>
       </header>
@@ -68,6 +64,58 @@
             <button class="primary-button" type="submit">Actualiser</button>
             <button class="ghost-button spot-panel-close" id="spotPanelClose" type="button">Fermer</button>
           </form>
+        </section>
+
+        <section class="preferences-panel" data-mobile-view="map activity weather" aria-label="Préférences pêche">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Profil</span>
+              <h2>Préférences pêche</h2>
+            </div>
+            <div class="preference-summary" id="preferenceSummary" aria-live="polite"></div>
+          </div>
+          <div class="preference-grid">
+            <div class="preference-control preference-control-mode">
+              <span>Milieu</span>
+              <div class="mode-switch preference-mode-switch" id="waterModeSwitch" role="group" aria-label="Mode de pêche">
+                <button class="mode-option is-active" type="button" data-water-mode="sea" aria-pressed="true">Mer</button>
+                <button class="mode-option" type="button" data-water-mode="freshwater" aria-pressed="false">Eau douce</button>
+              </div>
+            </div>
+            <div class="preference-control">
+              <span>Niveau</span>
+              <div class="segmented preference-segments" role="group" aria-label="Niveau d'expérience" data-profile-control="experience">
+                <button class="segment" type="button" data-profile-value="beginner">Débutant</button>
+                <button class="segment" type="button" data-profile-value="intermediate">Intermédiaire</button>
+                <button class="segment" type="button" data-profile-value="advanced">Avancé</button>
+              </div>
+            </div>
+            <div class="preference-control">
+              <span>Approche</span>
+              <div class="segmented preference-segments" role="group" aria-label="Approche de pêche" data-profile-control="approach">
+                <button class="segment" type="button" data-profile-value="shore">Bord</button>
+                <button class="segment" type="button" data-profile-value="boat">Bateau</button>
+                <button class="segment" type="button" data-profile-value="both">Mixte</button>
+              </div>
+            </div>
+            <div class="preference-control">
+              <span>Priorité</span>
+              <div class="segmented preference-segments" role="group" aria-label="Priorité de prévision" data-profile-control="priority">
+                <button class="segment" type="button" data-profile-value="timing">Créneau</button>
+                <button class="segment" type="button" data-profile-value="weather">Météo</button>
+                <button class="segment" type="button" data-profile-value="spots">Spots</button>
+              </div>
+            </div>
+            <label class="field preference-species" for="preferenceSpecies">
+              <span>Espèce cible</span>
+              <select id="preferenceSpecies"></select>
+            </label>
+            <label class="preference-depth" for="preferenceDepth">
+              <span>Profondeur cible</span>
+              <strong><output id="preferenceDepthOutput" for="preferenceDepth">15 m</output></strong>
+              <input id="preferenceDepth" type="range" min="0" max="80" step="1" value="15" />
+            </label>
+          </div>
         </section>
 
         <section class="spot-workspace" data-mobile-view="map" aria-label="Carte et favoris">
@@ -586,6 +634,6 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-    <script src="app.js?v=20260525-timeline" defer></script>
+    <script src="app.js?v=20260525-preferences" defer></script>
   </body>
 </html>

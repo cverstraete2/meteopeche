@@ -172,6 +172,7 @@ main {
 }
 
 .controls-band,
+.preferences-panel,
 .map-panel,
 .favorites-panel,
 .activity-panel,
@@ -192,6 +193,78 @@ main {
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
   padding: 12px;
+}
+
+.preferences-panel {
+  padding: 16px;
+}
+
+.preference-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr)) minmax(180px, 0.85fr) minmax(220px, 1.1fr);
+  gap: 12px;
+  align-items: end;
+}
+
+.preference-control,
+.preference-depth {
+  display: grid;
+  gap: 8px;
+}
+
+.preference-control > span,
+.preference-depth > span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.preference-segments {
+  align-self: end;
+}
+
+.preference-mode-switch {
+  width: 100%;
+}
+
+.preference-segments .segment {
+  min-width: 0;
+  flex: 1 1 0;
+  padding: 0 10px;
+}
+
+.preference-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.preference-chip {
+  min-height: 28px;
+  border: 1px solid rgba(8, 125, 114, 0.16);
+  border-radius: 8px;
+  background: rgba(8, 125, 114, 0.08);
+  color: var(--teal-dark);
+  padding: 5px 8px;
+  font-size: 0.76rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.preference-depth {
+  min-height: 71px;
+}
+
+.preference-depth strong {
+  color: var(--ink);
+  font-size: 1.02rem;
+}
+
+.preference-depth input {
+  width: 100%;
+  accent-color: var(--teal);
 }
 
 .spot-quickbar {
@@ -2693,6 +2766,14 @@ footer {
     grid-template-columns: 1fr;
   }
 
+  .preference-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .preference-depth {
+    grid-column: 1 / -1;
+  }
+
   .spot-form {
     grid-template-columns: minmax(180px, 1fr) repeat(2, minmax(120px, 0.5fr)) 44px auto;
   }
@@ -2764,6 +2845,7 @@ footer {
   }
 
   .controls-band,
+  .preferences-panel,
   .map-panel,
   .favorites-panel,
   .activity-panel,
@@ -2778,6 +2860,23 @@ footer {
 
   .controls-band {
     gap: 10px;
+  }
+
+  .preferences-panel {
+    padding: 12px;
+  }
+
+  .preference-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .preference-summary {
+    justify-content: flex-start;
+  }
+
+  .preference-chip {
+    font-size: 0.72rem;
   }
 
   .spot-quickbar {

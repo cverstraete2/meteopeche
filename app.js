@@ -28,6 +28,28 @@ const waterModeConfig = {
     showMarine: false,
   },
 };
+const DEFAULT_PROFILE = {
+  experience: "intermediate",
+  approach: "shore",
+  priority: "timing",
+};
+const profileOptions = {
+  experience: [
+    { id: "beginner", label: "Débutant" },
+    { id: "intermediate", label: "Intermédiaire" },
+    { id: "advanced", label: "Avancé" },
+  ],
+  approach: [
+    { id: "shore", label: "Bord" },
+    { id: "boat", label: "Bateau" },
+    { id: "both", label: "Mixte" },
+  ],
+  priority: [
+    { id: "timing", label: "Créneau" },
+    { id: "weather", label: "Météo" },
+    { id: "spots", label: "Spots" },
+  ],
+};
 const MAP_BASE_ZOOM = 7;
 const MAP_MIN_ZOOM = 6;
 const MAP_MAX_ZOOM = 19;
@@ -1377,6 +1399,7 @@ const state = {
   activeFishFilters: new Set(["all"]),
   fishFilterOpen: false,
   activityFish: "loup",
+  profile: { ...DEFAULT_PROFILE },
   forecastExpanded: false,
   riggingDirty: false,
   renamingFavoriteId: null,
@@ -1400,6 +1423,12 @@ const els = {
   depth: document.querySelector("#depth"),
   depthOutput: document.querySelector("#depthOutput"),
   dayTabs: document.querySelector("#dayTabs"),
+  preferencePanel: document.querySelector(".preferences-panel"),
+  profileButtons: [...document.querySelectorAll("[data-profile-control] [data-profile-value]")],
+  preferenceSpecies: document.querySelector("#preferenceSpecies"),
+  preferenceDepth: document.querySelector("#preferenceDepth"),
+  preferenceDepthOutput: document.querySelector("#preferenceDepthOutput"),
+  preferenceSummary: document.querySelector("#preferenceSummary"),
   activityFish: document.querySelector("#activityFish"),
   activityRing: document.querySelector("#activityRing"),
   activityScore: document.querySelector("#activityScore"),
@@ -1518,6 +1547,7 @@ function init() {
   state.favorites = readFavorites();
   populateActivityFish();
   populateCatchSpecies();
+  populatePreferenceSpecies();
   populateRiggingTechniques();
   initMapEngine();
   bindEvents();
@@ -1525,6 +1555,7 @@ function init() {
   applyWaterModeUI();
   applyMobileNavigationUI();
   renderSpotTools();
+  renderPreferenceControls();
   loadForecast();
 }
 
@@ -1700,6 +1731,23 @@ function populateCatchSpecies() {
   els.catchSpecies.value = normalizeActivityFish(previous);
 }
 
+function populatePreferenceSpecies() {
+  if (!els.preferenceSpecies) return;
+
+  const previous = els.preferenceSpecies.value || state.activityFish;
+  els.preferenceSpecies.innerHTML = "";
+  getFishFilters()
+    .filter((filter) => filter.id !== "all")
+    .forEach((filter) => {
+      const option = document.createElement("option");
+      option.value = filter.id;
+      option.textContent = filter.label;
+      els.preferenceSpecies.append(option);
+    });
+
+  els.preferenceSpecies.value = normalizeActivityFish(previous);
+}
+
 function populateRiggingTechniques() {
   if (!els.riggingTechnique) return;
 
@@ -1738,6 +1786,7 @@ function restoreState() {
   state.marineOverlayMode = normalizeMarineOverlayMode(saved.marineOverlayMode);
   state.activeFishFilters = normalizeFishFilters(saved.fishFilters);
   state.activityFish = normalizeActivityFish(saved.activityFish);
+  state.profile = normalizeProfile(saved.profile);
 }
 
 function applyWaterModeUI() {
@@ -1816,10 +1865,12 @@ function setWaterMode(mode, options = {}) {
   state.fishFilterOpen = false;
   populateActivityFish();
   populateCatchSpecies();
+  populatePreferenceSpecies();
   populateRiggingTechniques();
   state.riggingDirty = false;
   applyWaterModeUI();
   renderSpotTools();
+  renderPreferenceControls();
   saveSettings();
 
   if (options.load !== false) {
@@ -3905,6 +3956,7 @@ function bindEvents() {
   els.depth.addEventListener("input", () => {
     if (!isSeaMode()) return;
     updateDepth();
+    renderPreferenceControls(getSelectedDay());
     recomputeDepthSensitiveViews();
   });
 
@@ -4025,8 +4077,29 @@ function bindEvents() {
   els.activityFish.addEventListener("change", () => {
     state.activityFish = normalizeActivityFish(els.activityFish.value);
     if (els.catchSpecies) els.catchSpecies.value = state.activityFish;
+    renderPreferenceControls(getSelectedDay());
     renderAll();
     saveSettings();
+  });
+  els.preferenceSpecies?.addEventListener("change", () => {
+    setPreferredSpecies(els.preferenceSpecies.value, { syncMap: true });
+  });
+  els.preferenceDepth?.addEventListener("input", () => {
+    if (!isSeaMode()) return;
+    updateDepth(els.preferenceDepth.value);
+    renderPreferenceControls(getSelectedDay());
+    recomputeDepthSensitiveViews();
+  });
+  els.preferenceDepth?.addEventListener("change", () => {
+    if (!isSeaMode()) return;
+    updateDepth(els.preferenceDepth.value);
+    loadForecast();
+  });
+  els.profileButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const control = button.closest("[data-profile-control]")?.dataset.profileControl;
+      setProfilePreference(control, button.dataset.profileValue);
+    });
   });
   els.catchForm?.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -4117,9 +4190,12 @@ function bindEvents() {
   });
 }
 
-function updateDepth() {
-  state.depth = Number(els.depth.value);
-  els.depthOutput.value = `${state.depth} m`;
+function updateDepth(value = els.depth?.value ?? state.depth) {
+  state.depth = Number(value);
+  if (els.depth) els.depth.value = String(state.depth);
+  if (els.depthOutput) els.depthOutput.value = `${state.depth} m`;
+  if (els.preferenceDepth) els.preferenceDepth.value = String(state.depth);
+  if (els.preferenceDepthOutput) els.preferenceDepthOutput.value = isSeaMode() ? `${state.depth} m` : "Eau douce";
 }
 
 function recomputeDepthSensitiveViews() {
@@ -4429,6 +4505,7 @@ function renderAll() {
   updateSpotMeta();
   renderSpotTools();
   renderDayTabs();
+  renderPreferenceControls(selected);
   renderActivity(selected);
   renderTides(selected);
   renderConditionBrief(selected);
@@ -4451,6 +4528,110 @@ function updateSpotMeta() {
   els.spotMeta.textContent = `${waterModeConfig[state.waterMode].metaPrefix} · ${name} · ${coords}`;
   if (els.spotSummaryName) els.spotSummaryName.textContent = name;
   if (els.spotSummaryCoords) els.spotSummaryCoords.textContent = coords;
+}
+
+function renderPreferenceControls(day = getSelectedDay()) {
+  if (!els.preferencePanel) return;
+
+  state.profile = normalizeProfile(state.profile);
+  const profile = state.profile;
+  const species = normalizeActivityFish(state.activityFish);
+
+  els.profileButtons.forEach((button) => {
+    const control = button.closest("[data-profile-control]")?.dataset.profileControl;
+    const active = control ? profile[control] === button.dataset.profileValue : false;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+
+  if (els.preferenceSpecies) {
+    if (!els.preferenceSpecies.options.length) populatePreferenceSpecies();
+    els.preferenceSpecies.value = species;
+  }
+
+  if (els.preferenceDepth) {
+    els.preferenceDepth.value = String(state.depth);
+    els.preferenceDepth.disabled = !isSeaMode();
+  }
+
+  if (els.preferenceDepthOutput) {
+    els.preferenceDepthOutput.value = isSeaMode() ? `${state.depth} m` : "Eau douce";
+  }
+
+  if (els.preferenceSummary) {
+    const chips = preferenceSummaryChips(day, profile, species);
+    els.preferenceSummary.replaceChildren(...chips.map((label) => {
+      const chip = document.createElement("span");
+      chip.className = "preference-chip";
+      chip.textContent = label;
+      return chip;
+    }));
+  }
+}
+
+function preferenceSummaryChips(day, profile, species) {
+  return [
+    waterModeConfig[state.waterMode]?.label,
+    `Cible ${getFishLabel(species)}`,
+    profileOptionLabel("approach", profile.approach),
+    profileOptionLabel("experience", profile.experience),
+    isSeaMode() ? `${state.depth} m` : null,
+    preferenceFocusChip(day, profile.priority),
+  ].filter(Boolean);
+}
+
+function preferenceFocusChip(day, priority) {
+  if (priority === "weather") {
+    return day ? `Vent ${formatNumber(day.windAvg, 0)} kt` : profileOptionLabel("priority", priority);
+  }
+
+  if (priority === "spots") {
+    return `${countKnownFishingSpotsForFilter(state.activityFish)} coins`;
+  }
+
+  return day?.bestWindow?.label ? `Créneau ${day.bestWindow.label}` : profileOptionLabel("priority", priority);
+}
+
+function profileOptionLabel(control, value) {
+  return profileOptions[control]?.find((option) => option.id === value)?.label ?? value;
+}
+
+function setProfilePreference(control, value) {
+  if (!profileOptions[control]) return;
+
+  state.profile = normalizeProfile({
+    ...state.profile,
+    [control]: value,
+  });
+
+  if (control === "priority" && state.profile.priority === "spots") {
+    state.activeFishFilters = normalizeFishFilters([state.activityFish]);
+    state.fishFilterOpen = false;
+    renderFishFilterControls();
+    renderKnownFishingMarkers();
+    updateKnownFishingOverlay();
+  }
+
+  renderPreferenceControls(getSelectedDay());
+  saveSettings();
+}
+
+function setPreferredSpecies(fish, options = {}) {
+  state.activityFish = normalizeActivityFish(fish);
+
+  if (els.activityFish) els.activityFish.value = state.activityFish;
+  if (els.catchSpecies) els.catchSpecies.value = state.activityFish;
+
+  if (options.syncMap) {
+    state.activeFishFilters = normalizeFishFilters([state.activityFish]);
+    state.fishFilterOpen = false;
+    renderFishFilterControls();
+    renderKnownFishingMarkers();
+    updateKnownFishingOverlay();
+  }
+
+  renderAll();
+  saveSettings();
 }
 
 function renderDayTabs() {
@@ -7124,6 +7305,7 @@ function saveSettings() {
     marineOverlayMode: state.marineOverlayMode,
     fishFilters: [...state.activeFishFilters],
     activityFish: state.activityFish,
+    profile: normalizeProfile(state.profile),
   };
   updateAppStore((store) => {
     store.settings = {
@@ -7300,7 +7482,17 @@ function normalizeSettings(settings) {
     marineOverlayMode: normalizeMarineOverlayMode(settings.marineOverlayMode),
     fishFilters: Array.isArray(settings.fishFilters) ? settings.fishFilters : ["all"],
     activityFish: typeof settings.activityFish === "string" ? settings.activityFish : "",
+    profile: normalizeProfile(settings.profile),
   };
+}
+
+function normalizeProfile(profile) {
+  const source = profile && typeof profile === "object" ? profile : {};
+  return Object.fromEntries(Object.entries(profileOptions).map(([control, options]) => {
+    const fallback = DEFAULT_PROFILE[control];
+    const value = options.some((option) => option.id === source[control]) ? source[control] : fallback;
+    return [control, value];
+  }));
 }
 
 function normalizeFavorite(favorite) {
