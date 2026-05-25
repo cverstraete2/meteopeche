@@ -4,6 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#081511" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Météo Pêche" />
     <title>Météo Pêche</title>
     <script>
       try {
@@ -13,8 +16,8 @@
         document.documentElement.dataset.theme = "light";
       }
     </script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+    <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
+    <link rel="stylesheet" href="vendor/tabler/tabler-icons.min.css" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -660,7 +663,11 @@
       </article>
     </template>
 
-    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-    <script src="app.js?v=20260525-dark-mode" defer></script>
+    <script src="vendor/capacitor/capacitor.js" defer></script>
+    <script src="vendor/capacitor/status-bar.js" defer></script>
+    <script src="vendor/capacitor/splash-screen.js" defer></script>
+    <script src="mobile-runtime.js" defer></script>
+    <script src="vendor/leaflet/leaflet.js" defer></script>
+    <script src="app.js?v=20260525-mobile-shell" defer></script>
   </body>
 </html>

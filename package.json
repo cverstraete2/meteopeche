@@ -5,6 +5,27 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "deploy": "npm run build && npx wrangler pages deploy dist --project-name meteopeche --branch main"
+    "deploy": "npm run build && npx wrangler pages deploy dist --project-name meteopeche --branch main",
+    "mobile:sync": "npm run build && npx cap sync",
+    "mobile:add:ios": "npm run build && npx cap add ios",
+    "mobile:add:android": "npm run build && npx cap add android",
+    "mobile:open:ios": "npx cap open ios",
+    "mobile:open:android": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/core": "^8.3.4",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/keyboard": "^8.0.3",
+    "@capacitor/local-notifications": "^8.2.0",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
+    "@tabler/icons-webfont": "^3.44.0",
+    "leaflet": "^1.9.4"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/ios": "^8.3.4"
   }
 }

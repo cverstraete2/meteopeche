@@ -1,0 +1,8 @@
+{
+  "appId": "com.meteopeche.app",
+  "appName": "Météo Pêche",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

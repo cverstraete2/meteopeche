@@ -47,6 +47,25 @@ npm run deploy
 
 Le workflow GitHub vérifie seulement que le build passe; il ne publie pas l'application.
 
+## App mobile iOS / Android
+
+Le projet est prêt à être emballé avec Capacitor. Le bundle mobile utilise le même build `dist` que Cloudflare, puis synchronise les plateformes natives.
+
+```bash
+npm run mobile:add:ios
+npm run mobile:add:android
+```
+
+Après la première génération des plateformes, utiliser:
+
+```bash
+npm run mobile:sync
+npm run mobile:open:ios
+npm run mobile:open:android
+```
+
+Le bundle id iOS/Android est `com.meteopeche.app`. Avant soumission App Store / Google Play, prévoir les assets natifs définitifs: icône, splash screen, textes de permissions GPS, captures store et politique de confidentialité.
+
 ## Note sur le courant en profondeur
 
 Open-Meteo Marine expose le courant océanique de surface. Sans configuration Copernicus, le courant à profondeur reste une estimation simple calculée depuis le courant de surface et la profondeur choisie.

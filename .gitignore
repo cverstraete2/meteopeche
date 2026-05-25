@@ -1,4 +1,6 @@
 .venv/
+node_modules/
+vendor/
 dist/
 __pycache__/
 .DS_Store
