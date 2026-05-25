@@ -12,6 +12,7 @@ const WATER_MODES = {
 };
 const MOBILE_VIEWS = ["map", "activity", "tides", "weather", "astro", "rigging", "journal", "preferences"];
 const MARINE_OVERLAY_MODES = ["none", "surface", "depth", "wave"];
+const THEME_MODES = ["light", "dark"];
 const waterModeConfig = {
   [WATER_MODES.SEA]: {
     label: "Mer",
@@ -1399,6 +1400,7 @@ const state = {
   activeFishFilters: new Set(["all"]),
   fishFilterOpen: false,
   activityFish: "loup",
+  theme: "light",
   profile: { ...DEFAULT_PROFILE },
   forecastExpanded: false,
   riggingDirty: false,
@@ -1424,6 +1426,7 @@ const els = {
   depthOutput: document.querySelector("#depthOutput"),
   dayTabs: document.querySelector("#dayTabs"),
   preferencePanel: document.querySelector(".preferences-panel"),
+  themeButtons: [...document.querySelectorAll("[data-theme-value]")],
   profileButtons: [...document.querySelectorAll("[data-profile-control] [data-profile-value]")],
   preferenceSpecies: document.querySelector("#preferenceSpecies"),
   preferenceDepth: document.querySelector("#preferenceDepth"),
@@ -1542,9 +1545,33 @@ const colors = {
   coral: "#c85c45",
 };
 
+function cssVariable(name, fallback) {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+}
+
+function canvasTheme() {
+  return {
+    bg: cssVariable("--canvas-bg", "#fbfdfb"),
+    line: cssVariable("--canvas-grid", "#d9e2dc"),
+    subtleLine: cssVariable("--canvas-subtle-grid", "rgba(89, 101, 111, 0.2)"),
+    muted: cssVariable("--canvas-muted", "#62706a"),
+    ink: cssVariable("--canvas-ink", "#17201d"),
+    badge: cssVariable("--canvas-badge", "rgba(255, 255, 255, 0.88)"),
+    badgeBorder: cssVariable("--canvas-badge-border", "rgba(189, 203, 195, 0.88)"),
+    marker: cssVariable("--canvas-marker", "rgba(200, 92, 69, 0.45)"),
+    pointStroke: cssVariable("--canvas-point-stroke", "#fff"),
+  };
+}
+
+function themeColor(name) {
+  return cssVariable(`--chart-${name}`, colors[name] ?? name);
+}
+
 function init() {
   populateSpots();
   restoreState();
+  applyTheme();
   state.favorites = readFavorites();
   populateActivityFish();
   populateCatchSpecies();
@@ -1787,7 +1814,18 @@ function restoreState() {
   state.marineOverlayMode = normalizeMarineOverlayMode(saved.marineOverlayMode);
   state.activeFishFilters = normalizeFishFilters(saved.fishFilters);
   state.activityFish = normalizeActivityFish(saved.activityFish);
+  state.theme = normalizeTheme(saved.theme);
   state.profile = normalizeProfile(saved.profile);
+}
+
+function applyTheme(options = {}) {
+  state.theme = normalizeTheme(state.theme);
+  document.documentElement.dataset.theme = state.theme;
+  document.documentElement.style.colorScheme = state.theme;
+
+  if (options.render) {
+    renderAll();
+  }
 }
 
 function applyWaterModeUI() {
@@ -4100,6 +4138,9 @@ function bindEvents() {
       setProfilePreference(control, button.dataset.profileValue);
     });
   });
+  els.themeButtons.forEach((button) => {
+    button.addEventListener("click", () => setThemePreference(button.dataset.themeValue));
+  });
   els.catchForm?.addEventListener("submit", (event) => {
     event.preventDefault();
     const entry = saveCatchLogEntry(createCatchLogEntry({
@@ -4543,6 +4584,12 @@ function renderPreferenceControls(day = getSelectedDay()) {
     button.setAttribute("aria-pressed", String(active));
   });
 
+  els.themeButtons.forEach((button) => {
+    const active = state.theme === button.dataset.themeValue;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+
   if (els.preferenceSpecies) {
     if (!els.preferenceSpecies.options.length) populatePreferenceSpecies();
     els.preferenceSpecies.value = species;
@@ -4574,6 +4621,7 @@ function preferenceSummaryChips(day, profile, species) {
     `Cible ${getFishLabel(species)}`,
     profileOptionLabel("approach", profile.approach),
     profileOptionLabel("experience", profile.experience),
+    state.theme === "dark" ? "Mode sombre" : "Mode clair",
     isSeaMode() ? `${state.depth} m` : null,
     preferenceFocusChip(day, profile.priority),
   ].filter(Boolean);
@@ -4611,6 +4659,19 @@ function setProfilePreference(control, value) {
     updateKnownFishingOverlay();
   }
 
+  renderPreferenceControls(getSelectedDay());
+  saveSettings();
+}
+
+function setThemePreference(theme) {
+  const nextTheme = normalizeTheme(theme);
+  if (state.theme === nextTheme) {
+    renderPreferenceControls(getSelectedDay());
+    return;
+  }
+
+  state.theme = nextTheme;
+  applyTheme({ render: true });
   renderPreferenceControls(getSelectedDay());
   saveSettings();
 }
@@ -4872,6 +4933,7 @@ function drawEmptyActivityChart() {
 function drawActivityChart(day, rows, highlightedIndex) {
   const canvas = els.activityCanvas;
   const ctx = setupCanvas(canvas);
+  const theme = canvasTheme();
   const width = canvas.clientWidth;
   const height = canvas.clientHeight;
   const padding = { top: 22, right: 18, bottom: 34, left: 58 };
@@ -4879,7 +4941,7 @@ function drawActivityChart(day, rows, highlightedIndex) {
   const chartHeight = height - padding.top - padding.bottom;
 
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "#fbfdfb";
+  ctx.fillStyle = theme.bg;
   roundRect(ctx, 0, 0, width, height, 8);
   ctx.fill();
 
@@ -4889,9 +4951,9 @@ function drawActivityChart(day, rows, highlightedIndex) {
     { label: "Faible", value: 25 },
   ];
 
-  ctx.strokeStyle = "#d9e2dc";
+  ctx.strokeStyle = theme.line;
   ctx.lineWidth = 1;
-  ctx.fillStyle = "#62706a";
+  ctx.fillStyle = theme.muted;
   ctx.font = "800 11px Inter, system-ui, sans-serif";
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
@@ -4938,7 +5000,7 @@ function drawActivityChart(day, rows, highlightedIndex) {
     if (index === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   });
-  ctx.strokeStyle = "#087d72";
+  ctx.strokeStyle = themeColor("current");
   ctx.lineWidth = 4;
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
@@ -4948,8 +5010,8 @@ function drawActivityChart(day, rows, highlightedIndex) {
   if (highlighted) {
     const x = pointX(highlightedIndex);
     const y = pointY(highlighted.score);
-    ctx.fillStyle = "#c85c45";
-    ctx.strokeStyle = "#fff";
+    ctx.fillStyle = themeColor("coral");
+    ctx.strokeStyle = theme.pointStroke;
     ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.arc(x, y, 7, 0, Math.PI * 2);
@@ -4959,7 +5021,7 @@ function drawActivityChart(day, rows, highlightedIndex) {
 
   drawHourTickLabels(ctx, rows, pointX, height - padding.bottom + 13);
 
-  ctx.fillStyle = "#17201d";
+  ctx.fillStyle = theme.ink;
   ctx.font = "800 12px Inter, system-ui, sans-serif";
   ctx.textAlign = "left";
   ctx.fillText(`${fishActivityProfiles[normalizeActivityFish(state.activityFish)].label} · ${day.shortLabel}`, padding.left, padding.top - 10);
@@ -5656,6 +5718,7 @@ function renderTideEvents(rows, extrema) {
 function drawTideChart(day, rows, extrema, focusRow) {
   const canvas = els.tideCanvas;
   const ctx = setupCanvas(canvas);
+  const theme = canvasTheme();
   const width = canvas.clientWidth;
   const height = canvas.clientHeight;
   const padding = { top: 28, right: 22, bottom: 42, left: 56 };
@@ -5664,7 +5727,7 @@ function drawTideChart(day, rows, extrema, focusRow) {
   if (width <= 1 || height <= 1) return;
 
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "#fbfdfb";
+  ctx.fillStyle = theme.bg;
   roundRect(ctx, 0, 0, width, height, 8);
   ctx.fill();
 
@@ -5679,9 +5742,9 @@ function drawTideChart(day, rows, extrema, focusRow) {
   const pointX = (index) => padding.left + (rows.length <= 1 ? 0 : (index / (rows.length - 1)) * chartWidth);
   const pointY = (value) => padding.top + chartHeight - ((value - minValue) / valueSpan) * chartHeight;
 
-  ctx.strokeStyle = "#d9e2dc";
+  ctx.strokeStyle = theme.line;
   ctx.lineWidth = 1;
-  ctx.fillStyle = "#62706a";
+  ctx.fillStyle = theme.muted;
   ctx.font = "700 12px Inter, system-ui, sans-serif";
   ctx.textAlign = "right";
   ctx.textBaseline = "middle";
@@ -5722,7 +5785,7 @@ function drawTideChart(day, rows, extrema, focusRow) {
     if (index === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   });
-  ctx.strokeStyle = colors.wave;
+  ctx.strokeStyle = themeColor("wave");
   ctx.lineWidth = 4;
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
@@ -5744,7 +5807,7 @@ function drawTideChart(day, rows, extrema, focusRow) {
     const x = pointX(index);
     const y = pointY(event.row.seaLevel);
     ctx.fillStyle = event.color;
-    ctx.strokeStyle = "#fff";
+    ctx.strokeStyle = theme.pointStroke;
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(x, y, 6, 0, Math.PI * 2);
@@ -5754,7 +5817,7 @@ function drawTideChart(day, rows, extrema, focusRow) {
 
   drawHourTickLabels(ctx, rows, pointX, height - padding.bottom + 14);
 
-  ctx.fillStyle = "#17201d";
+  ctx.fillStyle = theme.ink;
   ctx.font = "800 12px Inter, system-ui, sans-serif";
   ctx.textAlign = "left";
   ctx.fillText(`${day.shortLabel} · hauteur relative au niveau moyen`, padding.left, padding.top - 12);
@@ -5860,6 +5923,7 @@ function renderSolunarWindows(astro) {
 function drawAstroChart(day, astro) {
   const canvas = els.astroCanvas;
   const ctx = setupCanvas(canvas);
+  const theme = canvasTheme();
   const width = canvas.clientWidth;
   const height = canvas.clientHeight;
   const padding = { top: 28, right: 22, bottom: 42, left: 44 };
@@ -5868,13 +5932,13 @@ function drawAstroChart(day, astro) {
   if (width <= 1 || height <= 1) return;
 
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "#fbfdfb";
+  ctx.fillStyle = theme.bg;
   roundRect(ctx, 0, 0, width, height, 8);
   ctx.fill();
 
   const baseY = padding.top + chartHeight * 0.74;
   const amplitude = chartHeight * 0.48;
-  ctx.strokeStyle = "#d9e2dc";
+  ctx.strokeStyle = theme.line;
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(padding.left, baseY);
@@ -5883,13 +5947,13 @@ function drawAstroChart(day, astro) {
 
   for (let hour = 0; hour <= 24; hour += 2) {
     const x = padding.left + (hour / 24) * chartWidth;
-    ctx.strokeStyle = "rgba(89, 101, 111, 0.2)";
+    ctx.strokeStyle = theme.subtleLine;
     ctx.beginPath();
     ctx.moveTo(x, padding.top);
     ctx.lineTo(x, padding.top + chartHeight);
     ctx.stroke();
     if (hour % 4 !== 0) continue;
-    ctx.fillStyle = "#62706a";
+    ctx.fillStyle = theme.muted;
     ctx.font = "700 11px Inter, system-ui, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
@@ -5903,7 +5967,7 @@ function drawAstroChart(day, astro) {
     amplitude,
     start: astro.sunrise,
     end: astro.sunset,
-    color: colors.amber,
+    color: themeColor("amber"),
     width: 4,
   });
   drawVisibilityArc(ctx, {
@@ -5913,18 +5977,18 @@ function drawAstroChart(day, astro) {
     amplitude: amplitude * 0.52,
     start: astro.moonrise,
     end: astro.moonset,
-    color: colors.violet,
+    color: themeColor("violet"),
     width: 3,
     dash: [7, 7],
   });
 
-  drawTimePoint(ctx, padding, chartWidth, baseY, astro.sunrise, colors.amber, "Lever");
-  drawTimePoint(ctx, padding, chartWidth, baseY, astro.sunset, colors.amber, "Coucher");
-  drawTimePoint(ctx, padding, chartWidth, baseY, astro.moonrise, colors.violet, "Lune");
+  drawTimePoint(ctx, padding, chartWidth, baseY, astro.sunrise, themeColor("amber"), "Lever");
+  drawTimePoint(ctx, padding, chartWidth, baseY, astro.sunset, themeColor("amber"), "Coucher");
+  drawTimePoint(ctx, padding, chartWidth, baseY, astro.moonrise, themeColor("violet"), "Lune");
 
   drawTimelineMarker(ctx, padding.left + (selectedTimelineMinute() / 1440) * chartWidth, padding, chartHeight);
 
-  ctx.fillStyle = "#17201d";
+  ctx.fillStyle = theme.ink;
   ctx.font = "800 12px Inter, system-ui, sans-serif";
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
@@ -5969,15 +6033,16 @@ function drawVisibilityArc(ctx, options) {
 
 function drawTimePoint(ctx, padding, chartWidth, baseY, minute, color, label) {
   if (minute == null) return;
+  const theme = canvasTheme();
   const x = padding.left + (minute / 1440) * chartWidth;
   ctx.fillStyle = color;
-  ctx.strokeStyle = "#fff";
+  ctx.strokeStyle = theme.pointStroke;
   ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.arc(x, baseY, 6, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
-  ctx.fillStyle = "#62706a";
+  ctx.fillStyle = theme.muted;
   ctx.font = "800 11px Inter, system-ui, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "bottom";
@@ -5986,9 +6051,10 @@ function drawTimePoint(ctx, padding, chartWidth, baseY, minute, color, label) {
 
 function drawTwoHourGrid(ctx, rows, pointX, padding, chartHeight) {
   if (!rows?.length) return;
+  const theme = canvasTheme();
 
   ctx.save();
-  ctx.strokeStyle = "rgba(89, 101, 111, 0.2)";
+  ctx.strokeStyle = theme.subtleLine;
   ctx.lineWidth = 1;
   ctx.setLineDash([]);
   rows.forEach((row, index) => {
@@ -6005,9 +6071,10 @@ function drawTwoHourGrid(ctx, rows, pointX, padding, chartHeight) {
 
 function drawTimelineMarker(ctx, x, padding, chartHeight) {
   if (!isValidNumber(x)) return;
+  const theme = canvasTheme();
 
   ctx.save();
-  ctx.strokeStyle = "rgba(200, 92, 69, 0.45)";
+  ctx.strokeStyle = theme.marker;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(x, padding.top);
@@ -6018,10 +6085,11 @@ function drawTimelineMarker(ctx, x, padding, chartHeight) {
 
 function drawHourTickLabels(ctx, rows, pointX, y) {
   if (!rows?.length) return;
+  const theme = canvasTheme();
 
   let lastX = -Infinity;
   ctx.save();
-  ctx.fillStyle = "#62706a";
+  ctx.fillStyle = theme.muted;
   ctx.font = "700 11px Inter, system-ui, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
@@ -6039,14 +6107,15 @@ function drawHourTickLabels(ctx, rows, pointX, y) {
 
 function drawEmptyPanelCanvas(canvas, message) {
   const ctx = setupCanvas(canvas);
+  const theme = canvasTheme();
   const width = canvas.clientWidth;
   const height = canvas.clientHeight;
   if (width <= 1 || height <= 1) return;
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "#fbfdfb";
+  ctx.fillStyle = theme.bg;
   roundRect(ctx, 0, 0, width, height, 8);
   ctx.fill();
-  ctx.fillStyle = "#62706a";
+  ctx.fillStyle = theme.muted;
   ctx.font = "900 16px Inter, system-ui, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -6113,6 +6182,7 @@ function drawCompass() {
   const day = getSelectedDay();
   const canvas = els.compassCanvas;
   const ctx = setupCanvas(canvas);
+  const theme = canvasTheme();
   const width = canvas.clientWidth;
   const height = canvas.clientHeight;
   const cx = width / 2;
@@ -6120,11 +6190,11 @@ function drawCompass() {
   const radius = Math.min(width, height) * 0.37;
 
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "#fbfdfb";
+  ctx.fillStyle = theme.bg;
   roundRect(ctx, 0, 0, width, height, 8);
   ctx.fill();
 
-  ctx.strokeStyle = "#d9e2dc";
+  ctx.strokeStyle = theme.line;
   ctx.lineWidth = 1;
   [0.45, 0.72, 1].forEach((scale) => {
     ctx.beginPath();
@@ -6141,7 +6211,7 @@ function drawCompass() {
     ctx.stroke();
   }
 
-  ctx.fillStyle = "#62706a";
+  ctx.fillStyle = theme.muted;
   ctx.font = "700 13px Inter, system-ui, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -6168,7 +6238,7 @@ function drawCompass() {
       cy,
       compassArrowLength(radius, 0.82, snapshot.surfaceCurrent, 1.1),
       snapshot.surfaceCurrentDirection,
-      colors.current,
+      themeColor("current"),
       `Courant ${formatCompassValue(snapshot.surfaceCurrent, "kt", 1)}`,
       false,
     );
@@ -6178,7 +6248,7 @@ function drawCompass() {
       cy,
       compassArrowLength(radius, 0.68, snapshot.depthCurrent, 1),
       snapshot.depthDirection,
-      colors.depth,
+      themeColor("depth"),
       `Fond ${formatCompassValue(snapshot.depthCurrent, "kt", 1)}`,
       false,
     );
@@ -6188,7 +6258,7 @@ function drawCompass() {
       cy,
       compassArrowLength(radius, 0.55, snapshot.windSpeed, 18),
       reverseDirection(snapshot.windDirection),
-      colors.wind,
+      themeColor("wind"),
       `Vent ${formatCompassValue(snapshot.windSpeed, "kt", 0)}`,
       true,
     );
@@ -6198,7 +6268,7 @@ function drawCompass() {
       cy,
       compassArrowLength(radius, 0.42, snapshot.waveHeight, 1.4),
       reverseDirection(snapshot.waveDirection),
-      colors.wave,
+      themeColor("wave"),
       `Houle ${formatCompassValue(snapshot.waveHeight, "m", 1)}`,
       true,
     );
@@ -6209,7 +6279,7 @@ function drawCompass() {
       cy,
       compassArrowLength(radius, 0.76, snapshot.windSpeed, 18),
       reverseDirection(snapshot.windDirection),
-      colors.wind,
+      themeColor("wind"),
       `Vent ${formatCompassValue(snapshot.windSpeed, "kt", 0)}`,
       true,
     );
@@ -6247,6 +6317,7 @@ function formatCompassValue(value, unit, decimals) {
 }
 
 function drawCompassStatusBadge(ctx, width, day) {
+  const theme = canvasTheme();
   const minute = selectedTimelineMinute();
   const sample = timelineSample(day, minute);
   const score = sample.score ?? dayActivityScore(day);
@@ -6255,17 +6326,17 @@ function drawCompassStatusBadge(ctx, width, day) {
     {
       text: `${day.shortLabel} · ${formatHourCompact(minute)}`,
       font: "900 12px Inter, system-ui, sans-serif",
-      color: "#17201d",
+      color: theme.ink,
     },
     {
       text: `Eau ${formatTemperatureBrief(waterTemperature)}`,
       font: "800 11px Inter, system-ui, sans-serif",
-      color: "#62706a",
+      color: theme.muted,
     },
     {
       text: `Activité ${Math.round(score)}/100`,
       font: "800 11px Inter, system-ui, sans-serif",
-      color: colors.current,
+      color: themeColor("current"),
     },
   ];
 
@@ -6282,8 +6353,8 @@ function drawCompassStatusBadge(ctx, width, day) {
   const y = 12;
 
   ctx.save();
-  ctx.fillStyle = "rgba(255, 255, 255, 0.88)";
-  ctx.strokeStyle = "rgba(189, 203, 195, 0.88)";
+  ctx.fillStyle = theme.badge;
+  ctx.strokeStyle = theme.badgeBorder;
   ctx.lineWidth = 1;
   roundRect(ctx, x, y, badgeWidth, badgeHeight, 8);
   ctx.fill();
@@ -6338,6 +6409,7 @@ function renderChart() {
   const day = getSelectedDay();
   const canvas = els.chartCanvas;
   const ctx = setupCanvas(canvas);
+  const theme = canvasTheme();
   const width = canvas.clientWidth;
   const height = canvas.clientHeight;
   const padding = { top: 24, right: 22, bottom: 38, left: 48 };
@@ -6357,9 +6429,9 @@ function renderChart() {
   const maxValue = isValidNumber(config.maxValue) ? config.maxValue : niceMax(max(values) ?? 1);
   const valueRangeSize = Math.max(0.01, maxValue - minValue);
 
-  ctx.strokeStyle = "#d9e2dc";
+  ctx.strokeStyle = theme.line;
   ctx.lineWidth = 1;
-  ctx.fillStyle = "#62706a";
+  ctx.fillStyle = theme.muted;
   ctx.font = "700 12px Inter, system-ui, sans-serif";
   ctx.textAlign = "right";
   ctx.textBaseline = "middle";
@@ -6406,7 +6478,7 @@ function renderChart() {
 
   drawHourTickLabels(ctx, rows, pointX, height - padding.bottom + 14);
 
-  ctx.fillStyle = "#17201d";
+  ctx.fillStyle = theme.ink;
   ctx.font = "800 12px Inter, system-ui, sans-serif";
   ctx.textAlign = "left";
   ctx.fillText(config.unit, padding.left, padding.top - 14);
@@ -6420,8 +6492,8 @@ function chartConfig(day) {
       title: "Houle",
       unit: "m",
       series: [
-        { label: "Houle totale", color: colors.wave, values: pluck(rows, "waveHeight") },
-        { label: "Houle de fond", color: colors.swell, values: pluck(rows, "swellHeight"), dash: [7, 6] },
+        { label: "Houle totale", color: themeColor("wave"), values: pluck(rows, "waveHeight") },
+        { label: "Houle de fond", color: themeColor("swell"), values: pluck(rows, "swellHeight"), dash: [7, 6] },
       ],
     };
   }
@@ -6431,8 +6503,8 @@ function chartConfig(day) {
       title: "Courant",
       unit: "kt",
       series: [
-        { label: "Surface", color: colors.current, values: pluck(rows, "surfaceCurrent") },
-        { label: depthSeriesLabel(day), color: colors.depth, values: pluck(rows, "depthCurrent"), dash: [7, 6] },
+        { label: "Surface", color: themeColor("current"), values: pluck(rows, "surfaceCurrent") },
+        { label: depthSeriesLabel(day), color: themeColor("depth"), values: pluck(rows, "depthCurrent"), dash: [7, 6] },
       ],
     };
   }
@@ -6444,7 +6516,7 @@ function chartConfig(day) {
       minValue: 0,
       maxValue: 100,
       series: [
-        { label: "Nuages", color: colors.cloud, values: pluck(rows, "cloudCover") },
+        { label: "Nuages", color: themeColor("cloud"), values: pluck(rows, "cloudCover") },
       ],
     };
   }
@@ -6453,8 +6525,8 @@ function chartConfig(day) {
     title: "Vent",
     unit: "kt",
     series: [
-      { label: "Vent moyen", color: colors.wind, values: pluck(rows, "windSpeed") },
-      { label: "Rafales", color: colors.gust, values: pluck(rows, "windGust"), dash: [7, 6] },
+      { label: "Vent moyen", color: themeColor("wind"), values: pluck(rows, "windSpeed") },
+      { label: "Rafales", color: themeColor("gust"), values: pluck(rows, "windGust"), dash: [7, 6] },
     ],
   };
 }
@@ -7409,6 +7481,7 @@ function saveSettings() {
     marineOverlayMode: state.marineOverlayMode,
     fishFilters: [...state.activeFishFilters],
     activityFish: state.activityFish,
+    theme: normalizeTheme(state.theme),
     profile: normalizeProfile(state.profile),
   };
   updateAppStore((store) => {
@@ -7586,8 +7659,13 @@ function normalizeSettings(settings) {
     marineOverlayMode: normalizeMarineOverlayMode(settings.marineOverlayMode),
     fishFilters: Array.isArray(settings.fishFilters) ? settings.fishFilters : ["all"],
     activityFish: typeof settings.activityFish === "string" ? settings.activityFish : "",
+    theme: normalizeTheme(settings.theme),
     profile: normalizeProfile(settings.profile),
   };
+}
+
+function normalizeTheme(theme) {
+  return THEME_MODES.includes(theme) ? theme : "light";
 }
 
 function normalizeProfile(profile) {

@@ -3,7 +3,7 @@
 Application web locale pour consulter les conditions utiles à une sortie pêche:
 
 - sélection de spots tout autour de la France et de la Corse;
-- page Préférences pour mémoriser milieu, niveau, approche, priorité, espèce cible et profondeur;
+- page Préférences pour mémoriser milieu, thème clair/sombre, niveau, approche, priorité, espèce cible et profondeur;
 - carte nautique, coins de pêche connus, filtres par poisson et favoris enregistrés dans le navigateur;
 - score d'activité poisson par espèce, courbe horaire et fenêtres majeures/mineures;
 - courant de surface en noeuds et direction;

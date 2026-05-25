@@ -3,7 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
     <title>Météo Pêche</title>
+    <script>
+      try {
+        const store = JSON.parse(localStorage.getItem("meteo-peche-store-v1") || "{}");
+        document.documentElement.dataset.theme = store?.settings?.theme === "dark" ? "dark" : "light";
+      } catch {
+        document.documentElement.dataset.theme = "light";
+      }
+    </script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
     <link rel="stylesheet" href="styles.css" />
@@ -84,6 +93,13 @@
               <div class="mode-switch preference-mode-switch" id="waterModeSwitch" role="group" aria-label="Mode de pêche">
                 <button class="mode-option is-active" type="button" data-water-mode="sea" aria-pressed="true">Mer</button>
                 <button class="mode-option" type="button" data-water-mode="freshwater" aria-pressed="false">Eau douce</button>
+              </div>
+            </div>
+            <div class="preference-control">
+              <span>Thème</span>
+              <div class="segmented preference-segments" role="group" aria-label="Thème de l'interface" data-theme-control>
+                <button class="segment" type="button" data-theme-value="light">Clair</button>
+                <button class="segment" type="button" data-theme-value="dark">Sombre</button>
               </div>
             </div>
             <div class="preference-control">
@@ -645,6 +661,6 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-    <script src="app.js?v=20260525-preferences-page" defer></script>
+    <script src="app.js?v=20260525-dark-mode" defer></script>
   </body>
 </html>

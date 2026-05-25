@@ -16,7 +16,83 @@
   --warn: #bd7b18;
   --bad: #b4423b;
   --shadow: 0 18px 48px rgba(23, 32, 29, 0.08);
+  --body-gradient-start: rgba(244, 247, 244, 0.92);
+  --body-gradient-end: rgba(244, 247, 244, 1);
+  --pattern-color: rgba(8, 125, 114, 0.08);
+  --panel-glass: rgba(255, 255, 255, 0.88);
+  --field-bg: #fbfdfb;
+  --switch-bg: #eef5f1;
+  --segment-bg: #f7faf7;
+  --floating-bg: rgba(255, 255, 255, 0.96);
+  --floating-soft-bg: rgba(255, 255, 255, 0.88);
+  --canvas-bg: #fbfdfb;
+  --canvas-grid: #d9e2dc;
+  --canvas-subtle-grid: rgba(89, 101, 111, 0.2);
+  --canvas-muted: #62706a;
+  --canvas-ink: #17201d;
+  --canvas-badge: rgba(255, 255, 255, 0.88);
+  --canvas-badge-border: rgba(189, 203, 195, 0.88);
+  --canvas-marker: rgba(200, 92, 69, 0.45);
+  --canvas-point-stroke: #fff;
+  --chart-wind: #b97322;
+  --chart-gust: #c85c45;
+  --chart-wave: #2f74c0;
+  --chart-swell: #7357b8;
+  --chart-current: #087d72;
+  --chart-depth: #17201d;
+  --chart-cloud: #7357b8;
+  --chart-amber: #b97322;
+  --chart-violet: #7357b8;
+  --chart-coral: #c85c45;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #07110f;
+  --panel: #101c19;
+  --ink: #edf6f2;
+  --muted: #9fb0aa;
+  --line: #23342f;
+  --line-strong: #375149;
+  --teal: #20b7a6;
+  --teal-dark: #77eadc;
+  --blue: #68aaff;
+  --coral: #ff8a76;
+  --amber: #f0b85d;
+  --violet: #b4a0ff;
+  --good: #5bd090;
+  --warn: #e4aa49;
+  --bad: #ee766f;
+  --shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
+  --body-gradient-start: rgba(7, 17, 15, 0.94);
+  --body-gradient-end: rgba(7, 17, 15, 1);
+  --pattern-color: rgba(32, 183, 166, 0.08);
+  --panel-glass: rgba(16, 28, 25, 0.9);
+  --field-bg: #0b1714;
+  --switch-bg: #0d1a17;
+  --segment-bg: #0d1a17;
+  --floating-bg: rgba(13, 24, 21, 0.97);
+  --floating-soft-bg: rgba(13, 24, 21, 0.9);
+  --canvas-bg: #0b1714;
+  --canvas-grid: #2d433c;
+  --canvas-subtle-grid: rgba(117, 145, 136, 0.24);
+  --canvas-muted: #a2b4ae;
+  --canvas-ink: #edf6f2;
+  --canvas-badge: rgba(14, 25, 22, 0.9);
+  --canvas-badge-border: rgba(65, 91, 84, 0.86);
+  --canvas-marker: rgba(255, 138, 118, 0.58);
+  --canvas-point-stroke: #07110f;
+  --chart-wind: #f0b85d;
+  --chart-gust: #ff8a76;
+  --chart-wave: #68aaff;
+  --chart-swell: #b4a0ff;
+  --chart-current: #2fd0bc;
+  --chart-depth: #edf6f2;
+  --chart-cloud: #b4a0ff;
+  --chart-amber: #f0b85d;
+  --chart-violet: #b4a0ff;
+  --chart-coral: #ff8a76;
 }
 
 * {
@@ -27,8 +103,8 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    linear-gradient(180deg, rgba(244, 247, 244, 0.92), rgba(244, 247, 244, 1)),
-    repeating-linear-gradient(135deg, rgba(8, 125, 114, 0.08) 0 1px, transparent 1px 18px);
+    linear-gradient(180deg, var(--body-gradient-start), var(--body-gradient-end)),
+    repeating-linear-gradient(135deg, var(--pattern-color) 0 1px, transparent 1px 18px);
   color: var(--ink);
 }
 
@@ -122,7 +198,7 @@ footer {
   gap: 3px;
   border: 1px solid var(--line-strong);
   border-radius: 999px;
-  background: #eef5f1;
+  background: var(--switch-bg);
   padding: 3px;
 }
 
@@ -190,7 +266,7 @@ main {
 .compass-panel {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.88);
+  background: var(--panel-glass);
   box-shadow: var(--shadow);
 }
 
@@ -381,7 +457,7 @@ main {
   height: 44px;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
-  background: #fbfdfb;
+  background: var(--field-bg);
   color: var(--ink);
   padding: 0 12px;
 }
@@ -437,7 +513,7 @@ button:focus-visible {
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fbfdfb;
+  background: var(--field-bg);
 }
 
 .depth-control > div {
@@ -1503,7 +1579,7 @@ body.is-map-fullscreen-active {
   min-height: 42px;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
-  background: #fbfdfb;
+  background: var(--field-bg);
   color: var(--ink);
   padding: 0 10px;
   font-size: 0.82rem;
@@ -2575,7 +2651,7 @@ body.is-map-fullscreen-active {
   padding: 4px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #f7faf7;
+  background: var(--segment-bg);
 }
 
 .segment {
@@ -3506,4 +3582,83 @@ footer {
   .icon-button {
     grid-column: auto;
   }
+}
+
+:root[data-theme="dark"] .topbar,
+:root[data-theme="dark"] .section-head {
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .day-strip,
+:root[data-theme="dark"] .forecast-strip-grid,
+:root[data-theme="dark"] .spot-dock,
+:root[data-theme="dark"] .favorite-select,
+:root[data-theme="dark"] .favorite-action,
+:root[data-theme="dark"] .favorite-name-input,
+:root[data-theme="dark"] .map-layer-row,
+:root[data-theme="dark"] .marine-overlay-control,
+:root[data-theme="dark"] .sheet-close,
+:root[data-theme="dark"] .spot-name-field input,
+:root[data-theme="dark"] .spot-name-sheet,
+:root[data-theme="dark"] .map-layer-sheet,
+:root[data-theme="dark"] .fish-filter-panel,
+:root[data-theme="dark"] .fish-filter-trigger,
+:root[data-theme="dark"] .map-marker-label,
+:root[data-theme="dark"] .map-control,
+:root[data-theme="dark"] .map-scale,
+:root[data-theme="dark"] .map-attribution,
+:root[data-theme="dark"] .mobile-tabbar {
+  background: var(--floating-bg);
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
+:root[data-theme="dark"] .map-panel.is-map-fullscreen {
+  background: var(--bg);
+}
+
+:root[data-theme="dark"] .day-strip,
+:root[data-theme="dark"] .forecast-strip-grid,
+:root[data-theme="dark"] .spot-dock,
+:root[data-theme="dark"] .favorite-select,
+:root[data-theme="dark"] .favorite-action,
+:root[data-theme="dark"] .favorite-name-input,
+:root[data-theme="dark"] .map-layer-row,
+:root[data-theme="dark"] .marine-overlay-control,
+:root[data-theme="dark"] .sheet-close,
+:root[data-theme="dark"] .spot-name-field input {
+  background: var(--field-bg);
+}
+
+:root[data-theme="dark"] .preference-chip {
+  border-color: rgba(32, 183, 166, 0.28);
+  background: rgba(32, 183, 166, 0.12);
+  color: var(--teal-dark);
+}
+
+:root[data-theme="dark"] .preferences-nav-button.is-active,
+:root[data-theme="dark"] .mobile-tab.is-active,
+:root[data-theme="dark"] .map-control.is-active,
+:root[data-theme="dark"] .map-layer-row.is-active,
+:root[data-theme="dark"] .marine-overlay-option.is-active,
+:root[data-theme="dark"] .fish-filter-option.is-active,
+:root[data-theme="dark"] .segment.is-active {
+  border-color: rgba(32, 183, 166, 0.42);
+  background: rgba(32, 183, 166, 0.13);
+  color: var(--teal-dark);
+}
+
+:root[data-theme="dark"] .leaflet-tile {
+  filter: brightness(0.76) saturate(0.88) contrast(1.05);
+}
+
+:root[data-theme="dark"] .leaflet-container,
+:root[data-theme="dark"] .spot-map.is-leaflet {
+  background: #0a1512;
+}
+
+:root[data-theme="dark"] .leaflet-popup-content-wrapper,
+:root[data-theme="dark"] .leaflet-popup-tip {
+  background: var(--floating-bg);
+  color: var(--ink);
 }
