@@ -1398,6 +1398,7 @@ const els = {
   mapMarkers: document.querySelector("#mapMarkers"),
   favoriteBtn: document.querySelector("#favoriteBtn"),
   favoritesList: document.querySelector("#favoritesList"),
+  spotDock: document.querySelector("#spotDock"),
   activeSpotName: document.querySelector("#activeSpotName"),
   activeSpotCoords: document.querySelector("#activeSpotCoords"),
   mapZoomIn: document.querySelector("#mapZoomIn"),
@@ -2063,6 +2064,9 @@ function renderSafetyStatus() {
 
   els.safetyTitle.textContent = title;
   els.safetyDetail.textContent = detail;
+  els.spotDock?.classList.toggle("is-alert", mode === "alert");
+  els.spotDock?.classList.toggle("is-warn", mode === "warn");
+  els.spotDock?.classList.toggle("is-watch", mode === "watch");
   els.safetyBanner.classList.toggle("is-alert", mode === "alert");
   els.safetyBanner.classList.toggle("is-warn", mode === "warn");
   els.safetyBanner.classList.toggle("is-watch", mode === "watch");

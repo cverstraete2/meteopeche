@@ -1295,27 +1295,75 @@ button:focus-visible {
   font-weight: 800;
 }
 
-.map-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
+.spot-dock {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 10px;
   margin-top: 12px;
-  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfdfb;
+  padding: 10px;
 }
 
-.map-meta strong {
+.spot-dock.is-watch {
+  border-color: rgba(8, 125, 114, 0.38);
+  background: rgba(8, 125, 114, 0.07);
+}
+
+.spot-dock.is-warn {
+  border-color: rgba(185, 115, 34, 0.44);
+  background: rgba(185, 115, 34, 0.08);
+}
+
+.spot-dock.is-alert {
+  border-color: rgba(180, 66, 59, 0.48);
+  background: rgba(180, 66, 59, 0.08);
+}
+
+.spot-dock-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.spot-dock-main strong {
+  overflow: hidden;
   color: var(--ink);
+  font-size: 1.08rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spot-dock-main span:not(.eyebrow) {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.86rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spot-dock .favorite-toggle {
+  align-self: start;
+  justify-self: end;
 }
 
 .safety-banner {
   display: grid;
-  gap: 4px;
-  margin-top: 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fbfdfb;
-  padding: 10px 12px;
+  grid-column: 1 / -1;
+  grid-template-columns: 12px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.safety-dot {
+  width: 9px;
+  height: 9px;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: var(--good);
 }
 
 .safety-banner strong {
@@ -1329,19 +1377,16 @@ button:focus-visible {
   line-height: 1.35;
 }
 
-.safety-banner.is-watch {
-  border-color: rgba(8, 125, 114, 0.38);
-  background: rgba(8, 125, 114, 0.08);
+.safety-banner.is-watch .safety-dot {
+  background: var(--teal);
 }
 
-.safety-banner.is-warn {
-  border-color: rgba(185, 115, 34, 0.44);
-  background: rgba(185, 115, 34, 0.09);
+.safety-banner.is-warn .safety-dot {
+  background: var(--warn);
 }
 
-.safety-banner.is-alert {
-  border-color: rgba(180, 66, 59, 0.5);
-  background: rgba(180, 66, 59, 0.1);
+.safety-banner.is-alert .safety-dot {
+  background: var(--bad);
 }
 
 .safety-banner.is-alert strong,
@@ -2124,9 +2169,14 @@ footer {
     aspect-ratio: auto;
   }
 
-  .map-meta {
-    align-items: flex-start;
-    flex-direction: column;
+  .spot-dock {
+    grid-template-columns: minmax(0, 1fr) 44px;
+    gap: 8px;
+    padding: 9px;
+  }
+
+  .spot-dock-main strong {
+    font-size: 1rem;
   }
 
   .favorites-list {

@@ -76,11 +76,6 @@
                 <span class="eyebrow">Carte</span>
                 <h2 id="mapTitle">Spots mer</h2>
               </div>
-              <button class="icon-button favorite-toggle" id="favoriteBtn" type="button" title="Ajouter aux favoris" aria-label="Ajouter aux favoris" aria-pressed="false">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="m12 3 2.9 5.9 6.5.9-4.7 4.6 1.1 6.4-5.8-3-5.8 3 1.1-6.4-4.7-4.6 6.5-.9L12 3Z" />
-                </svg>
-              </button>
             </div>
             <div class="spot-map" id="spotMap" role="application" aria-label="Carte de sélection des spots">
               <div class="map-tiles" id="mapTiles"></div>
@@ -223,13 +218,24 @@
                 </div>
               </form>
             </div>
-            <div class="map-meta">
-              <strong id="activeSpotName">--</strong>
-              <span id="activeSpotCoords">--</span>
-            </div>
-            <div class="safety-banner" id="safetyBanner" aria-live="polite">
-              <strong id="safetyTitle">Sécurité</strong>
-              <span id="safetyDetail">Zones et dérive prêtes.</span>
+            <div class="spot-dock" id="spotDock">
+              <div class="spot-dock-main">
+                <span class="eyebrow">Spot sélectionné</span>
+                <strong id="activeSpotName">--</strong>
+                <span id="activeSpotCoords">--</span>
+              </div>
+              <button class="icon-button favorite-toggle" id="favoriteBtn" type="button" title="Ajouter aux favoris" aria-label="Ajouter aux favoris" aria-pressed="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m12 3 2.9 5.9 6.5.9-4.7 4.6 1.1 6.4-5.8-3-5.8 3 1.1-6.4-4.7-4.6 6.5-.9L12 3Z" />
+                </svg>
+              </button>
+              <div class="safety-banner" id="safetyBanner" aria-live="polite">
+                <span class="safety-dot" aria-hidden="true"></span>
+                <div>
+                  <strong id="safetyTitle">Sécurité</strong>
+                  <span id="safetyDetail">Zones et dérive prêtes.</span>
+                </div>
+              </div>
             </div>
           </section>
 
@@ -393,6 +399,6 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-    <script src="app.js?v=20260525-spot-panel-ui" defer></script>
+    <script src="app.js?v=20260525-spot-dock-ui" defer></script>
   </body>
 </html>
