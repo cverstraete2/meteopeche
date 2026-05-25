@@ -32,7 +32,7 @@
       </header>
 
       <main>
-        <section class="controls-band" aria-label="Paramètres du spot">
+        <section class="controls-band" data-mobile-view="map" aria-label="Paramètres du spot">
           <form id="spotForm" class="spot-form">
             <label class="field field-wide" for="spotPreset">
               <span>Spot</span>
@@ -68,7 +68,7 @@
           </div>
         </section>
 
-        <section class="spot-workspace" aria-label="Carte et favoris">
+        <section class="spot-workspace" data-mobile-view="map" aria-label="Carte et favoris">
           <section class="map-panel" aria-label="Carte des spots">
             <div class="section-head">
               <div>
@@ -169,9 +169,9 @@
           </aside>
         </section>
 
-        <section class="day-strip" id="dayTabs" aria-label="Jours disponibles"></section>
+        <section class="day-strip" id="dayTabs" data-mobile-view="activity weather forecast" aria-label="Jours disponibles"></section>
 
-        <section class="activity-panel" aria-label="Activité des poissons">
+        <section class="activity-panel" data-mobile-view="activity" aria-label="Activité des poissons">
           <div class="section-head">
             <div>
               <span class="eyebrow">Activité</span>
@@ -209,7 +209,7 @@
           </div>
         </section>
 
-        <section class="dashboard-grid" aria-label="Synthèse du jour">
+        <section class="dashboard-grid" data-mobile-view="weather" aria-label="Synthèse du jour">
           <div class="metric-grid" id="metricGrid"></div>
 
           <aside class="compass-panel" aria-label="Directions moyennes">
@@ -221,7 +221,7 @@
           </aside>
         </section>
 
-        <section class="chart-panel" aria-label="Évolution horaire">
+        <section class="chart-panel" data-mobile-view="weather" aria-label="Évolution horaire">
           <div class="section-head">
             <div>
               <span class="eyebrow">Heure par heure</span>
@@ -237,7 +237,7 @@
           <div class="chart-legend" id="chartLegend"></div>
         </section>
 
-        <section class="daily-panel" aria-label="Moyennes des prochains jours">
+        <section class="daily-panel" data-mobile-view="forecast" aria-label="Moyennes des prochains jours">
           <div class="section-head">
             <div>
               <span class="eyebrow">Prévision</span>
@@ -247,6 +247,48 @@
           <div class="daily-grid" id="dailyGrid"></div>
         </section>
       </main>
+
+      <nav class="mobile-tabbar" id="mobileTabbar" aria-label="Navigation principale">
+        <button class="mobile-tab is-active" type="button" data-mobile-tab="map" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z" />
+            <path d="M9 3v15" />
+            <path d="M15 6v15" />
+          </svg>
+          <span>Carte</span>
+        </button>
+        <button class="mobile-tab" type="button" data-mobile-tab="activity">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 13c3.2-4 8.7-5 14-2.4l3-2.2v7.2l-3-2.2C12.7 16 7.2 15 4 11Z" />
+            <path d="M4 13 2 16" />
+            <circle cx="15.5" cy="11.2" r="0.7" />
+          </svg>
+          <span>Activité</span>
+        </button>
+        <button class="mobile-tab" type="button" data-mobile-tab="weather">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 17h14" />
+            <path d="M7 13h10" />
+            <path d="M9 9h6" />
+            <path d="M4 21c3-3 4-8 8-8s5 5 8 8" />
+          </svg>
+          <span>Météo</span>
+        </button>
+        <button class="mobile-tab" type="button" data-mobile-tab="forecast">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 3v3" />
+            <path d="M17 3v3" />
+            <path d="M4 8h16" />
+            <path d="M5 5h14v16H5Z" />
+            <path d="M8 12h2" />
+            <path d="M12 12h2" />
+            <path d="M16 12h2" />
+            <path d="M8 16h2" />
+            <path d="M12 16h2" />
+          </svg>
+          <span>Jours</span>
+        </button>
+      </nav>
 
       <footer>
         Données météo et marine: Open-Meteo. Courant profondeur: Copernicus Marine si configuré, sinon estimation locale depuis le courant de surface.
@@ -265,6 +307,6 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-    <script src="app.js?v=20260525-dual-mode-storage" defer></script>
+    <script src="app.js?v=20260525-mobile-tabs" defer></script>
   </body>
 </html>

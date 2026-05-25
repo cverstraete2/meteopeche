@@ -8,6 +8,7 @@ const WATER_MODES = {
   SEA: "sea",
   FRESHWATER: "freshwater",
 };
+const MOBILE_VIEWS = ["map", "activity", "weather", "forecast"];
 const waterModeConfig = {
   [WATER_MODES.SEA]: {
     label: "Mer",
@@ -1165,6 +1166,7 @@ const fishActivityProfiles = {
 const state = {
   waterMode: WATER_MODES.SEA,
   activeChart: "wind",
+  activeMobileView: "map",
   days: [],
   hours: [],
   selectedDate: "",
@@ -1196,6 +1198,8 @@ const state = {
 
 const els = {
   modeButtons: [...document.querySelectorAll("[data-water-mode]")],
+  mobileTabButtons: [...document.querySelectorAll("[data-mobile-tab]")],
+  mobileViewSections: [...document.querySelectorAll("[data-mobile-view]")],
   spotPreset: document.querySelector("#spotPreset"),
   latitude: document.querySelector("#latitude"),
   longitude: document.querySelector("#longitude"),
@@ -1271,6 +1275,7 @@ function init() {
   bindEvents();
   updateDepth();
   applyWaterModeUI();
+  applyMobileNavigationUI();
   renderSpotTools();
   loadForecast();
 }
@@ -1387,6 +1392,7 @@ function populateActivityFish() {
 function restoreState() {
   const saved = readSavedSettings();
   state.waterMode = normalizeWaterMode(saved.waterMode);
+  state.activeMobileView = normalizeMobileView(saved.mobileView);
   const selectedIndex = resolveSavedSpotIndex(saved);
   const spot = spots[selectedIndex] ?? spots[0];
   const useSavedCoordinates = spot.custom && isValidNumber(saved.lat) && isValidNumber(saved.lon);
@@ -1460,6 +1466,62 @@ function setWaterMode(mode, options = {}) {
   } else if (state.days.length) {
     renderAll();
   }
+}
+
+function normalizeMobileView(view) {
+  return MOBILE_VIEWS.includes(view) ? view : "map";
+}
+
+function isMobileLayout() {
+  return window.matchMedia?.("(max-width: 720px)").matches ?? false;
+}
+
+function sectionSupportsMobileView(section, view) {
+  return String(section.dataset.mobileView ?? "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .includes(view);
+}
+
+function applyMobileNavigationUI() {
+  const mobile = isMobileLayout();
+  document.documentElement.dataset.currentMobileView = state.activeMobileView;
+
+  els.mobileTabButtons.forEach((button) => {
+    const active = button.dataset.mobileTab === state.activeMobileView;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-current", active ? "page" : "false");
+  });
+
+  els.mobileViewSections.forEach((section) => {
+    section.hidden = mobile && !sectionSupportsMobileView(section, state.activeMobileView);
+  });
+
+  if (!mobile) {
+    els.mobileViewSections.forEach((section) => {
+      section.hidden = false;
+    });
+  }
+}
+
+function refreshVisibleView() {
+  window.requestAnimationFrame(() => {
+    state.leafletMap?.invalidateSize(false);
+    updateMapScale();
+    drawCompass();
+    renderActivity(getSelectedDay());
+    renderChart();
+  });
+}
+
+function setMobileView(view) {
+  state.activeMobileView = normalizeMobileView(view);
+  applyMobileNavigationUI();
+  if (isMobileLayout()) {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  refreshVisibleView();
+  saveSettings();
 }
 
 function getSelectedPreset() {
@@ -2519,6 +2581,10 @@ function bindEvents() {
     button.addEventListener("click", () => setWaterMode(button.dataset.waterMode));
   });
 
+  els.mobileTabButtons.forEach((button) => {
+    button.addEventListener("click", () => setMobileView(button.dataset.mobileTab));
+  });
+
   els.spotPreset.addEventListener("change", () => {
     selectSpot(Number(els.spotPreset.value), { load: true });
   });
@@ -2638,9 +2704,11 @@ function bindEvents() {
   });
 
   window.addEventListener("resize", () => {
+    applyMobileNavigationUI();
     drawCompass();
     renderActivity(getSelectedDay());
     renderChart();
+    updateMapScale();
   });
 }
 
@@ -4149,6 +4217,7 @@ function saveSettings() {
   const spot = spots[Number(els.spotPreset.value)] ?? spots[0];
   const payload = {
     waterMode: state.waterMode,
+    mobileView: state.activeMobileView,
     spotIndex: Number(els.spotPreset.value),
     spotName: spot.name,
     customName: state.selectedSpotName,
@@ -4313,6 +4382,7 @@ function normalizeStore(store) {
 function normalizeSettings(settings) {
   return {
     waterMode: normalizeWaterMode(settings.waterMode),
+    mobileView: normalizeMobileView(settings.mobileView),
     spotIndex: Number.isInteger(settings.spotIndex) ? settings.spotIndex : 0,
     spotName: typeof settings.spotName === "string" ? settings.spotName : "",
     customName: typeof settings.customName === "string" ? settings.customName : "",
