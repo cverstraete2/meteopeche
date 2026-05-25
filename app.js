@@ -1314,111 +1314,6 @@ const riggingProfiles = {
   ],
 };
 
-const bathymetryContours = [
-  {
-    region: "Méditerranée - Côte Bleue",
-    depth: 20,
-    label: [43.32, 5.13],
-    coordinates: [[43.34, 4.88], [43.33, 4.98], [43.32, 5.08], [43.305, 5.18], [43.29, 5.30], [43.27, 5.46]],
-  },
-  {
-    region: "Méditerranée - Côte Bleue",
-    depth: 50,
-    label: [43.30, 5.15],
-    coordinates: [[43.315, 4.86], [43.305, 4.98], [43.300, 5.12], [43.292, 5.26], [43.275, 5.42], [43.25, 5.60]],
-  },
-  {
-    region: "Méditerranée - Côte Bleue / Provence",
-    depth: 100,
-    label: [43.23, 5.18],
-    coordinates: [[43.25, 4.76], [43.235, 4.98], [43.215, 5.22], [43.19, 5.48], [43.15, 5.78]],
-  },
-  {
-    region: "Méditerranée - Provence",
-    depth: 200,
-    label: [42.62, 5.5],
-    coordinates: [[42.70, 4.55], [42.58, 4.9], [42.45, 5.28], [42.33, 5.72], [42.20, 6.08]],
-  },
-  {
-    region: "Golfe du Lion",
-    depth: 20,
-    label: [43.17, 3.55],
-    coordinates: [[43.33, 2.95], [43.26, 3.35], [43.16, 3.78], [43.05, 4.18], [42.92, 4.55]],
-  },
-  {
-    region: "Golfe du Lion",
-    depth: 50,
-    label: [42.85, 3.55],
-    coordinates: [[42.95, 2.72], [42.82, 3.20], [42.70, 3.75], [42.58, 4.25], [42.45, 4.75]],
-  },
-  {
-    region: "Golfe du Lion",
-    depth: 100,
-    label: [42.36, 3.65],
-    coordinates: [[42.55, 2.45], [42.35, 3.05], [42.20, 3.70], [42.05, 4.35], [41.88, 4.92]],
-  },
-  {
-    region: "Golfe du Lion",
-    depth: 1000,
-    label: [41.65, 4.5],
-    coordinates: [[41.95, 2.35], [41.70, 3.05], [41.48, 3.85], [41.32, 4.60], [41.18, 5.35]],
-  },
-  {
-    region: "Corse Ouest",
-    depth: 100,
-    label: [42.18, 8.48],
-    coordinates: [[43.05, 8.30], [42.65, 8.22], [42.20, 8.18], [41.75, 8.35], [41.38, 8.62]],
-  },
-  {
-    region: "Corse Ouest",
-    depth: 500,
-    label: [41.95, 8.05],
-    coordinates: [[43.10, 7.95], [42.55, 7.82], [41.95, 7.78], [41.35, 8.00], [40.92, 8.35]],
-  },
-  {
-    region: "Atlantique - Bretagne",
-    depth: 20,
-    label: [47.55, -3.25],
-    coordinates: [[48.25, -4.55], [47.92, -4.22], [47.55, -3.78], [47.20, -3.25], [46.92, -2.55]],
-  },
-  {
-    region: "Atlantique - Bretagne",
-    depth: 50,
-    label: [47.22, -4.18],
-    coordinates: [[48.10, -5.20], [47.72, -4.85], [47.25, -4.35], [46.88, -3.70], [46.55, -2.85]],
-  },
-  {
-    region: "Atlantique - Gascogne",
-    depth: 100,
-    label: [45.65, -3.0],
-    coordinates: [[46.70, -4.50], [46.05, -4.05], [45.35, -3.60], [44.65, -3.25], [43.88, -2.75]],
-  },
-  {
-    region: "Atlantique - Talus continental",
-    depth: 200,
-    label: [45.25, -4.55],
-    coordinates: [[47.25, -6.05], [46.35, -5.55], [45.35, -4.85], [44.20, -4.05], [43.30, -3.30]],
-  },
-  {
-    region: "Atlantique - Talus continental",
-    depth: 1000,
-    label: [44.65, -6.2],
-    coordinates: [[47.00, -7.50], [45.90, -6.95], [44.70, -6.20], [43.55, -5.25], [42.80, -4.30]],
-  },
-  {
-    region: "Manche",
-    depth: 20,
-    label: [49.42, -1.25],
-    coordinates: [[48.82, -4.10], [49.08, -3.20], [49.32, -2.20], [49.52, -1.05], [49.72, 0.20]],
-  },
-  {
-    region: "Manche",
-    depth: 50,
-    label: [49.92, -2.25],
-    coordinates: [[49.35, -4.80], [49.58, -3.62], [49.82, -2.35], [50.08, -1.10], [50.22, 0.20]],
-  },
-];
-
 const state = {
   waterMode: WATER_MODES.SEA,
   activeChart: "wind",
@@ -2272,35 +2167,23 @@ function renderBathymetryLayer() {
   renderBathymetryFocusLabel();
 }
 
-function bathymetryStyle(depth) {
-  if (depth >= 1000) {
-    return { color: "#17324f", opacity: 0.58, weight: 2.1, dashArray: "1 0" };
-  }
-  if (depth >= 200) {
-    return { color: "#245a8f", opacity: 0.56, weight: 1.9, dashArray: "8 7" };
-  }
-  if (depth >= 100) {
-    return { color: "#2f74c0", opacity: 0.54, weight: 1.7, dashArray: "6 6" };
-  }
-  if (depth >= 50) {
-    return { color: "#4d91cf", opacity: 0.5, weight: 1.5, dashArray: "5 6" };
-  }
-  return { color: "#6caad2", opacity: 0.48, weight: 1.4, dashArray: "4 6" };
-}
-
 function renderBathymetryFocusLabel() {
   const center = getLeafletFocusPoint();
   const estimate = currentBathymetryFocusEstimate(center);
   if (!estimate) return;
-  const source = estimate.source === "emodnet" ? "EMODnet" : "Est.";
-  const detail = estimate.source === "emodnet"
+  const isEmodnet = estimate.source === "emodnet";
+  const statusClass = isEmodnet ? "" : ` is-${estimate.source}`;
+  const depthLabel = isValidNumber(estimate.depth) ? `~${formatNumber(estimate.depth, 0)} m` : "--";
+  const detail = isEmodnet
     ? "Profondeur moyenne EMODnet au centre de la carte"
-    : `Fond estimé depuis l'isobathe ${estimate.depth} m · ${formatMapDistance(estimate.distance)} du repère`;
+    : estimate.source === "unavailable"
+      ? "Profondeur EMODnet indisponible pour ce point"
+      : "Chargement de la profondeur EMODnet au centre de la carte";
 
   const marker = L.marker([center.lat, center.lon], {
     icon: L.divIcon({
-      className: "bathymetry-label bathymetry-focus-label",
-      html: `<span>Fond ${source}</span><strong>~${formatNumber(estimate.depth, 0)} m</strong>`,
+      className: `bathymetry-label bathymetry-focus-label${statusClass}`,
+      html: `<span>Fond EMODnet</span><strong>${depthLabel}</strong>`,
       iconSize: [104, 36],
       iconAnchor: [52, 44],
       tooltipAnchor: [0, -42],
@@ -2344,13 +2227,19 @@ async function loadBathymetryFocusDepth() {
     const payload = await fetchJson(buildBathymetryPointUrl(point));
     if (requestId !== state.bathymetryPointRequestId) return;
     const estimate = parseBathymetryPoint(payload, point, key);
-    if (!estimate) return;
+    if (!estimate) {
+      state.bathymetryFocusDepth = unavailableBathymetryPoint(point, key);
+      renderBathymetryLayer();
+      return;
+    }
     state.bathymetryPointCache.set(key, estimate);
     state.bathymetryFocusDepth = estimate;
     renderBathymetryLayer();
   } catch (error) {
     if (requestId !== state.bathymetryPointRequestId) return;
-    console.info("Bathymétrie EMODnet indisponible, estimation locale conservée.", error);
+    state.bathymetryFocusDepth = unavailableBathymetryPoint(point, key);
+    renderBathymetryLayer();
+    console.info("Bathymétrie EMODnet indisponible pour ce point.", error);
   }
 }
 
@@ -2380,38 +2269,27 @@ function currentBathymetryFocusEstimate(center) {
   const cached = state.bathymetryPointCache.get(key);
   if (cached) return cached;
 
-  return estimateBathymetryAt(center);
+  return {
+    key,
+    lat: center.lat,
+    lon: center.lon,
+    depth: null,
+    source: "loading",
+  };
+}
+
+function unavailableBathymetryPoint(point, key) {
+  return {
+    key,
+    lat: point.lat,
+    lon: point.lon,
+    depth: null,
+    source: "unavailable",
+  };
 }
 
 function bathymetryPointKey(point) {
   return `${point.lat.toFixed(4)},${point.lon.toFixed(4)}`;
-}
-
-function estimateBathymetryAt(point) {
-  if (!point) return null;
-
-  const candidates = bathymetryContours
-    .map((contour) => ({
-      depth: contour.depth,
-      region: contour.region,
-      distance: distanceToBathymetryContourMeters(point, contour.coordinates),
-    }))
-    .filter((candidate) => isValidNumber(candidate.distance))
-    .sort((a, b) => a.distance - b.distance);
-  const nearest = candidates[0];
-
-  if (!nearest || nearest.distance > 70000) return null;
-  return nearest;
-}
-
-function distanceToBathymetryContourMeters(point, coordinates) {
-  if (!Array.isArray(coordinates) || coordinates.length < 2) return null;
-
-  let nearest = Infinity;
-  for (let index = 0; index < coordinates.length - 1; index += 1) {
-    nearest = Math.min(nearest, distanceToSegmentMeters(point, pointToCoord(coordinates[index]), pointToCoord(coordinates[index + 1])));
-  }
-  return Number.isFinite(nearest) ? nearest : null;
 }
 
 function renderRegulationZones() {

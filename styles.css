@@ -1194,6 +1194,17 @@ body.is-map-fullscreen-active {
   line-height: 1;
 }
 
+.bathymetry-focus-label.is-loading,
+.bathymetry-focus-label.is-unavailable {
+  background: rgba(255, 255, 255, 0.96);
+  color: #17324f;
+}
+
+.bathymetry-focus-label.is-loading span,
+.bathymetry-focus-label.is-unavailable span {
+  color: var(--muted);
+}
+
 .anchor-watch-marker {
   display: grid;
   place-items: center;
