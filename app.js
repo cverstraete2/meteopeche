@@ -1414,7 +1414,6 @@ const els = {
   chartCanvas: document.querySelector("#chartCanvas"),
   chartLegend: document.querySelector("#chartLegend"),
   chartTitle: document.querySelector("#chartTitle"),
-  dailyGrid: document.querySelector("#dailyGrid"),
   bestWindow: document.querySelector("#bestWindow"),
   statusPill: document.querySelector("#statusPill"),
   spotMeta: document.querySelector("#spotMeta"),
@@ -4064,7 +4063,6 @@ function renderAll() {
   renderRiggingCalculator(selected);
   drawCompass();
   renderChart();
-  renderDailyCards();
   renderCatchJournal();
   renderMarineOverlay();
 }
@@ -4081,27 +4079,84 @@ function updateSpotMeta() {
 
 function renderDayTabs() {
   els.dayTabs.innerHTML = "";
+  const days = state.days.slice(0, 6);
 
-  state.days.forEach((day) => {
+  if (!days.length) {
+    els.dayTabs.innerHTML = `
+      <div class="forecast-strip-head">
+        <div>
+          <span class="eyebrow">Prévision</span>
+          <h2>Prévisions 6 jours</h2>
+        </div>
+      </div>
+      <div class="forecast-strip-empty">Prévisions indisponibles</div>
+    `;
+    return;
+  }
+
+  const header = document.createElement("div");
+  header.className = "forecast-strip-head";
+  header.innerHTML = `
+    <div>
+      <span class="eyebrow">Prévision</span>
+      <h2>Prévisions 6 jours</h2>
+    </div>
+  `;
+
+  const grid = document.createElement("div");
+  grid.className = "forecast-strip-grid";
+
+  days.forEach((day) => {
     const activityScore = dayActivityScore(day);
+    const weather = dailyWeatherIcon(day);
+    const waterTemperature = dailyWaterTemperature(day);
     const button = document.createElement("button");
     button.type = "button";
     button.className = "day-tab";
     button.classList.toggle("is-active", day.date === state.selectedDate);
     button.setAttribute("aria-pressed", String(day.date === state.selectedDate));
-    const summary = isSeaMode()
-      ? `${formatNumber(day.windAvg, 0)} kt · ${formatNumber(day.waveAvg, 1)} m · activité ${activityScore}`
-      : `${formatNumber(day.windAvg, 0)} kt · ${formatNumber(day.pressureAvg, 0)} hPa · activité ${activityScore}`;
     button.innerHTML = `
-      <strong>${day.shortLabel}</strong>
-      <span>${summary}</span>
+      <span class="day-tab-date">
+        <strong>${escapeHtml(formatWeekday3(day.date))}</strong>
+        <em>${escapeHtml(formatShortDateNoWeekday(day.date))}</em>
+      </span>
+      <i class="ti ${weather.icon} day-tab-weather" aria-hidden="true"></i>
+      <span class="day-tab-temperatures">
+        <span>Air ${escapeHtml(formatTemperatureBrief(day.airTemperature))}</span>
+        <span>Eau ${escapeHtml(formatTemperatureBrief(waterTemperature))}</span>
+      </span>
+      <span class="day-tab-stats">
+        ${forecastConditionRows(day).map((row) => `
+          <span>
+            <b>${escapeHtml(row.short)}</b>
+            <em>${escapeHtml(row.value)}</em>
+          </span>
+        `).join("")}
+      </span>
+      <span class="day-tab-score ${scoreClass(activityScore)}">${activityScore}</span>
     `;
     button.addEventListener("click", () => {
       state.selectedDate = day.date;
       renderAll();
     });
-    els.dayTabs.append(button);
+    grid.append(button);
   });
+
+  els.dayTabs.append(header, grid);
+}
+
+function forecastConditionRows(day) {
+  return isSeaMode()
+    ? [
+        { short: "V", value: `${formatNumber(day.windAvg, 0)} kt` },
+        { short: "C", value: `${formatNumber(day.surfaceCurrent, 1)} kt` },
+        { short: "H", value: `${formatNumber(day.waveAvg, 1)} m` },
+      ]
+    : [
+        { short: "V", value: `${formatNumber(day.windAvg, 0)} kt` },
+        { short: "P", value: `${formatNumber(day.pressureAvg, 0)} hPa` },
+        { short: "Pl", value: `${formatNumber(day.precipitationTotal, 1)} mm` },
+      ];
 }
 
 function renderActivity(day) {
@@ -5070,47 +5125,6 @@ function renderLegend(series) {
   });
 }
 
-function renderDailyCards() {
-  els.dailyGrid.innerHTML = "";
-  const days = state.days.slice(0, 6);
-
-  if (!days.length) {
-    els.dailyGrid.innerHTML = `
-      <article class="daily-strip-card">
-        <div class="daily-strip-empty">Prévisions indisponibles</div>
-      </article>
-    `;
-    return;
-  }
-
-  const card = document.createElement("article");
-  card.className = "daily-strip-card";
-  card.innerHTML = days.map((day) => {
-    const weather = dailyWeatherIcon(day);
-    const waterTemperature = dailyWaterTemperature(day);
-    return `
-      <button class="daily-strip-day ${day.date === state.selectedDate ? "is-active" : ""}" type="button" data-day="${escapeHtml(day.date)}" aria-pressed="${day.date === state.selectedDate}">
-        <span class="daily-strip-name">${escapeHtml(formatWeekday3(day.date))}</span>
-        <i class="ti ${weather.icon} daily-strip-icon" aria-hidden="true"></i>
-        <span class="daily-strip-temperatures">
-          <span>Air ${escapeHtml(formatTemperatureBrief(day.airTemperature))}</span>
-          <span>Eau ${escapeHtml(formatTemperatureBrief(waterTemperature))}</span>
-        </span>
-      </button>
-    `;
-  }).join("");
-
-  card.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof Element)) return;
-    const dayButton = target.closest("[data-day]");
-    if (!dayButton) return;
-    state.selectedDate = dayButton.dataset.day;
-    renderAll();
-  });
-  els.dailyGrid.append(card);
-}
-
 function dailyWeatherIcon(day) {
   const precipitation = day.precipitationTotal ?? 0;
   const airTemperature = day.airTemperature;
@@ -5135,6 +5149,13 @@ function formatWeekday3(date) {
     .format(new Date(`${date}T12:00:00`))
     .replace(".", "")
     .slice(0, 3);
+}
+
+function formatShortDateNoWeekday(date) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "short",
+  }).format(new Date(`${date}T12:00:00`));
 }
 
 function renderCatchJournal() {
