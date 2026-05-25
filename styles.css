@@ -1691,6 +1691,113 @@ button:focus-visible {
   min-width: 0;
 }
 
+.condition-brief {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px;
+  gap: 12px;
+  border: 1px solid rgba(8, 125, 114, 0.22);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(8, 125, 114, 0.11), rgba(47, 116, 192, 0.06)),
+    #fbfdfb;
+  padding: 14px;
+}
+
+.condition-brief.is-good {
+  border-color: rgba(22, 135, 95, 0.35);
+}
+
+.condition-brief.is-warn {
+  border-color: rgba(185, 115, 34, 0.4);
+  background:
+    linear-gradient(135deg, rgba(185, 115, 34, 0.1), rgba(8, 125, 114, 0.05)),
+    #fbfdfb;
+}
+
+.condition-brief.is-bad {
+  border-color: rgba(180, 66, 59, 0.42);
+  background:
+    linear-gradient(135deg, rgba(180, 66, 59, 0.1), rgba(185, 115, 34, 0.05)),
+    #fbfdfb;
+}
+
+.condition-brief-main {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  min-width: 0;
+}
+
+.condition-brief h2 {
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
+}
+
+.condition-brief p {
+  max-width: 68ch;
+  color: var(--muted);
+  line-height: 1.38;
+}
+
+.condition-score {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  min-height: 92px;
+  border: 1px solid rgba(8, 125, 114, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.condition-score span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.condition-score strong {
+  color: var(--ink);
+  font-size: 2.1rem;
+  line-height: 1;
+}
+
+.condition-facts {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.condition-fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  border: 1px solid rgba(8, 125, 114, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--muted);
+  padding: 0 10px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.condition-fact strong {
+  color: var(--ink);
+}
+
+.condition-fact.warn {
+  border-color: rgba(185, 115, 34, 0.32);
+  background: rgba(185, 115, 34, 0.1);
+  color: var(--warn);
+}
+
+.condition-fact.bad {
+  border-color: rgba(180, 66, 59, 0.34);
+  background: rgba(180, 66, 59, 0.1);
+  color: var(--bad);
+}
+
 .water-insights {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2132,6 +2239,45 @@ footer {
   .water-insights {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
+  }
+
+  .condition-brief {
+    grid-template-columns: minmax(0, 1fr) 76px;
+    gap: 9px;
+    padding: 10px;
+  }
+
+  .condition-brief h2 {
+    font-size: 1.12rem;
+  }
+
+  .condition-brief p {
+    font-size: 0.82rem;
+  }
+
+  .condition-score {
+    min-height: 76px;
+  }
+
+  .condition-score strong {
+    font-size: 1.65rem;
+  }
+
+  .condition-facts {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .condition-facts::-webkit-scrollbar {
+    display: none;
+  }
+
+  .condition-fact {
+    flex: 0 0 auto;
+    min-height: 28px;
+    font-size: 0.72rem;
   }
 
   .water-insight {

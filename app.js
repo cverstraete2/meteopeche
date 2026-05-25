@@ -1381,6 +1381,11 @@ const els = {
   activityCanvas: document.querySelector("#activityCanvas"),
   activityMajor: document.querySelector("#activityMajor"),
   activityMinor: document.querySelector("#activityMinor"),
+  conditionBrief: document.querySelector("#conditionBrief"),
+  conditionDecision: document.querySelector("#conditionDecision"),
+  conditionReason: document.querySelector("#conditionReason"),
+  conditionScore: document.querySelector("#conditionScore"),
+  conditionFacts: document.querySelector("#conditionFacts"),
   metricGrid: document.querySelector("#metricGrid"),
   metricTemplate: document.querySelector("#metricTemplate"),
   waterInsights: document.querySelector("#waterInsights"),
@@ -3914,6 +3919,7 @@ function renderAll() {
   renderSpotTools();
   renderDayTabs();
   renderActivity(selected);
+  renderConditionBrief(selected);
   renderMetrics(selected);
   renderWaterInsights(selected);
   drawCompass();
@@ -4214,6 +4220,162 @@ function activityLabel(score) {
   if (score >= 42) return "Activité moyenne";
   if (score >= 24) return "Faible activité";
   return "Très faible activité";
+}
+
+function renderConditionBrief(day) {
+  if (!els.conditionBrief) return;
+
+  if (!day) {
+    els.conditionDecision.textContent = "--";
+    els.conditionReason.textContent = "Données indisponibles.";
+    els.conditionScore.textContent = "--";
+    els.conditionFacts.innerHTML = "";
+    return;
+  }
+
+  const score = dayActivityScore(day);
+  const decision = conditionDecision(day, score);
+  const facts = conditionFacts(day, score);
+
+  els.conditionDecision.textContent = decision.title;
+  els.conditionReason.textContent = decision.detail;
+  els.conditionScore.textContent = String(score);
+  els.conditionFacts.innerHTML = "";
+  els.conditionBrief.classList.toggle("is-good", decision.tone === "good");
+  els.conditionBrief.classList.toggle("is-warn", decision.tone === "warn");
+  els.conditionBrief.classList.toggle("is-bad", decision.tone === "bad");
+
+  facts.forEach((fact) => {
+    const item = document.createElement("span");
+    item.className = `condition-fact ${fact.tone ?? ""}`.trim();
+    item.innerHTML = `<strong>${escapeHtml(fact.label)}</strong>${escapeHtml(fact.value)}`;
+    els.conditionFacts.append(item);
+  });
+}
+
+function conditionDecision(day, score) {
+  const best = day.bestWindow?.label ?? "--";
+
+  if (isSeaMode()) {
+    const roughSea = (day.waveMax ?? day.waveAvg ?? 0) >= 1.4 || (day.windGustMax ?? 0) >= 28;
+    const cleanWindow = score >= 62 && (day.windAvg ?? 99) <= 12 && (day.waveAvg ?? 99) <= 0.8;
+
+    if (roughSea) {
+      return {
+        tone: "bad",
+        title: "Sortie prudente",
+        detail: `Mer ou rafales à surveiller. Si tu sors, vise ${best} et garde une zone abritée.`,
+      };
+    }
+
+    if (cleanWindow) {
+      return {
+        tone: "good",
+        title: "Créneau intéressant",
+        detail: `Activité correcte avec météo exploitable. Priorité au créneau ${best}.`,
+      };
+    }
+
+    if (score < 42) {
+      return {
+        tone: "warn",
+        title: "Activité limitée",
+        detail: `Conditions praticables, mais le poisson risque d'être discret. Cherche les bordures actives autour de ${best}.`,
+      };
+    }
+
+    return {
+      tone: "warn",
+      title: "Conditions correctes",
+      detail: `Sortie possible, à affiner avec courant, houle et exposition du spot. Meilleur repère: ${best}.`,
+    };
+  }
+
+  const heavyRain = (day.precipitationTotal ?? 0) >= 8 || day.turbidity?.score >= 62;
+  const pressureDrop = (day.pressureTrend ?? 0) <= -3;
+
+  if (heavyRain) {
+    return {
+      tone: "bad",
+      title: "Eau à surveiller",
+      detail: `Pluie ou turbidité élevée: privilégie les zones calmes, arrivées d'eau et bordures abritées.`,
+    };
+  }
+
+  if (score >= 62 || pressureDrop) {
+    return {
+      tone: "good",
+      title: "Fenêtre carnassier",
+      detail: `Pression et lumière intéressantes. Priorité au créneau ${best}.`,
+    };
+  }
+
+  if (score < 42) {
+    return {
+      tone: "warn",
+      title: "Activité douce",
+      detail: `Pêche plus lente probable. Réduis les animations et cible les postes marqués.`,
+    };
+  }
+
+  return {
+    tone: "warn",
+    title: "Conditions stables",
+    detail: `Sortie possible, sans signal fort. Cherche les changements de profondeur et les zones d'ombre.`,
+  };
+}
+
+function conditionFacts(day, score) {
+  const facts = [
+    {
+      label: "Score",
+      value: `${score}/100`,
+      tone: scoreClass(score),
+    },
+    {
+      label: "Créneau",
+      value: day.bestWindow?.label ?? "--",
+    },
+  ];
+
+  if (isSeaMode()) {
+    facts.push(
+      {
+        label: "Vent",
+        value: `${formatNumber(day.windAvg, 0)} kt`,
+        tone: (day.windAvg ?? 0) >= 16 ? "warn" : "",
+      },
+      {
+        label: "Houle",
+        value: `${formatNumber(day.waveAvg, 1)} m`,
+        tone: (day.waveAvg ?? 0) >= 1 ? "warn" : "",
+      },
+      {
+        label: "Courant",
+        value: `${formatNumber(day.surfaceCurrent, 1)} kt`,
+      },
+    );
+  } else {
+    facts.push(
+      {
+        label: "Pression",
+        value: formatPressureTrend(day.pressureTrend).replace("tendance ", ""),
+        tone: (day.pressureTrend ?? 0) <= -3 ? "" : "warn",
+      },
+      {
+        label: "Pluie",
+        value: `${formatNumber(day.precipitationTotal, 1)} mm`,
+        tone: (day.precipitationTotal ?? 0) >= 8 ? "bad" : "",
+      },
+      {
+        label: "Eau",
+        value: day.turbidity?.label ?? "--",
+        tone: day.turbidity?.score >= 62 ? "bad" : "",
+      },
+    );
+  }
+
+  return facts;
 }
 
 function renderMetrics(day) {

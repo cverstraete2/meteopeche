@@ -292,6 +292,18 @@
 
         <section class="dashboard-grid" data-mobile-view="weather" aria-label="Synthèse du jour">
           <div class="weather-summary">
+            <article class="condition-brief" id="conditionBrief">
+              <div class="condition-brief-main">
+                <span class="eyebrow">Décision rapide</span>
+                <h2 id="conditionDecision">--</h2>
+                <p id="conditionReason">--</p>
+              </div>
+              <div class="condition-score" aria-label="Score d'activité">
+                <span>Activité</span>
+                <strong id="conditionScore">--</strong>
+              </div>
+              <div class="condition-facts" id="conditionFacts"></div>
+            </article>
             <div class="metric-grid" id="metricGrid"></div>
             <div class="depth-control">
               <div>
@@ -399,6 +411,6 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-    <script src="app.js?v=20260525-spot-dock-ui" defer></script>
+    <script src="app.js?v=20260525-condition-brief" defer></script>
   </body>
 </html>
