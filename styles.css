@@ -1996,8 +1996,84 @@ button:focus-visible {
 
 .daily-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: 1fr;
   gap: 12px;
+}
+
+.daily-strip-card {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfdfb;
+}
+
+.daily-strip-day {
+  display: grid;
+  min-width: 0;
+  min-height: 118px;
+  place-items: center;
+  gap: 8px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 12px 8px;
+  text-align: center;
+}
+
+.daily-strip-day:last-child {
+  border-right: 0;
+}
+
+.daily-strip-day.is-active {
+  background: rgba(8, 125, 114, 0.1);
+  color: var(--teal-dark);
+}
+
+.daily-strip-name {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.daily-strip-icon {
+  color: var(--teal-dark);
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.daily-strip-day .ti-cloud-rain,
+.daily-strip-day .ti-cloud-snow {
+  color: var(--blue);
+}
+
+.daily-strip-temperatures {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.daily-strip-temperatures span {
+  overflow-wrap: anywhere;
+}
+
+.daily-strip-empty {
+  grid-column: 1 / -1;
+  padding: 18px;
+  color: var(--muted);
+  font-weight: 800;
+  text-align: center;
 }
 
 .daily-card {
@@ -2514,6 +2590,25 @@ footer {
 
   .day-tab span {
     font-size: 0.76rem;
+  }
+
+  .daily-strip-day {
+    min-height: 86px;
+    gap: 5px;
+    padding: 9px 3px;
+  }
+
+  .daily-strip-name {
+    font-size: 0.62rem;
+  }
+
+  .daily-strip-icon {
+    font-size: 1.2rem;
+  }
+
+  .daily-strip-temperatures {
+    font-size: 0.58rem;
+    line-height: 1.08;
   }
 
   .segmented {

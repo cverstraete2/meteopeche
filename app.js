@@ -4903,42 +4903,69 @@ function renderLegend(series) {
 
 function renderDailyCards() {
   els.dailyGrid.innerHTML = "";
+  const days = state.days.slice(0, 6);
 
-  state.days.forEach((day) => {
-    const activityScore = dayActivityScore(day);
-    const card = document.createElement("article");
-    card.className = "daily-card";
-    card.classList.toggle("is-active", day.date === state.selectedDate);
-    const dailyItems = isSeaMode()
-      ? `
-        <div><span>Vent</span><strong>${formatNumber(day.windAvg, 0)} kt ${compassLabel(day.windDirection)}</strong></div>
-        <div><span>Houle</span><strong>${formatNumber(day.waveAvg, 1)} m ${compassLabel(day.waveDirection)}</strong></div>
-        <div><span>Courant</span><strong>${formatNumber(day.surfaceCurrent, 1)} kt ${compassLabel(day.surfaceCurrentDirection)}</strong></div>
-        <div><span>${day.depthSource === "copernicus" ? "Profondeur" : "Prof. est."}</span><strong>${formatNumber(day.depthCurrent, 1)} kt ${compassLabel(day.depthDirection)}</strong></div>
-        <div><span>Eau</span><strong>${formatNumber(day.seaTemperature, 1)} °C</strong></div>
-      `
-      : `
-        <div><span>Vent</span><strong>${formatNumber(day.windAvg, 0)} kt ${compassLabel(day.windDirection)}</strong></div>
-        <div><span>Pression</span><strong>${formatNumber(day.pressureAvg, 0)} hPa</strong></div>
-        <div><span>Tendance</span><strong>${formatPressureTrend(day.pressureTrend)}</strong></div>
-        <div><span>Pluie 24h</span><strong>${formatNumber(day.precipitationTotal, 1)} mm</strong></div>
-        <div><span>Air</span><strong>${formatNumber(day.airTemperature, 1)} °C</strong></div>
-      `;
-    card.innerHTML = `
-      <header>
-        <strong>${day.shortLabel}</strong>
-        <span class="score ${scoreClass(activityScore)}">${activityScore}</span>
-      </header>
-      <div class="daily-list">
-        ${dailyItems}
-      </div>
+  if (!days.length) {
+    els.dailyGrid.innerHTML = `
+      <article class="daily-strip-card">
+        <div class="daily-strip-empty">Prévisions indisponibles</div>
+      </article>
     `;
-    card.addEventListener("click", () => {
-      state.selectedDate = day.date;
-      renderAll();
-    });
-    els.dailyGrid.append(card);
+    return;
+  }
+
+  const card = document.createElement("article");
+  card.className = "daily-strip-card";
+  card.innerHTML = days.map((day) => {
+    const weather = dailyWeatherIcon(day);
+    const waterTemperature = dailyWaterTemperature(day);
+    return `
+      <button class="daily-strip-day ${day.date === state.selectedDate ? "is-active" : ""}" type="button" data-day="${escapeHtml(day.date)}" aria-pressed="${day.date === state.selectedDate}">
+        <span class="daily-strip-name">${escapeHtml(formatWeekday3(day.date))}</span>
+        <i class="ti ${weather.icon} daily-strip-icon" aria-hidden="true"></i>
+        <span class="daily-strip-temperatures">
+          <span>Air ${escapeHtml(formatTemperatureBrief(day.airTemperature))}</span>
+          <span>Eau ${escapeHtml(formatTemperatureBrief(waterTemperature))}</span>
+        </span>
+      </button>
+    `;
+  }).join("");
+
+  card.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const dayButton = target.closest("[data-day]");
+    if (!dayButton) return;
+    state.selectedDate = dayButton.dataset.day;
+    renderAll();
   });
+  els.dailyGrid.append(card);
+}
+
+function dailyWeatherIcon(day) {
+  const precipitation = day.precipitationTotal ?? 0;
+  const airTemperature = day.airTemperature;
+  if (precipitation >= 0.8 && isValidNumber(airTemperature) && airTemperature <= 1.5) {
+    return { icon: "ti-cloud-snow", label: "Neige" };
+  }
+  if (precipitation >= 0.8) return { icon: "ti-cloud-rain", label: "Pluie" };
+  if ((day.cloudCoverAvg ?? 0) >= 55) return { icon: "ti-cloud", label: "Nuageux" };
+  return { icon: "ti-sun", label: "Ensoleillé" };
+}
+
+function dailyWaterTemperature(day) {
+  return isSeaMode() ? day.seaTemperature : null;
+}
+
+function formatTemperatureBrief(value) {
+  return isValidNumber(value) ? `${formatNumber(value, 0)}°` : "--";
+}
+
+function formatWeekday3(date) {
+  return new Intl.DateTimeFormat("fr-FR", { weekday: "short" })
+    .format(new Date(`${date}T12:00:00`))
+    .replace(".", "")
+    .slice(0, 3);
 }
 
 function renderCatchJournal() {

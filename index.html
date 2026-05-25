@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Météo Pêche</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -341,11 +342,11 @@
           <div class="chart-legend" id="chartLegend"></div>
         </section>
 
-        <section class="daily-panel" data-mobile-view="weather" aria-label="Moyennes des prochains jours">
+        <section class="daily-panel" data-mobile-view="weather" aria-label="Prévisions 6 jours">
           <div class="section-head">
             <div>
               <span class="eyebrow">Prévision</span>
-              <h2>Moyennes journalières</h2>
+              <h2>Prévisions 6 jours</h2>
             </div>
           </div>
           <div class="daily-grid" id="dailyGrid"></div>
@@ -436,6 +437,6 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-    <script src="app.js?v=20260525-journal-ui" defer></script>
+    <script src="app.js?v=20260525-forecast-strip" defer></script>
   </body>
 </html>
