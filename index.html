@@ -161,6 +161,21 @@
                     </span>
                     <i aria-hidden="true"></i>
                   </button>
+                  <button class="map-layer-row" id="mapBathymetryToggle" type="button" aria-pressed="true">
+                    <span class="map-layer-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <path d="M4 7h16" />
+                        <path d="M6 12h12" />
+                        <path d="M8 17h8" />
+                        <path d="M12 3v18" />
+                      </svg>
+                    </span>
+                    <span>
+                      <strong>Profondeur fond</strong>
+                      <small>Isobathes et repères en mètres</small>
+                    </span>
+                    <i aria-hidden="true"></i>
+                  </button>
                   <button class="map-layer-row" id="mapRegulationToggle" type="button" aria-pressed="true">
                     <span class="map-layer-icon" aria-hidden="true">
                       <svg viewBox="0 0 24 24">
@@ -480,6 +495,6 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-    <script src="app.js?v=20260525-expandable-forecast" defer></script>
+    <script src="app.js?v=20260525-bathymetry-layer" defer></script>
   </body>
 </html>

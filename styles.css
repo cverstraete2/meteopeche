@@ -1131,6 +1131,20 @@ body.is-map-fullscreen-active {
   color: var(--blue);
 }
 
+.bathymetry-label {
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(47, 116, 192, 0.32);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #245a8f;
+  font-size: 0.68rem;
+  font-weight: 950;
+  line-height: 1;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(23, 32, 29, 0.16);
+}
+
 .anchor-watch-marker {
   display: grid;
   place-items: center;
