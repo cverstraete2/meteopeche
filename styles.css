@@ -1564,6 +1564,12 @@ body.is-map-fullscreen-active {
   margin: 2px 0 0;
 }
 
+.forecast-expand-toggle {
+  min-height: 36px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
 .forecast-strip-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -2720,6 +2726,16 @@ footer {
     padding: 12px;
   }
 
+  .forecast-strip-head {
+    align-items: center;
+  }
+
+  .forecast-expand-toggle {
+    min-height: 34px;
+    padding: 0 10px;
+    font-size: 0.72rem;
+  }
+
   .forecast-strip-grid {
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
@@ -2766,6 +2782,88 @@ footer {
     min-width: 28px;
     min-height: 19px;
     font-size: 0.58rem;
+  }
+
+  .day-strip.is-forecast-expanded .forecast-strip-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .day-strip.is-forecast-expanded .day-tab {
+    grid-template-columns: 42px minmax(0, 1fr) 34px;
+    grid-template-areas:
+      "icon date score"
+      "icon temp score"
+      "stats stats stats";
+    min-height: 104px;
+    align-items: center;
+    justify-items: stretch;
+    gap: 7px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fbfdfb;
+    padding: 10px;
+    text-align: left;
+  }
+
+  .day-strip.is-forecast-expanded .day-tab.is-active {
+    box-shadow: inset 3px 0 0 var(--teal);
+  }
+
+  .day-strip.is-forecast-expanded .day-tab-date {
+    grid-area: date;
+    gap: 4px;
+  }
+
+  .day-strip.is-forecast-expanded .day-tab-date strong {
+    font-size: 0.88rem;
+  }
+
+  .day-strip.is-forecast-expanded .day-tab-date em {
+    font-size: 0.72rem;
+  }
+
+  .day-strip.is-forecast-expanded .day-tab-weather {
+    grid-area: icon;
+    align-self: center;
+    justify-self: center;
+    font-size: 1.65rem;
+  }
+
+  .day-strip.is-forecast-expanded .day-tab-temperatures {
+    grid-area: temp;
+    display: flex;
+    gap: 10px;
+    font-size: 0.75rem;
+  }
+
+  .day-strip.is-forecast-expanded .day-tab-stats {
+    grid-area: stats;
+    gap: 6px;
+  }
+
+  .day-strip.is-forecast-expanded .day-tab-stats span {
+    padding: 7px 6px;
+  }
+
+  .day-strip.is-forecast-expanded .day-tab-stats b {
+    font-size: 0.58rem;
+  }
+
+  .day-strip.is-forecast-expanded .day-tab-stats em {
+    font-size: 0.72rem;
+  }
+
+  .day-strip.is-forecast-expanded .day-tab-score {
+    grid-area: score;
+    align-self: start;
+    justify-self: end;
+    min-width: 32px;
+    min-height: 24px;
+    font-size: 0.72rem;
   }
 
   .segmented {

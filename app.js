@@ -1365,6 +1365,7 @@ const state = {
   activeFishFilters: new Set(["all"]),
   fishFilterOpen: false,
   activityFish: "loup",
+  forecastExpanded: false,
   riggingDirty: false,
   renamingFavoriteId: null,
   pendingSpot: null,
@@ -1801,6 +1802,11 @@ function setMobileView(view) {
   }
   refreshVisibleView();
   saveSettings();
+}
+
+function setForecastExpanded(open) {
+  state.forecastExpanded = Boolean(open);
+  renderDayTabs();
 }
 
 function setMarineOverlayMode(mode) {
@@ -4079,6 +4085,7 @@ function updateSpotMeta() {
 
 function renderDayTabs() {
   els.dayTabs.innerHTML = "";
+  els.dayTabs.classList.toggle("is-forecast-expanded", state.forecastExpanded);
   const days = state.days.slice(0, 6);
 
   if (!days.length) {
@@ -4101,7 +4108,13 @@ function renderDayTabs() {
       <span class="eyebrow">Prévision</span>
       <h2>Prévisions 6 jours</h2>
     </div>
+    <button class="ghost-button forecast-expand-toggle" type="button" data-forecast-toggle aria-expanded="${state.forecastExpanded}">
+      ${state.forecastExpanded ? "Réduire" : "Agrandir"}
+    </button>
   `;
+  header.querySelector("[data-forecast-toggle]")?.addEventListener("click", () => {
+    setForecastExpanded(!state.forecastExpanded);
+  });
 
   const grid = document.createElement("div");
   grid.className = "forecast-strip-grid";
@@ -4128,7 +4141,7 @@ function renderDayTabs() {
       <span class="day-tab-stats">
         ${forecastConditionRows(day).map((row) => `
           <span>
-            <b>${escapeHtml(row.short)}</b>
+            <b>${escapeHtml(state.forecastExpanded ? row.label : row.short)}</b>
             <em>${escapeHtml(row.value)}</em>
           </span>
         `).join("")}
@@ -4137,6 +4150,7 @@ function renderDayTabs() {
     `;
     button.addEventListener("click", () => {
       state.selectedDate = day.date;
+      if (isMobileLayout()) state.forecastExpanded = true;
       renderAll();
     });
     grid.append(button);
@@ -4148,14 +4162,14 @@ function renderDayTabs() {
 function forecastConditionRows(day) {
   return isSeaMode()
     ? [
-        { short: "V", value: `${formatNumber(day.windAvg, 0)} kt` },
-        { short: "C", value: `${formatNumber(day.surfaceCurrent, 1)} kt` },
-        { short: "H", value: `${formatNumber(day.waveAvg, 1)} m` },
+        { short: "V", label: "Vent", value: `${formatNumber(day.windAvg, 0)} kt` },
+        { short: "C", label: "Courant", value: `${formatNumber(day.surfaceCurrent, 1)} kt` },
+        { short: "H", label: "Houle", value: `${formatNumber(day.waveAvg, 1)} m` },
       ]
     : [
-        { short: "V", value: `${formatNumber(day.windAvg, 0)} kt` },
-        { short: "P", value: `${formatNumber(day.pressureAvg, 0)} hPa` },
-        { short: "Pl", value: `${formatNumber(day.precipitationTotal, 1)} mm` },
+        { short: "V", label: "Vent", value: `${formatNumber(day.windAvg, 0)} kt` },
+        { short: "P", label: "Pression", value: `${formatNumber(day.pressureAvg, 0)} hPa` },
+        { short: "Pl", label: "Pluie", value: `${formatNumber(day.precipitationTotal, 1)} mm` },
       ];
 }
 
