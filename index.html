@@ -399,8 +399,32 @@ try {
     </section>
 
     <section class="day-strip" id="dayTabs"
-      data-mobile-view="activity tides weather astro"
+      data-mobile-view="activity weather"
       aria-label="Prévisions 6 jours"></section>
+
+    <section class="weather-top-tools" data-mobile-view="weather" aria-label="Sélecteur météo">
+      <div class="day-timeline weather-timeline" id="dayTimeline">
+        <div class="day-timeline-head">
+          <span class="eyebrow">Timeline journée</span>
+          <strong id="dayTimelineTime">--</strong>
+        </div>
+        <input id="dayTimeRange" type="range" min="0" max="1425" step="15" value="720"
+          aria-label="Sélectionner l'heure" />
+        <div class="day-timeline-scale" aria-hidden="true">
+          <span>00h</span><span>06h</span><span>12h</span><span>18h</span><span>24h</span>
+        </div>
+        <div class="day-timeline-readout" id="dayTimelineDetail">--</div>
+      </div>
+
+      <div class="weather-subtabs" id="weatherSubtabs" role="tablist" aria-label="Sous-vues météo">
+        <button class="weather-subtab is-active" type="button" role="tab"
+          data-weather-tab="overview" aria-selected="true">Décision rapide</button>
+        <button class="weather-subtab" type="button" role="tab"
+          data-weather-tab="sun" aria-selected="false">Soleil</button>
+        <button class="weather-subtab" type="button" role="tab"
+          data-weather-tab="tides" aria-selected="false">Marées</button>
+      </div>
+    </section>
 
     <section class="activity-panel" data-mobile-view="activity" aria-label="Activité des poissons">
       <div class="section-head">
@@ -440,7 +464,7 @@ try {
       </div>
     </section>
 
-    <section class="tide-panel" data-mobile-view="tides" aria-label="Marées">
+    <section class="tide-panel" data-mobile-view="weather tides" data-weather-subview="tides" aria-label="Marées">
       <div class="section-head">
         <div>
           <span class="eyebrow">Marées</span>
@@ -457,7 +481,7 @@ try {
       <div class="tide-events" id="tideEventsList"></div>
     </section>
 
-    <section class="dashboard-grid" data-mobile-view="weather" aria-label="Synthèse du jour">
+    <section class="dashboard-grid" data-mobile-view="weather" data-weather-subview="overview" aria-label="Synthèse du jour">
       <div class="weather-summary">
         <article class="condition-brief" id="conditionBrief">
           <div class="condition-brief-main">
@@ -487,18 +511,6 @@ try {
 
         <div class="water-insights" id="waterInsights"></div>
 
-        <div class="day-timeline" id="dayTimeline">
-          <div class="day-timeline-head">
-            <span class="eyebrow">Timeline journée</span>
-            <strong id="dayTimelineTime">--</strong>
-          </div>
-          <input id="dayTimeRange" type="range" min="0" max="1425" step="15" value="720"
-            aria-label="Sélectionner l'heure" />
-          <div class="day-timeline-scale" aria-hidden="true">
-            <span>00h</span><span>06h</span><span>12h</span><span>18h</span><span>24h</span>
-          </div>
-          <div class="day-timeline-readout" id="dayTimelineDetail">--</div>
-        </div>
       </div>
 
       <aside class="compass-panel" aria-label="Directions moyennes">
@@ -546,7 +558,7 @@ try {
       </div>
     </section>
 
-    <section class="chart-panel" data-mobile-view="weather" aria-label="Évolution horaire">
+    <section class="chart-panel" data-mobile-view="weather" data-weather-subview="overview" aria-label="Évolution horaire">
       <div class="section-head">
         <div>
           <span class="eyebrow">Heure par heure</span>
@@ -563,7 +575,7 @@ try {
       <div class="chart-legend" id="chartLegend"></div>
     </section>
 
-    <section class="astro-panel" data-mobile-view="astro" aria-label="Soleil et lune">
+    <section class="astro-panel" data-mobile-view="weather astro" data-weather-subview="sun" aria-label="Soleil et lune">
       <div class="section-head">
         <div>
           <span class="eyebrow">Soleil & lune</span>
@@ -696,7 +708,7 @@ try {
 <script src="mobile-runtime.js" defer></script>
 <script src="vendor/leaflet/leaflet.js" defer></script>
 <script src="config.js" defer></script>
-<script src="app.js?v=20260526-ui-v2" defer></script>
+<script src="app.js?v=20260526-weather-tabs" defer></script>
 
 </body>
 </html>

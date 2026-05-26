@@ -11,7 +11,8 @@ const WATER_MODES = {
   SEA: "sea",
   FRESHWATER: "freshwater",
 };
-const MOBILE_VIEWS = ["map", "activity", "tides", "weather", "astro", "rigging", "journal", "preferences"];
+const MOBILE_VIEWS = ["map", "activity", "weather", "rigging", "journal", "preferences"];
+const WEATHER_SUBTABS = ["overview", "sun", "tides"];
 const MARINE_OVERLAY_MODES = ["none", "surface", "depth", "wave"];
 const THEME_MODES = ["light", "dark"];
 const waterModeConfig = {
@@ -1342,6 +1343,7 @@ const state = {
   waterMode: WATER_MODES.SEA,
   activeChart: "wind",
   activeMobileView: "map",
+  activeWeatherSubtab: "overview",
   days: [],
   hours: [],
   selectedDate: "",
@@ -1413,6 +1415,9 @@ const els = {
   modeButtons: [...document.querySelectorAll("[data-water-mode]")],
   mobileTabButtons: [...document.querySelectorAll("[data-mobile-tab]")],
   mobileViewSections: [...document.querySelectorAll("[data-mobile-view]")],
+  weatherSubtabButtons: [...document.querySelectorAll("[data-weather-tab]")],
+  weatherSubviewSections: [...document.querySelectorAll("[data-weather-subview]")],
+  main: document.querySelector("main"),
   spotControls: document.querySelector("#spotControls"),
   spotPanelButton: document.querySelector("#spotPanelButton"),
   spotPanelClose: document.querySelector("#spotPanelClose"),
@@ -1582,6 +1587,7 @@ function init() {
   bindEvents();
   updateDepth();
   applyWaterModeUI();
+  applyDefaultWeatherChart();
   applyMobileNavigationUI();
   renderSpotTools();
   renderPreferenceControls();
@@ -1798,6 +1804,7 @@ function restoreState() {
   const saved = readSavedSettings();
   state.waterMode = normalizeWaterMode(saved.waterMode);
   state.activeMobileView = normalizeMobileView(saved.mobileView);
+  state.activeWeatherSubtab = normalizeWeatherSubtab(saved.weatherSubtab ?? weatherSubtabFromMobileView(saved.mobileView));
   const selectedIndex = resolveSavedSpotIndex(saved);
   const spot = spots[selectedIndex] ?? spots[0];
   const useSavedCoordinates = spot.custom && isValidNumber(saved.lat) && isValidNumber(saved.lon);
@@ -1909,6 +1916,7 @@ function setWaterMode(mode, options = {}) {
   populateRiggingTechniques();
   state.riggingDirty = false;
   applyWaterModeUI();
+  applyDefaultWeatherChart();
   renderSpotTools();
   renderPreferenceControls();
   saveSettings();
@@ -1922,7 +1930,27 @@ function setWaterMode(mode, options = {}) {
 
 function normalizeMobileView(view) {
   if (view === "forecast") return "weather";
+  if (view === "tides" || view === "astro") return "weather";
   return MOBILE_VIEWS.includes(view) ? view : "map";
+}
+
+function normalizeWeatherSubtab(tab) {
+  return WEATHER_SUBTABS.includes(tab) ? tab : "overview";
+}
+
+function weatherSubtabFromMobileView(view) {
+  if (view === "tides") return "tides";
+  if (view === "astro") return "sun";
+  return "overview";
+}
+
+function applyDefaultWeatherChart() {
+  if (!isSeaMode() || state.activeWeatherSubtab !== "overview") return;
+  if (state.activeChart === "current") return;
+  state.activeChart = "current";
+  document.querySelectorAll("[data-chart]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.chart === state.activeChart);
+  });
 }
 
 function normalizeMarineOverlayMode(mode) {
@@ -1944,9 +1972,10 @@ function applyMobileNavigationUI() {
   const mobile = isMobileLayout();
   const standaloneView = state.activeMobileView === "preferences";
   document.documentElement.dataset.currentMobileView = state.activeMobileView;
+  document.documentElement.dataset.currentWeatherSubtab = state.activeWeatherSubtab;
 
   els.mobileTabButtons.forEach((button) => {
-    const active = button.dataset.mobileTab === state.activeMobileView;
+    const active = normalizeMobileView(button.dataset.mobileTab) === state.activeMobileView;
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-current", active ? "page" : "false");
   });
@@ -1956,6 +1985,32 @@ function applyMobileNavigationUI() {
     const supportsActiveView = sectionSupportsMobileView(section, state.activeMobileView);
     section.hidden = standaloneView ? !supportsActiveView : preferenceSection || (mobile && !supportsActiveView);
   });
+
+  applyWeatherSubviewUI();
+}
+
+function applyWeatherSubviewUI() {
+  state.activeWeatherSubtab = normalizeWeatherSubtab(state.activeWeatherSubtab);
+
+  els.weatherSubtabButtons.forEach((button) => {
+    const active = button.dataset.weatherTab === state.activeWeatherSubtab;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", String(active));
+    button.setAttribute("tabindex", active ? "0" : "-1");
+  });
+
+  const weatherVisible = state.activeMobileView === "weather" || !isMobileLayout();
+  if (!weatherVisible) return;
+
+  els.weatherSubviewSections.forEach((section) => {
+    section.hidden = section.dataset.weatherSubview !== state.activeWeatherSubtab;
+  });
+}
+
+function scrollAppToTop(options = {}) {
+  const behavior = options.behavior ?? "smooth";
+  els.main?.scrollTo({ top: 0, behavior });
+  window.scrollTo({ top: 0, behavior });
 }
 
 function refreshVisibleView() {
@@ -1972,10 +2027,27 @@ function refreshVisibleView() {
 }
 
 function setMobileView(view) {
+  const requestedView = view;
+  if (requestedView === "tides" || requestedView === "astro") {
+    state.activeWeatherSubtab = weatherSubtabFromMobileView(requestedView);
+  }
   state.activeMobileView = normalizeMobileView(view);
+  applyDefaultWeatherChart();
   applyMobileNavigationUI();
   if (isMobileLayout() || state.activeMobileView === "preferences") {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollAppToTop();
+  }
+  refreshVisibleView();
+  saveSettings();
+}
+
+function setWeatherSubtab(tab) {
+  state.activeWeatherSubtab = normalizeWeatherSubtab(tab);
+  state.activeMobileView = "weather";
+  applyDefaultWeatherChart();
+  applyMobileNavigationUI();
+  if (isMobileLayout()) {
+    scrollAppToTop();
   }
   refreshVisibleView();
   saveSettings();
@@ -4155,6 +4227,9 @@ function bindEvents() {
   });
   els.themeButtons.forEach((button) => {
     button.addEventListener("click", () => setThemePreference(button.dataset.themeValue));
+  });
+  els.weatherSubtabButtons.forEach((button) => {
+    button.addEventListener("click", () => setWeatherSubtab(button.dataset.weatherTab));
   });
   els.catchForm?.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -7496,6 +7571,7 @@ function saveSettings() {
   const payload = {
     waterMode: state.waterMode,
     mobileView: state.activeMobileView,
+    weatherSubtab: state.activeWeatherSubtab,
     spotIndex: Number(els.spotPreset.value),
     spotName: spot.name,
     customName: state.selectedSpotName,
@@ -7674,6 +7750,7 @@ function normalizeSettings(settings) {
   return {
     waterMode: normalizeWaterMode(settings.waterMode),
     mobileView: normalizeMobileView(settings.mobileView),
+    weatherSubtab: normalizeWeatherSubtab(settings.weatherSubtab ?? weatherSubtabFromMobileView(settings.mobileView)),
     spotIndex: Number.isInteger(settings.spotIndex) ? settings.spotIndex : 0,
     spotName: typeof settings.spotName === "string" ? settings.spotName : "",
     customName: typeof settings.customName === "string" ? settings.customName : "",
