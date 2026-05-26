@@ -76,6 +76,14 @@ def get_depth_current(params):
             "datasetId": dataset["id"],
         }
 
+    if df is None:
+        return {
+            "ok": False,
+            "error": "Copernicus Marine a renvoyé une réponse vide.",
+            "detail": "Vérifier les variables Cloud Run COPERNICUSMARINE_SERVICE_USERNAME et COPERNICUSMARINE_SERVICE_PASSWORD, puis relancer la requête.",
+            "datasetId": dataset["id"],
+        }
+
     points = dataframe_to_points(df, params)
     if not points:
         return {
