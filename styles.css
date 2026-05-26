@@ -3161,6 +3161,8 @@ html[data-current-mobile-view="weather"] .day-strip.is-forecast-expanded .day-ta
 
 html[data-current-mobile-view="weather"] .day-tab.is-active {
   background: var(--day-tone-bg);
+  border-color: var(--day-tone-border);
+  box-shadow: var(--shadow-sm), inset 0 -3px 0 var(--day-tone);
 }
 
 html[data-current-mobile-view="weather"] .day-tab-date em,
