@@ -25,7 +25,7 @@ Cloudflare Pages sert uniquement le front statique. Cette API doit être héberg
 Construire l'image depuis la racine du dépôt:
 
 ```bash
-docker build -f backend/Dockerfile -t meteo-peche-copernicus .
+docker build -t meteo-peche-copernicus .
 docker run -p 8787:8080 meteo-peche-copernicus
 ```
 
