@@ -1,4 +1,8 @@
 const WEATHER_API = "https://api.open-meteo.com/v1/forecast";
+const WEATHER_API_FALLBACKS = [
+  WEATHER_API,
+  "https://forecast-api.open-meteo.com/v1/forecast",
+];
 const MARINE_API = "https://marine-api.open-meteo.com/v1/marine";
 const BATHYMETRY_WMS = "https://ows.emodnet-bathymetry.eu/wms";
 const BATHYMETRY_REST = "https://rest.emodnet-bathymetry.eu/depth/point";
@@ -4373,12 +4377,22 @@ async function loadForecast() {
   saveSettings();
 
   try {
-    const weather = await fetchJson(buildWeatherUrl(lat, lon));
-    const marine = isSeaMode() ? await fetchJson(buildMarineUrl(lat, lon)) : null;
+    const [weatherResult, marineResult] = await Promise.allSettled([
+      loadWeatherPayload(lat, lon),
+      loadMarinePayload(lat, lon),
+    ]);
+    const weather = weatherResult.status === "fulfilled" ? weatherResult.value : null;
+    const marine = marineResult.status === "fulfilled" ? marineResult.value : null;
+    const weatherError = weatherResult.status === "rejected" ? weatherResult.reason : null;
+    const marineError = marineResult.status === "rejected" ? marineResult.reason : null;
+
+    if (!weather && (!isSeaMode() || !marine)) {
+      throw new Error(formatForecastLoadError(weatherError, marineError));
+    }
 
     state.realDepthAvailable = false;
     state.realDepthError = "";
-    state.hours = mergeHourlyData(weather, marine);
+    state.hours = mergeHourlyData(weather ?? buildMarineOnlyWeatherPayload(marine), marine);
     state.days = buildDailySummaries(state.hours);
     state.selectedDate = state.days[0]?.date ?? "";
     state.timelineMinute = defaultTimelineMinute(getSelectedDay());
@@ -4388,8 +4402,11 @@ async function loadForecast() {
     }
 
     renderAll();
+    const preliminaryStatus = forecastStatusLabel({ weather, marine, weatherError, marineError, realDepthApplied: false });
+    setStatus(preliminaryStatus.label, preliminaryStatus.mode);
     const realDepthApplied = isSeaMode() ? await loadRealDepthCurrents(lat, lon) : false;
-    setStatus(realDepthApplied ? "Copernicus" : isSeaMode() ? "Copernicus indispo" : "À jour", realDepthApplied || !isSeaMode() ? "ready" : "warning");
+    const status = forecastStatusLabel({ weather, marine, weatherError, marineError, realDepthApplied });
+    setStatus(status.label, status.mode);
   } catch (error) {
     console.error(error);
     setStatus("Erreur", "error");
@@ -4397,8 +4414,27 @@ async function loadForecast() {
   }
 }
 
-function buildWeatherUrl(lat, lon) {
-  const url = new URL(WEATHER_API);
+async function loadWeatherPayload(lat, lon) {
+  const errors = [];
+
+  for (const endpoint of WEATHER_API_FALLBACKS) {
+    try {
+      return await fetchJson(buildWeatherUrl(lat, lon, endpoint));
+    } catch (error) {
+      errors.push(apiErrorSummary(endpoint, error));
+    }
+  }
+
+  throw new Error(errors.join(" · ") || "Prévision météo indisponible");
+}
+
+async function loadMarinePayload(lat, lon) {
+  if (!isSeaMode()) return null;
+  return fetchJson(buildMarineUrl(lat, lon));
+}
+
+function buildWeatherUrl(lat, lon, endpoint = WEATHER_API) {
+  const url = new URL(endpoint);
   url.searchParams.set("latitude", lat.toFixed(4));
   url.searchParams.set("longitude", lon.toFixed(4));
   url.searchParams.set(
@@ -4433,15 +4469,88 @@ function buildMarineUrl(lat, lon) {
   return url;
 }
 
-async function fetchJson(url) {
-  const response = await fetch(url);
-  const payload = await response.json();
+async function fetchJson(url, options = {}) {
+  const timeoutMs = options.timeoutMs ?? 9000;
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!response.ok || payload.error) {
-    throw new Error(payload.reason || `Erreur API ${response.status}`);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    const contentType = response.headers.get("content-type") ?? "";
+    const payload = contentType.includes("application/json")
+      ? await response.json()
+      : await response.text();
+
+    if (!response.ok) {
+      const reason = typeof payload === "object" && payload?.reason ? payload.reason : `Erreur API ${response.status}`;
+      throw new Error(reason);
+    }
+
+    if (payload?.error) {
+      throw new Error(payload.reason || `Erreur API ${response.status}`);
+    }
+
+    return payload;
+  } catch (error) {
+    if (error.name === "AbortError") {
+      throw new Error(`Délai dépassé après ${Math.round(timeoutMs / 1000)} s`);
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+function buildMarineOnlyWeatherPayload(marine) {
+  const timeline = marine?.hourly?.time ?? [];
+  const dates = [...new Set(timeline.map((time) => time.slice(0, 10)).filter(Boolean))];
+  const blank = Array.from({ length: timeline.length }, () => null);
+
+  return {
+    hourly: {
+      time: timeline,
+      temperature_2m: blank,
+      wind_speed_10m: blank,
+      wind_direction_10m: blank,
+      wind_gusts_10m: blank,
+      pressure_msl: blank,
+      cloud_cover: blank,
+      precipitation: blank,
+    },
+    daily: {
+      time: dates,
+      sunrise: dates.map(() => null),
+      sunset: dates.map(() => null),
+    },
+  };
+}
+
+function forecastStatusLabel({ weather, marine, weatherError, marineError, realDepthApplied }) {
+  if (!weather && marine) return { label: "Marine seule", mode: "warning" };
+  if (weather && isSeaMode() && !marine) return { label: "Météo seule", mode: "warning" };
+  if (weatherError || marineError) return { label: "Partiel", mode: "warning" };
+  if (realDepthApplied) return { label: "Copernicus", mode: "ready" };
+  return { label: isSeaMode() ? "Copernicus indispo" : "À jour", mode: isSeaMode() ? "warning" : "ready" };
+}
+
+function formatForecastLoadError(weatherError, marineError) {
+  const details = [
+    weatherError ? `Météo: ${weatherError.message}` : "",
+    marineError ? `Marine: ${marineError.message}` : "",
+  ].filter(Boolean);
+
+  return details.join(" · ") || "Aucune donnée météo exploitable pour ce spot.";
+}
+
+function apiErrorSummary(endpoint, error) {
+  let host = "API";
+  try {
+    host = new URL(endpoint).host;
+  } catch {
+    host = String(endpoint);
   }
 
-  return payload;
+  return `${host}: ${error.message}`;
 }
 
 async function loadRealDepthCurrents(lat, lon) {
