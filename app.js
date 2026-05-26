@@ -3,10 +3,12 @@ const WEATHER_API_FALLBACKS = [
   WEATHER_API,
   "https://forecast-api.open-meteo.com/v1/forecast",
 ];
+const METNO_API = "https://api.met.no/weatherapi/locationforecast/2.0/compact";
 const MARINE_API = "https://marine-api.open-meteo.com/v1/marine";
 const BATHYMETRY_WMS = "https://ows.emodnet-bathymetry.eu/wms";
 const BATHYMETRY_REST = "https://rest.emodnet-bathymetry.eu/depth/point";
 const DEFAULT_API_BASE_URL = "https://meteopeche-copernicus-977572434171.europe-west1.run.app";
+const METERS_PER_SECOND_TO_KNOTS = 1.9438444924406;
 const STORE_KEY = "meteo-peche-store-v1";
 const LEGACY_FAVORITES_KEY = "meteo-peche-favorites";
 const LEGACY_SETTINGS_KEY = "meteo-peche-settings";
@@ -4425,6 +4427,12 @@ async function loadWeatherPayload(lat, lon) {
     }
   }
 
+  try {
+    return normalizeMetNoWeather(await fetchJson(buildMetNoWeatherUrl(lat, lon), { timeoutMs: 12000 }));
+  } catch (error) {
+    errors.push(apiErrorSummary(METNO_API, error));
+  }
+
   throw new Error(errors.join(" · ") || "Prévision météo indisponible");
 }
 
@@ -4466,6 +4474,13 @@ function buildMarineUrl(lat, lon) {
   url.searchParams.set("timezone", "auto");
   url.searchParams.set("forecast_days", "7");
   url.searchParams.set("cell_selection", "sea");
+  return url;
+}
+
+function buildMetNoWeatherUrl(lat, lon) {
+  const url = new URL(METNO_API);
+  url.searchParams.set("lat", lat.toFixed(4));
+  url.searchParams.set("lon", lon.toFixed(4));
   return url;
 }
 
@@ -4523,6 +4538,78 @@ function buildMarineOnlyWeatherPayload(marine) {
       sunset: dates.map(() => null),
     },
   };
+}
+
+function normalizeMetNoWeather(payload) {
+  const timeseries = payload?.properties?.timeseries;
+  if (!Array.isArray(timeseries) || !timeseries.length) {
+    throw new Error("MET Norway n'a pas renvoyé de données horaires.");
+  }
+
+  const rows = timeseries
+    .map((point) => {
+      const time = localIsoHourFromUtc(point.time);
+      const details = point.data?.instant?.details ?? {};
+      if (!time) return null;
+
+      return {
+        time,
+        airTemperature: numberOrNull(details.air_temperature),
+        windSpeed: metersPerSecondToKnots(details.wind_speed),
+        windDirection: numberOrNull(details.wind_from_direction),
+        windGust: metersPerSecondToKnots(details.wind_speed_of_gust),
+        pressure: numberOrNull(details.air_pressure_at_sea_level),
+        cloudCover: numberOrNull(details.cloud_area_fraction),
+        precipitation: numberOrNull(point.data?.next_1_hours?.details?.precipitation_amount),
+      };
+    })
+    .filter(Boolean);
+
+  if (!rows.length) {
+    throw new Error("MET Norway n'a pas renvoyé de points exploitables.");
+  }
+
+  const dailyTimes = [...new Set(rows.map((row) => row.time.slice(0, 10)))];
+
+  return {
+    hourly: {
+      time: rows.map((row) => row.time),
+      temperature_2m: rows.map((row) => row.airTemperature),
+      wind_speed_10m: rows.map((row) => row.windSpeed),
+      wind_direction_10m: rows.map((row) => row.windDirection),
+      wind_gusts_10m: rows.map((row) => row.windGust),
+      pressure_msl: rows.map((row) => row.pressure),
+      cloud_cover: rows.map((row) => row.cloudCover),
+      precipitation: rows.map((row) => row.precipitation),
+    },
+    daily: {
+      time: dailyTimes,
+      sunrise: dailyTimes.map(() => null),
+      sunset: dailyTimes.map(() => null),
+    },
+    source: "metno",
+  };
+}
+
+function localIsoHourFromUtc(value) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hour = String(date.getHours()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hour}:00`;
+}
+
+function numberOrNull(value) {
+  const number = Number(value);
+  return isValidNumber(number) ? number : null;
+}
+
+function metersPerSecondToKnots(value) {
+  const number = numberOrNull(value);
+  return number == null ? null : number * METERS_PER_SECOND_TO_KNOTS;
 }
 
 function forecastStatusLabel({ weather, marine, weatherError, marineError, realDepthApplied }) {
