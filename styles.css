@@ -895,6 +895,53 @@ input[type="range"]::-moz-range-thumb {
   border-radius: 0;
 }
 
+.map-panel.is-map-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  max-width: none;
+  margin: 0;
+  background: var(--bg);
+}
+
+.map-panel.is-map-fullscreen .section-head {
+  display: none;
+}
+
+.map-panel.is-map-fullscreen .spot-map {
+  flex: 1;
+  height: 100dvh;
+  min-height: 100dvh;
+}
+
+.map-panel.is-map-fullscreen .map-controls {
+  top: calc(var(--safe-top) + var(--sp-3));
+  right: calc(var(--safe-right) + var(--sp-3));
+}
+
+.map-panel.is-map-fullscreen .fish-filter-control {
+  top: calc(var(--safe-top) + var(--sp-3));
+  left: calc(var(--safe-left) + var(--sp-3));
+}
+
+.map-panel.is-map-fullscreen .map-scale {
+  bottom: calc(var(--safe-bottom) + var(--sp-3));
+  left: calc(var(--safe-left) + var(--sp-3));
+}
+
+body.is-map-fullscreen-active main {
+  overflow: hidden;
+}
+
+body.is-map-fullscreen-active .topbar,
+body.is-map-fullscreen-active .mobile-tabbar {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .map-tiles,
 .map-markers {
   position: absolute;

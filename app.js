@@ -2067,6 +2067,11 @@ function setMarineOverlayMode(mode) {
   saveSettings();
 }
 
+function applyMapLayerChange(callback, { closeSheet = true } = {}) {
+  callback();
+  if (closeSheet) setMapLayerOpen(false);
+}
+
 function updateMarineOverlayControls() {
   els.marineOverlayButtons.forEach((button) => {
     const active = button.dataset.marineOverlay === state.marineOverlayMode;
@@ -4048,7 +4053,7 @@ function bindEvents() {
   els.marineOverlayButtons.forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
-      setMarineOverlayMode(button.dataset.marineOverlay);
+      applyMapLayerChange(() => setMarineOverlayMode(button.dataset.marineOverlay));
     });
   });
 
@@ -4153,9 +4158,11 @@ function bindEvents() {
   els.mapNauticalToggle.addEventListener("click", (event) => {
     event.stopPropagation();
     if (!isSeaMode()) return;
-    state.nauticalEnabled = !state.nauticalEnabled;
-    updateNauticalOverlay();
-    saveSettings();
+    applyMapLayerChange(() => {
+      state.nauticalEnabled = !state.nauticalEnabled;
+      updateNauticalOverlay();
+      saveSettings();
+    });
   });
   els.mapCoastalToggle?.addEventListener("click", (event) => {
     event.stopPropagation();
