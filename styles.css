@@ -3032,6 +3032,233 @@ body.is-map-fullscreen-active .mobile-tabbar {
   }
 }
 
+/* ── 25. WEATHER FORCE VIEW ──────────────────────────────── */
+.day-strip {
+  position: sticky;
+  top: 0;
+  z-index: 92;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-sm);
+}
+
+.weather-top-tools {
+  top: 196px;
+  z-index: 88;
+}
+
+.weather-subtabs {
+  grid-template-columns: 1.2fr 0.8fr 0.8fr 0.8fr;
+}
+
+.forces-panel {
+  padding: var(--sp-4);
+}
+
+.forces-summary {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.forces-panel .depth-control {
+  max-width: 520px;
+  width: 100%;
+  margin-inline: auto;
+}
+
+.forces-panel .compass-panel {
+  width: 100%;
+  border-top: 0;
+  border-left: 0;
+  padding: 0;
+}
+
+.forces-panel .compass-panel canvas {
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.day-tab {
+  --day-tone: var(--accent);
+  --day-tone-bg: var(--accent-soft);
+  --day-tone-border: var(--border);
+}
+
+.day-tab.condition-good {
+  --day-tone: var(--go);
+  --day-tone-bg: var(--go-bg);
+  --day-tone-border: rgba(34, 197, 94, 0.28);
+}
+
+.day-tab.condition-maybe {
+  --day-tone: #eab308;
+  --day-tone-bg: rgba(234, 179, 8, 0.15);
+  --day-tone-border: rgba(234, 179, 8, 0.34);
+}
+
+.day-tab.condition-warn {
+  --day-tone: #f97316;
+  --day-tone-bg: rgba(249, 115, 22, 0.16);
+  --day-tone-border: rgba(249, 115, 22, 0.36);
+}
+
+.day-tab.condition-bad {
+  --day-tone: var(--stop);
+  --day-tone-bg: var(--stop-bg);
+  --day-tone-border: rgba(239, 68, 68, 0.38);
+}
+
+.day-tab.condition-good,
+.day-tab.condition-maybe,
+.day-tab.condition-warn,
+.day-tab.condition-bad {
+  border-color: var(--day-tone-border);
+  background: linear-gradient(180deg, var(--day-tone-bg) 0%, transparent 100%);
+}
+
+.day-tab.is-active {
+  background: var(--day-tone-bg);
+  color: var(--day-tone);
+  box-shadow: inset 0 -3px 0 var(--day-tone);
+}
+
+.day-tab.condition-good .day-tab-weather,
+.day-tab.condition-maybe .day-tab-weather,
+.day-tab.condition-warn .day-tab-weather,
+.day-tab.condition-bad .day-tab-weather,
+.day-tab.is-active .day-tab-date strong {
+  color: var(--day-tone);
+}
+
+html[data-current-mobile-view="weather"] .day-strip {
+  padding: var(--sp-2) var(--sp-3);
+}
+
+html[data-current-mobile-view="weather"] .forecast-strip-head {
+  display: none;
+}
+
+html[data-current-mobile-view="weather"] .forecast-strip-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(56px, 1fr));
+  gap: var(--sp-2);
+  overflow: visible;
+  border: 0;
+  background: transparent;
+}
+
+html[data-current-mobile-view="weather"] .day-tab,
+html[data-current-mobile-view="weather"] .day-strip.is-forecast-expanded .day-tab {
+  min-width: 0;
+  min-height: 64px;
+  border: 1px solid var(--day-tone-border);
+  border-radius: var(--r-sm);
+  background: linear-gradient(180deg, var(--day-tone-bg) 0%, var(--bg-card) 100%);
+  padding: 8px 6px;
+  gap: 6px;
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-current-mobile-view="weather"] .day-tab.is-active {
+  background: var(--day-tone-bg);
+}
+
+html[data-current-mobile-view="weather"] .day-tab-date em,
+html[data-current-mobile-view="weather"] .day-tab-temperatures,
+html[data-current-mobile-view="weather"] .day-tab-stats,
+html[data-current-mobile-view="weather"] .day-tab-score {
+  display: none;
+}
+
+html[data-current-mobile-view="weather"] .day-tab-date strong {
+  font-size: 0.72rem;
+}
+
+html[data-current-mobile-view="weather"] .day-tab-weather {
+  font-size: 1.3rem;
+}
+
+html[data-current-mobile-view="weather"] .weather-top-tools {
+  top: 82px;
+}
+
+html[data-current-weather-subtab="forces"] .chart-panel {
+  overflow-x: auto;
+  padding: 0 var(--sp-4) var(--sp-5);
+  scrollbar-width: thin;
+}
+
+html[data-current-weather-subtab="forces"] .chart-panel .segmented {
+  display: none;
+}
+
+html[data-current-weather-subtab="forces"] .chart-panel .section-head,
+html[data-current-weather-subtab="forces"] .chart-legend {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+html[data-current-weather-subtab="forces"] .chart-panel canvas {
+  min-width: 920px;
+  height: 390px !important;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--canvas-bg);
+}
+
+@media (max-width: 720px) {
+  .weather-subtabs {
+    grid-template-columns: repeat(4, minmax(92px, 1fr));
+  }
+
+  html[data-current-mobile-view="weather"] .forecast-strip-grid {
+    display: flex;
+    gap: var(--sp-2);
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 1px 1px var(--sp-1);
+    scroll-snap-type: x proximity;
+  }
+
+  html[data-current-mobile-view="weather"] .day-tab,
+  html[data-current-mobile-view="weather"] .day-strip.is-forecast-expanded .day-tab {
+    flex: 0 0 72px;
+    min-width: 72px;
+    min-height: 64px;
+  }
+
+  .forces-panel {
+    padding: var(--sp-3) var(--sp-4);
+  }
+
+  .forces-panel .depth-control {
+    max-width: none;
+  }
+
+  .forces-panel .compass-panel {
+    --compass-size: min(360px, 92vw);
+    padding-top: 0;
+  }
+
+  html[data-current-weather-subtab="forces"] .chart-panel canvas {
+    min-width: 820px;
+    height: 410px !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .forces-summary {
+    grid-template-columns: minmax(0, 560px);
+    justify-content: center;
+  }
+
+  .forces-panel .compass-panel {
+    --compass-size: min(420px, 100%);
+    max-width: 560px;
+  }
+}
+
 /* ── 24. ACCESSIBILITY ────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

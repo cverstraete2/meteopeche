@@ -18,7 +18,7 @@ const WATER_MODES = {
   FRESHWATER: "freshwater",
 };
 const MOBILE_VIEWS = ["map", "activity", "weather", "rigging", "journal", "preferences"];
-const WEATHER_SUBTABS = ["overview", "sun", "tides"];
+const WEATHER_SUBTABS = ["overview", "forces", "sun", "tides"];
 const MARINE_OVERLAY_MODES = ["none", "surface", "depth", "wave"];
 const THEME_MODES = ["light", "dark"];
 const waterModeConfig = {
@@ -5054,11 +5054,14 @@ function renderDayTabs() {
     const activityScore = dayActivityScore(day);
     const weather = dailyWeatherIcon(day);
     const waterTemperature = dailyWaterTemperature(day);
+    const conditionTone = dayConditionTone(day);
     const button = document.createElement("button");
     button.type = "button";
     button.className = "day-tab";
+    button.classList.add(`condition-${conditionTone}`);
     button.classList.toggle("is-active", day.date === state.selectedDate);
     button.setAttribute("aria-pressed", String(day.date === state.selectedDate));
+    button.title = `${weather.label} · ${conditionToneLabel(conditionTone)}`;
     button.innerHTML = `
       <span class="day-tab-date">
         <strong>${escapeHtml(formatWeekday3(day.date))}</strong>
@@ -5081,7 +5084,6 @@ function renderDayTabs() {
     `;
     button.addEventListener("click", () => {
       state.selectedDate = day.date;
-      if (isMobileLayout()) state.forecastExpanded = true;
       renderAll();
     });
     grid.append(button);
@@ -5444,6 +5446,76 @@ function weatherGoNoGo(day, sample = timelineSample(day)) {
   };
 }
 
+function dayConditionTone(day) {
+  if (!day) return "maybe";
+
+  return conditionToneFromValues({
+    wind: day.windMax ?? day.windAvg,
+    gust: day.windGustMax,
+    rain: max(pluck(day.rows ?? [], "precipitation")) ?? day.precipitationTotal,
+    wave: day.waveMax ?? day.waveAvg,
+    current: max(pluck(day.rows ?? [], "surfaceCurrent")) ?? day.surfaceCurrent,
+  });
+}
+
+function sampleConditionTone(day, sample = timelineSample(day)) {
+  return conditionToneFromValues({
+    wind: sample.windSpeed ?? day?.windAvg,
+    gust: sample.windGust ?? day?.windGustMax,
+    rain: sample.precipitation ?? day?.precipitationTotal,
+    wave: sample.waveHeight ?? day?.waveAvg,
+    current: sample.surfaceCurrent ?? day?.surfaceCurrent,
+  });
+}
+
+function conditionToneFromValues(values) {
+  const wind = values.wind;
+  const gust = values.gust;
+  const rain = values.rain;
+
+  if (!isSeaMode()) {
+    if ((wind ?? 0) >= 24 || (gust ?? 0) >= 34 || (rain ?? 0) >= 5) return "bad";
+    if ((wind ?? 0) >= 18 || (gust ?? 0) >= 28 || (rain ?? 0) >= 2) return "warn";
+    if ((wind ?? 0) >= 12 || (gust ?? 0) >= 20 || (rain ?? 0) >= 0.4) return "maybe";
+    return "good";
+  }
+
+  const wave = values.wave;
+  const current = values.current;
+
+  if ((wind ?? 0) >= 22 || (gust ?? 0) >= 32 || (rain ?? 0) >= 5 || (wave ?? 0) >= 1.4 || (current ?? 0) >= 1.5) {
+    return "bad";
+  }
+
+  if ((wind ?? 0) >= 16 || (gust ?? 0) >= 24 || (rain ?? 0) >= 1.5 || (wave ?? 0) >= 0.9 || (current ?? 0) >= 1) {
+    return "warn";
+  }
+
+  if ((wind ?? 0) >= 11 || (gust ?? 0) >= 18 || (rain ?? 0) >= 0.3 || (wave ?? 0) >= 0.55 || (current ?? 0) >= 0.65) {
+    return "maybe";
+  }
+
+  return "good";
+}
+
+function conditionToneLabel(tone) {
+  return {
+    good: "GO",
+    maybe: "Maybe",
+    warn: "À surveiller",
+    bad: "NO GO",
+  }[tone] ?? "Maybe";
+}
+
+function conditionToneCanvasFill(tone) {
+  return {
+    good: "rgba(34, 197, 94, 0.26)",
+    maybe: "rgba(234, 179, 8, 0.28)",
+    warn: "rgba(249, 115, 22, 0.30)",
+    bad: "rgba(239, 68, 68, 0.32)",
+  }[tone] ?? "rgba(234, 179, 8, 0.24)";
+}
+
 function conditionDecision(day, sample = timelineSample(day), goNoGo = weatherGoNoGo(day, sample)) {
   const hour = formatHourCompact(selectedTimelineMinute());
   const wind = sample.windSpeed ?? day.windAvg;
@@ -5583,8 +5655,17 @@ function conditionFacts(day, sample = timelineSample(day), goNoGo = weatherGoNoG
 function renderMetrics(day) {
   if (!day) {
     els.metricGrid.innerHTML = "";
+    els.metricGrid.hidden = false;
     return;
   }
+
+  if (isSeaMode()) {
+    els.metricGrid.innerHTML = "";
+    els.metricGrid.hidden = true;
+    return;
+  }
+
+  els.metricGrid.hidden = false;
 
   const sample = timelineSample(day);
   const hour = formatHourCompact(selectedTimelineMinute());
@@ -6498,7 +6579,7 @@ function drawCompass() {
   const radius = Math.min(width, height) * 0.37;
 
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = theme.bg;
+  ctx.fillStyle = day ? conditionToneCanvasFill(sampleConditionTone(day)) : theme.bg;
   roundRect(ctx, 0, 0, width, height, 8);
   ctx.fill();
 
@@ -6724,6 +6805,24 @@ function renderChart() {
 
   if (!day) return;
 
+  if (state.activeWeatherSubtab === "forces") {
+    els.chartTitle.textContent = "Forces heure par heure";
+    renderLegend(isSeaMode()
+      ? [
+          { label: "Courant surface", color: themeColor("current") },
+          { label: "Courant profondeur", color: themeColor("depth") },
+          { label: "Houle", color: themeColor("wave") },
+          { label: "Vent", color: themeColor("wind") },
+        ]
+      : [
+          { label: "Vent", color: themeColor("wind") },
+          { label: "Rafales", color: themeColor("gust") },
+          { label: "Pluie", color: themeColor("rain") },
+        ]);
+    drawForcesHourlyChart(ctx, day, width, height, theme);
+    return;
+  }
+
   const config = chartConfig(day);
   els.chartTitle.textContent = config.title;
   renderLegend(config.series);
@@ -6786,6 +6885,153 @@ function renderChart() {
   ctx.font = "800 12px Inter, system-ui, sans-serif";
   ctx.textAlign = "left";
   ctx.fillText(config.unit, padding.left, padding.top - 14);
+}
+
+function drawForcesHourlyChart(ctx, day, width, height, theme) {
+  const rows = day.rows ?? [];
+  if (!rows.length) {
+    drawEmptyPanelCanvas(els.chartCanvas, "Forces indisponibles");
+    return;
+  }
+
+  const metrics = isSeaMode()
+    ? [
+        { label: "Courant", key: "surfaceCurrent", directionKey: "currentDirection", unit: "kt", digits: 1, type: "current", color: themeColor("current") },
+        { label: "Fond", key: "depthCurrent", directionKey: "depthDirection", unit: "kt", digits: 1, type: "depth", color: themeColor("depth") },
+        { label: "Houle", key: "waveHeight", directionKey: "waveDirection", unit: "m", digits: 1, type: "wave", color: themeColor("wave"), reverse: true },
+        { label: "Vent", key: "windSpeed", directionKey: "windDirection", unit: "kt", digits: 0, type: "wind", color: themeColor("wind"), reverse: true },
+      ]
+    : [
+        { label: "Vent", key: "windSpeed", directionKey: "windDirection", unit: "kt", digits: 0, type: "wind", color: themeColor("wind"), reverse: true },
+        { label: "Rafales", key: "windGust", directionKey: "windDirection", unit: "kt", digits: 0, type: "wind", color: themeColor("gust"), reverse: true },
+        { label: "Pluie", key: "precipitation", directionKey: null, unit: "mm", digits: 1, type: "rain", color: themeColor("rain") },
+      ];
+
+  const padding = { top: 34, right: 16, bottom: 18, left: 78 };
+  const chartWidth = width - padding.left - padding.right;
+  const headerHeight = 34;
+  const rowGap = 8;
+  const rowHeight = Math.max(48, (height - padding.top - padding.bottom - headerHeight - rowGap * (metrics.length - 1)) / metrics.length);
+  const colWidth = Math.max(30, chartWidth / rows.length);
+  const selectedIndex = selectedHourIndex(rows);
+
+  ctx.fillStyle = theme.bg;
+  roundRect(ctx, 0, 0, width, height, 8);
+  ctx.fill();
+
+  ctx.fillStyle = theme.ink;
+  ctx.font = "900 13px Inter, system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(`${day.shortLabel} · ${formatHourCompact(selectedTimelineMinute())}`, padding.left, 17);
+
+  ctx.font = "800 11px Inter, system-ui, sans-serif";
+  ctx.fillStyle = theme.muted;
+  ctx.textAlign = "center";
+  rows.forEach((row, index) => {
+    const x = padding.left + index * colWidth + colWidth / 2;
+    const minutes = minutesFromClock(row.hour);
+    if (minutes % 120 === 0 || index === selectedIndex) {
+      ctx.fillText(formatHourTick(minutes), x, padding.top + 8);
+    }
+  });
+
+  if (selectedIndex >= 0) {
+    const x = padding.left + selectedIndex * colWidth;
+    ctx.fillStyle = "rgba(255, 255, 255, 0.18)";
+    ctx.fillRect(x, padding.top, colWidth, height - padding.top - padding.bottom);
+    ctx.strokeStyle = theme.marker;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x + 1, padding.top + 1, colWidth - 2, height - padding.top - padding.bottom - 2);
+  }
+
+  metrics.forEach((metric, metricIndex) => {
+    const y = padding.top + headerHeight + metricIndex * (rowHeight + rowGap);
+    ctx.fillStyle = metric.color;
+    ctx.font = "900 12px Inter, system-ui, sans-serif";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillText(metric.label, padding.left - 12, y + rowHeight / 2 - 8);
+    ctx.fillStyle = theme.muted;
+    ctx.font = "700 10px Inter, system-ui, sans-serif";
+    ctx.fillText(metric.unit, padding.left - 12, y + rowHeight / 2 + 10);
+
+    rows.forEach((row, index) => {
+      const x = padding.left + index * colWidth;
+      const value = row[metric.key];
+      const direction = metric.directionKey ? row[metric.directionKey] : null;
+      const tone = forcePowerTone(metric.type, value);
+      const cellWidth = Math.max(24, colWidth - 2);
+      const valueY = y + rowHeight * 0.48;
+      const valueHeight = rowHeight * 0.42;
+
+      ctx.strokeStyle = theme.subtleLine;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, y, colWidth, rowHeight);
+
+      ctx.fillStyle = isValidNumber(value) ? forceToneFill(tone) : "rgba(127, 168, 201, 0.12)";
+      ctx.fillRect(x + 1, valueY, cellWidth, valueHeight);
+
+      ctx.fillStyle = isValidNumber(direction) ? theme.ink : theme.muted;
+      ctx.font = "900 16px Inter, system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(directionArrow(metric.reverse ? reverseDirection(direction) : direction), x + colWidth / 2, y + rowHeight * 0.28);
+
+      ctx.fillStyle = isValidNumber(value) ? "#06131f" : theme.muted;
+      ctx.font = "800 12px Inter, system-ui, sans-serif";
+      ctx.fillText(isValidNumber(value) ? formatNumber(value, metric.digits) : "--", x + colWidth / 2, valueY + valueHeight / 2);
+    });
+  });
+}
+
+function selectedHourIndex(rows) {
+  const minute = selectedTimelineMinute();
+  let bestIndex = -1;
+  let bestDiff = Infinity;
+  rows.forEach((row, index) => {
+    const rowMinute = minutesFromClockOrNull(row.hour);
+    if (rowMinute == null) return;
+    const diff = Math.abs(rowMinute - minute);
+    if (diff < bestDiff) {
+      bestIndex = index;
+      bestDiff = diff;
+    }
+  });
+  return bestIndex;
+}
+
+function forcePowerTone(type, value) {
+  if (!isValidNumber(value)) return "muted";
+
+  const thresholds = {
+    current: [0.45, 0.85, 1.25],
+    depth: [0.35, 0.75, 1.15],
+    wave: [0.45, 0.9, 1.35],
+    wind: [8, 16, 22],
+    rain: [0.3, 1.5, 5],
+  }[type] ?? [0.4, 0.8, 1.2];
+
+  if (value >= thresholds[2]) return "bad";
+  if (value >= thresholds[1]) return "warn";
+  if (value >= thresholds[0]) return "maybe";
+  return "good";
+}
+
+function forceToneFill(tone) {
+  return {
+    good: "rgba(74, 222, 128, 0.88)",
+    maybe: "rgba(250, 204, 21, 0.88)",
+    warn: "rgba(251, 146, 60, 0.90)",
+    bad: "rgba(248, 113, 113, 0.92)",
+    muted: "rgba(127, 168, 201, 0.12)",
+  }[tone] ?? "rgba(127, 168, 201, 0.12)";
+}
+
+function directionArrow(direction) {
+  if (!isValidNumber(direction)) return "·";
+  const arrows = ["↑", "↗", "→", "↘", "↓", "↙", "←", "↖"];
+  return arrows[Math.round(normalizeDirection(direction) / 45) % arrows.length];
 }
 
 function chartConfig(day) {

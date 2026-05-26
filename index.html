@@ -420,6 +420,8 @@ try {
         <button class="weather-subtab is-active" type="button" role="tab"
           data-weather-tab="overview" aria-selected="true">Décision rapide</button>
         <button class="weather-subtab" type="button" role="tab"
+          data-weather-tab="forces" aria-selected="false">Rosace</button>
+        <button class="weather-subtab" type="button" role="tab"
           data-weather-tab="sun" aria-selected="false">Soleil</button>
         <button class="weather-subtab" type="button" role="tab"
           data-weather-tab="tides" aria-selected="false">Marées</button>
@@ -497,6 +499,13 @@ try {
 
         <div class="metric-grid" id="metricGrid"></div>
 
+        <div class="water-insights" id="waterInsights"></div>
+
+      </div>
+    </section>
+
+    <section class="forces-panel" data-mobile-view="weather" data-weather-subview="forces" aria-label="Rosace et forces horaires">
+      <div class="forces-summary">
         <div class="depth-control">
           <div>
             <label for="depth">Profondeur cible</label>
@@ -505,17 +514,31 @@ try {
           <input id="depth" type="range" min="0" max="80" step="1" value="15" />
         </div>
 
-        <div class="water-insights" id="waterInsights"></div>
-
+        <aside class="compass-panel" aria-label="Directions moyennes">
+          <canvas id="compassCanvas" width="420" height="420"></canvas>
+          <div class="best-window">
+            <span>Créneau calme</span>
+            <strong id="bestWindow">--</strong>
+          </div>
+        </aside>
       </div>
+    </section>
 
-      <aside class="compass-panel" aria-label="Directions moyennes">
-        <canvas id="compassCanvas" width="420" height="420"></canvas>
-        <div class="best-window">
-          <span>Créneau calme</span>
-          <strong id="bestWindow">--</strong>
+    <section class="chart-panel" data-mobile-view="weather" data-weather-subview="forces" aria-label="Évolution horaire des forces">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Heure par heure</span>
+          <h2 id="chartTitle">Vent</h2>
         </div>
-      </aside>
+        <div class="segmented" role="tablist" aria-label="Type de courbe">
+          <button class="segment is-active" type="button" data-chart="wind">Vent</button>
+          <button class="segment" type="button" data-chart="cloud">Nuages</button>
+          <button class="segment" type="button" data-chart="wave">Houle</button>
+          <button class="segment" type="button" data-chart="current">Courant</button>
+        </div>
+      </div>
+      <canvas id="chartCanvas" width="1180" height="420"></canvas>
+      <div class="chart-legend" id="chartLegend"></div>
     </section>
 
     <section class="rigging-panel" data-mobile-view="rigging" aria-label="Lestage">
@@ -552,23 +575,6 @@ try {
           <p id="riggingAdvice">Renseigne les conditions pour estimer un lestage de départ.</p>
         </div>
       </div>
-    </section>
-
-    <section class="chart-panel" data-mobile-view="weather" data-weather-subview="overview" aria-label="Évolution horaire">
-      <div class="section-head">
-        <div>
-          <span class="eyebrow">Heure par heure</span>
-          <h2 id="chartTitle">Vent</h2>
-        </div>
-        <div class="segmented" role="tablist" aria-label="Type de courbe">
-          <button class="segment is-active" type="button" data-chart="wind">Vent</button>
-          <button class="segment" type="button" data-chart="cloud">Nuages</button>
-          <button class="segment" type="button" data-chart="wave">Houle</button>
-          <button class="segment" type="button" data-chart="current">Courant</button>
-        </div>
-      </div>
-      <canvas id="chartCanvas" width="1180" height="420"></canvas>
-      <div class="chart-legend" id="chartLegend"></div>
     </section>
 
     <section class="astro-panel" data-mobile-view="weather astro" data-weather-subview="sun" aria-label="Soleil et lune">
