@@ -1470,7 +1470,7 @@ input[type="range"]::-moz-range-thumb {
 
 .activity-chart-wrap canvas {
   width: 100% !important;
-  height: auto !important;
+  height: clamp(170px, 42vw, 220px) !important;
 }
 
 .activity-windows {
@@ -1557,7 +1557,7 @@ input[type="range"]::-moz-range-thumb {
 
 .tide-chart-card canvas {
   width: 100% !important;
-  height: auto !important;
+  height: clamp(210px, 52vw, 280px) !important;
 }
 
 .tide-summary-grid {
@@ -1812,6 +1812,7 @@ input[type="range"]::-moz-range-thumb {
 
 /* Compass panel */
 .compass-panel {
+  --compass-size: min(340px, 88vw);
   padding: var(--sp-3) var(--sp-4) var(--sp-4);
   display: flex;
   flex-direction: column;
@@ -1821,8 +1822,8 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .compass-panel canvas {
-  width: min(220px, 60vw) !important;
-  height: auto !important;
+  width: var(--compass-size) !important;
+  height: var(--compass-size) !important;
 }
 
 .best-window {
@@ -1860,7 +1861,7 @@ input[type="range"]::-moz-range-thumb {
 
 .chart-panel canvas {
   width: 100% !important;
-  height: auto !important;
+  height: clamp(220px, 52vw, 280px) !important;
   padding: 0 var(--sp-4);
   box-sizing: border-box;
 }
@@ -1895,7 +1896,7 @@ input[type="range"]::-moz-range-thumb {
 
 .astro-chart-card canvas {
   width: 100% !important;
-  height: auto !important;
+  height: clamp(210px, 52vw, 280px) !important;
 }
 
 .moon-card {
@@ -2587,7 +2588,137 @@ input[type="range"]::-moz-range-thumb {
   border-radius: var(--r-sm);
 }
 
-/* ── 23. DESKTOP ENHANCEMENTS ─────────────────────────────── */
+/* ── 23. MOBILE READABILITY PASS ──────────────────────────── */
+@media (max-width: 720px) {
+  .forecast-strip-head {
+    align-items: center;
+    margin-bottom: var(--sp-2);
+  }
+
+  .forecast-strip-head h2 {
+    font-size: 1.25rem;
+  }
+
+  .forecast-expand-toggle {
+    min-height: 40px;
+    height: 40px;
+    padding: 0 var(--sp-3);
+    font-size: 0.78rem;
+    flex-shrink: 0;
+  }
+
+  .forecast-strip-grid {
+    display: flex;
+    gap: var(--sp-2);
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 1px 1px var(--sp-1);
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .forecast-strip-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .day-tab {
+    flex: 0 0 128px;
+    min-width: 128px;
+    min-height: 156px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    scroll-snap-align: start;
+  }
+
+  .day-tab:last-child {
+    border-right: 1px solid var(--border);
+  }
+
+  .day-strip.is-forecast-expanded .day-tab {
+    flex-basis: 172px;
+    min-width: 172px;
+    min-height: 166px;
+  }
+
+  .day-tab-weather {
+    font-size: 1.65rem;
+  }
+
+  .day-tab-stats {
+    gap: 5px;
+  }
+
+  .day-tab-stats span {
+    min-height: 34px;
+    padding: 5px 3px;
+  }
+
+  .day-tab-stats b {
+    font-size: 0.6rem;
+  }
+
+  .day-tab-stats em {
+    font-size: 0.68rem;
+  }
+
+  .chart-panel .section-head {
+    gap: var(--sp-2);
+  }
+
+  .chart-panel .segmented {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+
+  .chart-panel .segmented::-webkit-scrollbar {
+    display: none;
+  }
+
+  .chart-panel .segment {
+    flex: 0 0 auto;
+    min-width: 84px;
+  }
+
+  .compass-panel {
+    --compass-size: min(348px, 88vw);
+    padding-top: var(--sp-5);
+  }
+}
+
+@media (max-width: 390px) {
+  .forecast-strip-head h2 {
+    font-size: 1.12rem;
+  }
+
+  .forecast-expand-toggle {
+    padding: 0 10px;
+    font-size: 0.72rem;
+  }
+
+  .day-tab {
+    flex-basis: 118px;
+    min-width: 118px;
+  }
+
+  .day-strip.is-forecast-expanded .day-tab {
+    flex-basis: 160px;
+    min-width: 160px;
+  }
+
+  .compass-panel {
+    --compass-size: min(320px, 90vw);
+  }
+}
+
+/* ── 24. DESKTOP ENHANCEMENTS ─────────────────────────────── */
 @media (min-width: 768px) {
   .mobile-tabbar {
     display: none;
@@ -2595,6 +2726,22 @@ input[type="range"]::-moz-range-thumb {
 
   main {
     padding-bottom: var(--sp-8);
+  }
+
+  main > section {
+    width: 100%;
+    max-width: 1120px;
+    margin-inline: auto;
+  }
+
+  .controls-band {
+    max-width: none;
+  }
+
+  .controls-band > .spot-quickbar,
+  .controls-band > .spot-form {
+    max-width: 1120px;
+    margin-inline: auto;
   }
 
   .topbar-actions .preferences-nav-button {
@@ -2627,7 +2774,7 @@ input[type="range"]::-moz-range-thumb {
 
   .dashboard-grid {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) 260px;
     gap: 0;
   }
 
@@ -2636,10 +2783,49 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .compass-panel {
+    --compass-size: 220px;
     border-top: none;
     border-left: 1px solid var(--border);
-    width: 240px;
+    width: 260px;
     flex-shrink: 0;
+  }
+
+  .forecast-strip-grid {
+    grid-template-columns: repeat(6, minmax(118px, 1fr));
+  }
+
+  .day-tab {
+    min-height: 136px;
+  }
+
+  .activity-chart-wrap canvas {
+    height: 220px !important;
+  }
+
+  .tide-chart-card canvas,
+  .chart-panel canvas,
+  .astro-chart-card canvas {
+    height: 260px !important;
+  }
+
+  .chart-panel .section-head {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .chart-panel .segmented {
+    flex-shrink: 0;
+    width: auto;
+  }
+
+  .astro-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    align-items: stretch;
+  }
+
+  .moon-card {
+    min-height: 100%;
   }
 
   .activity-layout {
