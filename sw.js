@@ -1,4 +1,4 @@
-const CACHE_NAME = "meteopeche-shell-20260526-native";
+const CACHE_NAME = "meteopeche-shell-20260526-brand-v3";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -7,6 +7,10 @@ const APP_SHELL = [
   "./mobile-runtime.js",
   "./config.js",
   "./manifest.webmanifest",
+  "./assets/meteocatch-logo-v2.png",
+  "./assets/icons/icon-192-v2.png",
+  "./assets/icons/icon-512-v2.png",
+  "./assets/icons/apple-touch-icon-v2.png",
   "./vendor/leaflet/leaflet.css",
   "./vendor/leaflet/leaflet.js",
   "./vendor/tabler/tabler-icons.min.css",

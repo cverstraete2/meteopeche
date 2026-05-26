@@ -13,6 +13,7 @@ await rm(localVendor, { force: true, recursive: true });
 await mkdir(dist, { recursive: true });
 
 await Promise.all(files.map((file) => copyFile(join(root, file), join(dist, file))));
+await cp(join(root, "assets"), join(dist, "assets"), { recursive: true });
 await writeGeneratedConfig(join(dist, "config.js"));
 
 await Promise.all([copyVendor(join(dist, "vendor")), copyVendor(localVendor)]);

@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════
    MeteoCatch — Nautical Instrument v2.0
    Mobile-first · Dual theme · Production-grade
-   Typo: Barlow Condensed (headings) · DM Sans (body) · Fira Code (data)
+   Typo: Montserrat (brand) · Barlow Condensed (headings) · DM Sans (body) · Fira Code (data)
    ═══════════════════════════════════════════════════════════ */
 
 /* ── 1. DESIGN TOKENS ─────────────────────────────────────── */
@@ -45,6 +45,7 @@
   --sp-8: 32px;
 
   /* Typography */
+  --f-brand:   'Montserrat', 'DM Sans', system-ui, sans-serif;
   --f-display: 'Barlow Condensed', system-ui, sans-serif;
   --f-body:    'DM Sans', system-ui, sans-serif;
   --f-data:    'Fira Code', 'Courier New', monospace;
@@ -155,6 +156,8 @@
   --chart-amber: var(--c-amber);
   --chart-violet: var(--c-ocean-400);
   --chart-coral: var(--c-red);
+  --brand-meteo: #063b70;
+  --brand-catch: #09a8b5;
 }
 
 /* ── DARK THEME ───────────────────────────────────────────── */
@@ -243,6 +246,8 @@
   --chart-amber: #fbbf24;
   --chart-violet: #b4a0ff;
   --chart-coral: #ff8a76;
+  --brand-meteo: #cfe7ff;
+  --brand-catch: #2dd4bf;
 }
 
 /* ── 2. RESET ─────────────────────────────────────────────── */
@@ -369,32 +374,43 @@ footer {
 }
 
 .brand-mark {
-  width: 36px;
-  height: 36px;
-  background: var(--accent-grad);
-  border-radius: var(--r-sm);
+  width: 42px;
+  height: 42px;
+  background: #ffffff;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0,100,220,0.35);
+  overflow: hidden;
+  border: 1px solid rgba(9, 168, 181, 0.18);
+  box-shadow: 0 4px 14px rgba(0, 68, 112, 0.18);
 }
 
-.brand-mark svg {
-  width: 20px;
-  height: 20px;
-  fill: white;
-  stroke: none;
+.brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .brand h1 {
-  font-family: var(--f-display);
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text-1);
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-family: var(--f-brand);
+  font-size: 1.42rem;
+  font-weight: 900;
+  color: var(--brand-meteo);
+  letter-spacing: 0;
+  text-transform: none;
   white-space: nowrap;
+  line-height: 0.98;
+}
+
+.brand-title-main {
+  color: var(--brand-meteo);
+}
+
+.brand-title-accent {
+  color: var(--brand-catch);
 }
 
 .brand #spotMeta {
