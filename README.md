@@ -75,7 +75,7 @@ Le bundle id iOS/Android est `com.meteopeche.app`. Avant soumission App Store / 
 
 ## Note sur le courant en profondeur
 
-Open-Meteo Marine expose le courant océanique de surface. Sans configuration Copernicus, le courant à profondeur reste une estimation simple calculée depuis le courant de surface et la profondeur choisie.
+Open-Meteo Marine expose le courant océanique de surface. Le courant à profondeur n'est plus estimé côté front: il est affiché uniquement quand l'API Copernicus renvoie des valeurs `uo`/`vo` réelles pour le point, la profondeur et la période demandés.
 
 Pour activer le courant réel en profondeur en local:
 
@@ -91,4 +91,4 @@ L'application demandera alors au serveur local un extrait Copernicus Marine `uo`
 - Méditerranée française: `cmems_mod_med_phy-cur_anfc_4.2km-3D_PT1H-m`;
 - secours global: `cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m`.
 
-Pour la production, Cloudflare Pages reste statique: l'API Copernicus est dans `backend/` et doit tourner sur un runtime Python séparé. Une fois ce backend déployé, renseigner `METEOPECHE_API_BASE_URL` dans Cloudflare Pages, puis redéployer.
+Pour la production, Cloudflare Pages reste statique: l'API Copernicus est dans `backend/` et doit tourner sur un runtime Python séparé. Le backend Cloud Run actuellement utilisé par défaut est `https://meteopeche-copernicus-977572434171.europe-west1.run.app`. Il doit avoir les variables `COPERNICUSMARINE_SERVICE_USERNAME` et `COPERNICUSMARINE_SERVICE_PASSWORD` configurées pour renvoyer de vraies données.

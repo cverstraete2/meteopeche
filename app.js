@@ -2,7 +2,7 @@ const WEATHER_API = "https://api.open-meteo.com/v1/forecast";
 const MARINE_API = "https://marine-api.open-meteo.com/v1/marine";
 const BATHYMETRY_WMS = "https://ows.emodnet-bathymetry.eu/wms";
 const BATHYMETRY_REST = "https://rest.emodnet-bathymetry.eu/depth/point";
-const DEFAULT_API_BASE_URL = "";
+const DEFAULT_API_BASE_URL = "https://meteopeche-copernicus-977572434171.europe-west1.run.app";
 const STORE_KEY = "meteo-peche-store-v1";
 const LEGACY_FAVORITES_KEY = "meteo-peche-favorites";
 const LEGACY_SETTINGS_KEY = "meteo-peche-settings";
@@ -1351,6 +1351,7 @@ const state = {
   selectedSpotName: spots[0].name,
   depth: 15,
   realDepthAvailable: false,
+  realDepthError: "",
   favorites: [],
   mapZoom: MAP_BASE_ZOOM,
   mapCenter: null,
@@ -3030,8 +3031,9 @@ function parseRegionalMarinePoint(payload, sample) {
       date,
       surfaceCurrent,
       currentDirection,
-      depthCurrent: surfaceCurrent == null ? null : surfaceCurrent * depthFactor(state.depth),
-      depthDirection: estimatedDepthDirection(currentDirection, state.depth),
+      depthCurrent: null,
+      depthDirection: null,
+      depthSource: "unavailable",
       waveHeight,
       waveDirection,
     };
@@ -3091,8 +3093,8 @@ function marineOverlayMetric(dayData) {
   if (!dayData) return null;
   const surfaceCurrent = dayData.surfaceCurrent;
   const currentDirection = dayData.currentDirection ?? dayData.surfaceCurrentDirection;
-  const depthCurrent = dayData.depthCurrent ?? (surfaceCurrent == null ? null : surfaceCurrent * depthFactor(state.depth));
-  const depthDirection = dayData.depthDirection ?? estimatedDepthDirection(currentDirection, state.depth);
+  const depthCurrent = dayData.depthSource === "copernicus" ? dayData.depthCurrent : null;
+  const depthDirection = dayData.depthSource === "copernicus" ? dayData.depthDirection : null;
   const waveHeight = dayData.waveHeight ?? dayData.waveAvg;
 
   if (state.marineOverlayMode === "depth") {
@@ -4337,7 +4339,8 @@ function updateDepth(value = els.depth?.value ?? state.depth) {
 
 function recomputeDepthSensitiveViews() {
   state.realDepthAvailable = false;
-  state.hours = state.hours.map((row) => applyEstimatedDepth(row));
+  state.realDepthError = "";
+  state.hours = state.hours.map((row) => clearDepthCurrent(row));
   state.days = buildDailySummaries(state.hours);
   renderAll();
   saveSettings();
@@ -4370,6 +4373,8 @@ async function loadForecast() {
     const weather = await fetchJson(buildWeatherUrl(lat, lon));
     const marine = isSeaMode() ? await fetchJson(buildMarineUrl(lat, lon)) : null;
 
+    state.realDepthAvailable = false;
+    state.realDepthError = "";
     state.hours = mergeHourlyData(weather, marine);
     state.days = buildDailySummaries(state.hours);
     state.selectedDate = state.days[0]?.date ?? "";
@@ -4381,7 +4386,7 @@ async function loadForecast() {
 
     renderAll();
     const realDepthApplied = isSeaMode() ? await loadRealDepthCurrents(lat, lon) : false;
-    setStatus(realDepthApplied ? "Copernicus" : "À jour", "ready");
+    setStatus(realDepthApplied ? "Copernicus" : isSeaMode() ? "Copernicus indispo" : "À jour", realDepthApplied || !isSeaMode() ? "ready" : "warning");
   } catch (error) {
     console.error(error);
     setStatus("Erreur", "error");
@@ -4442,25 +4447,33 @@ async function loadRealDepthCurrents(lat, lon) {
   try {
     const url = buildDepthCurrentUrl(lat, lon);
     const response = await fetch(url);
+    const payload = await response.json().catch(() => null);
+
     if (!response.ok) {
       state.realDepthAvailable = false;
+      state.realDepthError = payload?.error || `Erreur API Copernicus ${response.status}`;
+      renderAll();
       return false;
     }
 
-    const payload = await response.json();
     if (!payload.ok || !Array.isArray(payload.hours) || !payload.hours.length) {
       state.realDepthAvailable = false;
+      state.realDepthError = payload?.error || "Copernicus Marine n'a pas renvoyé de courant profondeur.";
+      renderAll();
       return false;
     }
 
     state.hours = applyRealDepthData(state.hours, payload);
     state.days = buildDailySummaries(state.hours);
     state.realDepthAvailable = true;
+    state.realDepthError = "";
     renderAll();
     return true;
   } catch (error) {
-    console.info("Courant profondeur réel indisponible, estimation conservée.", error);
+    console.info("Courant profondeur Copernicus indisponible.", error);
     state.realDepthAvailable = false;
+    state.realDepthError = error?.message || "Copernicus Marine indisponible.";
+    renderAll();
     return false;
   }
 }
@@ -4517,13 +4530,12 @@ function applyRealDepthData(hours, payload) {
   });
 }
 
-function applyEstimatedDepth(row) {
-  const depthFactorValue = depthFactor(state.depth);
+function clearDepthCurrent(row) {
   return {
     ...row,
-    depthCurrent: row.surfaceCurrent == null ? null : row.surfaceCurrent * depthFactorValue,
-    depthDirection: estimatedDepthDirection(row.currentDirection, state.depth),
-    depthSource: "estimate",
+    depthCurrent: null,
+    depthDirection: null,
+    depthSource: "unavailable",
     actualDepth: state.depth,
     depthDataset: null,
   };
@@ -4562,7 +4574,6 @@ function mergeHourlyData(weather, marine) {
     const daylight = dailyByDate.get(date) ?? {};
     const currentKmh = valueAt(marineHourly.ocean_current_velocity, index);
     const surfaceCurrent = currentKmh == null ? null : currentKmh * 0.539957;
-    const depthFactorValue = depthFactor(state.depth);
 
     return {
       time,
@@ -4582,9 +4593,9 @@ function mergeHourlyData(weather, marine) {
       swellDirection: valueAt(marineHourly.swell_wave_direction, index),
       surfaceCurrent,
       currentDirection: valueAt(marineHourly.ocean_current_direction, index),
-      depthCurrent: surfaceCurrent == null ? null : surfaceCurrent * depthFactorValue,
-      depthDirection: estimatedDepthDirection(valueAt(marineHourly.ocean_current_direction, index), state.depth),
-      depthSource: "estimate",
+      depthCurrent: null,
+      depthDirection: null,
+      depthSource: "unavailable",
       actualDepth: state.depth,
       depthDataset: null,
       seaTemperature: valueAt(marineHourly.sea_surface_temperature, index),
@@ -4604,11 +4615,10 @@ function buildDailySummaries(hours) {
     const currentAvg = average(pluck(rows, "surfaceCurrent"));
     const surfaceCurrentDirection = circularMean(pluck(rows, "currentDirection"), pluck(rows, "surfaceCurrent"));
     const realDepthRows = rows.filter((row) => row.depthSource === "copernicus" && isValidNumber(row.depthCurrent));
-    const depthRows = realDepthRows.length ? realDepthRows : rows;
-    const depthCurrent = average(pluck(depthRows, "depthCurrent"));
-    const depthDir = circularMean(pluck(depthRows, "depthDirection"), pluck(depthRows, "depthCurrent"));
+    const depthCurrent = realDepthRows.length ? average(pluck(realDepthRows, "depthCurrent")) : null;
+    const depthDir = realDepthRows.length ? circularMean(pluck(realDepthRows, "depthDirection"), pluck(realDepthRows, "depthCurrent")) : null;
     const hourlyScores = rows.map((row) => scoreHour(row));
-    const depthSource = realDepthRows.length ? "copernicus" : "estimate";
+    const depthSource = realDepthRows.length ? "copernicus" : "unavailable";
 
     return {
       date,
@@ -5630,7 +5640,7 @@ function depthDetail(day) {
     return `Copernicus ${depth} m · vers ${direction}`;
   }
 
-  return `${state.depth} m · est. vers ${direction}`;
+  return state.realDepthError ? "Copernicus indisponible" : "En attente Copernicus";
 }
 
 function formatPressureTrend(value) {
@@ -6286,7 +6296,7 @@ function depthSeriesLabel(day) {
     return `${formatNumber(day.actualDepth ?? state.depth, 0)} m Copernicus`;
   }
 
-  return `${state.depth} m estimé`;
+  return "Profondeur Copernicus indisponible";
 }
 
 function drawCompass() {
@@ -6353,16 +6363,18 @@ function drawCompass() {
       `Courant ${formatCompassValue(snapshot.surfaceCurrent, "kt", 1)}`,
       false,
     );
-    drawCompassArrow(
-      ctx,
-      cx,
-      cy,
-      compassArrowLength(radius, 0.68, snapshot.depthCurrent, 1),
-      snapshot.depthDirection,
-      themeColor("depth"),
-      `Fond ${formatCompassValue(snapshot.depthCurrent, "kt", 1)}`,
-      false,
-    );
+    if (isValidNumber(snapshot.depthCurrent) && isValidNumber(snapshot.depthDirection)) {
+      drawCompassArrow(
+        ctx,
+        cx,
+        cy,
+        compassArrowLength(radius, 0.68, snapshot.depthCurrent, 1),
+        snapshot.depthDirection,
+        themeColor("depth"),
+        `Fond ${formatCompassValue(snapshot.depthCurrent, "kt", 1)}`,
+        false,
+      );
+    }
     drawCompassArrow(
       ctx,
       cx,
@@ -7570,6 +7582,7 @@ function setStatus(label, mode) {
   els.statusPill.textContent = label;
   els.statusPill.classList.toggle("is-loading", mode === "loading");
   els.statusPill.classList.toggle("is-error", mode === "error");
+  els.statusPill.classList.toggle("is-warning", mode === "warning");
   els.statusPill.classList.toggle("is-ready", mode === "ready");
 }
 

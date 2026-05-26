@@ -432,6 +432,18 @@ footer {
   white-space: nowrap;
 }
 
+.status-pill.is-warning {
+  background: var(--warn-bg);
+  color: var(--warn);
+  border-color: var(--warn-bg);
+}
+
+.status-pill.is-error {
+  background: var(--stop-bg);
+  color: var(--stop);
+  border-color: var(--stop-bg);
+}
+
 /* ── 5. BOTTOM TABBAR ─────────────────────────────────────── */
 .mobile-tabbar {
   position: fixed;

@@ -6,6 +6,7 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 const dist = join(root, "dist");
 const localVendor = join(root, "vendor");
 const files = ["index.html", "styles.css", "app.js", "mobile-runtime.js", "config.js", "_headers"];
+const defaultApiBaseUrl = "https://meteopeche-copernicus-977572434171.europe-west1.run.app";
 
 await rm(dist, { force: true, recursive: true });
 await rm(localVendor, { force: true, recursive: true });
@@ -17,7 +18,7 @@ await writeGeneratedConfig(join(dist, "config.js"));
 await Promise.all([copyVendor(join(dist, "vendor")), copyVendor(localVendor)]);
 
 async function writeGeneratedConfig(target) {
-  const apiBaseUrl = process.env.METEOPECHE_API_BASE_URL ?? "";
+  const apiBaseUrl = process.env.METEOPECHE_API_BASE_URL ?? defaultApiBaseUrl;
   const payload = JSON.stringify({ apiBaseUrl });
   await writeFile(target, `window.METEOPECHE_CONFIG = ${payload};\n`);
 }
