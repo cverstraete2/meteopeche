@@ -3200,11 +3200,35 @@ html[data-current-weather-subtab="forces"] .chart-legend {
 
 html[data-current-weather-subtab="forces"] .chart-panel canvas {
   min-width: 920px;
-  height: 390px !important;
+  height: 520px !important;
   padding: 0;
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   background: var(--canvas-bg);
+}
+
+.atmosphere-chart-panel {
+  padding: 0 var(--sp-4) var(--sp-5);
+}
+
+.atmosphere-chart-panel .section-head {
+  flex-direction: column;
+  gap: var(--sp-3);
+  align-items: stretch;
+}
+
+.atmosphere-chart-panel canvas {
+  width: 100% !important;
+  height: 280px !important;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--canvas-bg);
+  box-sizing: border-box;
+}
+
+.atmosphere-segmented {
+  max-width: 360px;
 }
 
 @media (max-width: 720px) {
@@ -3243,7 +3267,11 @@ html[data-current-weather-subtab="forces"] .chart-panel canvas {
 
   html[data-current-weather-subtab="forces"] .chart-panel canvas {
     min-width: 820px;
-    height: 410px !important;
+    height: 540px !important;
+  }
+
+  .atmosphere-chart-panel canvas {
+    height: 300px !important;
   }
 }
 
@@ -3256,6 +3284,11 @@ html[data-current-weather-subtab="forces"] .chart-panel canvas {
   .forces-panel .compass-panel {
     --compass-size: min(420px, 100%);
     max-width: 560px;
+  }
+
+  .atmosphere-chart-panel .section-head {
+    flex-direction: row;
+    align-items: flex-start;
   }
 }
 

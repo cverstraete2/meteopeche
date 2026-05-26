@@ -19,6 +19,7 @@ const WATER_MODES = {
 };
 const MOBILE_VIEWS = ["map", "activity", "weather", "rigging", "journal", "preferences"];
 const WEATHER_SUBTABS = ["overview", "forces", "sun", "tides"];
+const ATMOSPHERE_CHARTS = ["cloud", "pressure"];
 const MARINE_OVERLAY_MODES = ["none", "surface", "depth", "wave"];
 const THEME_MODES = ["light", "dark"];
 const waterModeConfig = {
@@ -1348,6 +1349,7 @@ const riggingProfiles = {
 const state = {
   waterMode: WATER_MODES.SEA,
   activeChart: "wind",
+  activeAtmosphereChart: "cloud",
   activeMobileView: "map",
   activeWeatherSubtab: "overview",
   days: [],
@@ -1487,6 +1489,10 @@ const els = {
   chartCanvas: document.querySelector("#chartCanvas"),
   chartLegend: document.querySelector("#chartLegend"),
   chartTitle: document.querySelector("#chartTitle"),
+  atmosphereChartButtons: [...document.querySelectorAll("[data-atmosphere-chart]")],
+  atmosphereChartCanvas: document.querySelector("#atmosphereChartCanvas"),
+  atmosphereChartLegend: document.querySelector("#atmosphereChartLegend"),
+  atmosphereChartTitle: document.querySelector("#atmosphereChartTitle"),
   bestWindow: document.querySelector("#bestWindow"),
   statusPill: document.querySelector("#statusPill"),
   spotMeta: document.querySelector("#spotMeta"),
@@ -1812,6 +1818,7 @@ function restoreState() {
   state.waterMode = normalizeWaterMode(saved.waterMode);
   state.activeMobileView = normalizeMobileView(saved.mobileView);
   state.activeWeatherSubtab = normalizeWeatherSubtab(saved.weatherSubtab ?? weatherSubtabFromMobileView(saved.mobileView));
+  state.activeAtmosphereChart = normalizeAtmosphereChart(saved.atmosphereChart);
   const selectedIndex = resolveSavedSpotIndex(saved);
   const spot = spots[selectedIndex] ?? spots[0];
   const useSavedCoordinates = spot.custom && isValidNumber(saved.lat) && isValidNumber(saved.lon);
@@ -1945,6 +1952,10 @@ function normalizeWeatherSubtab(tab) {
   return WEATHER_SUBTABS.includes(tab) ? tab : "overview";
 }
 
+function normalizeAtmosphereChart(chart) {
+  return ATMOSPHERE_CHARTS.includes(chart) ? chart : "cloud";
+}
+
 function weatherSubtabFromMobileView(view) {
   if (view === "tides") return "tides";
   if (view === "astro") return "sun";
@@ -2029,6 +2040,7 @@ function refreshVisibleView() {
     renderDayTimeline(getSelectedDay());
     renderTides(getSelectedDay());
     renderChart();
+    renderAtmosphereChart();
     renderAstro(getSelectedDay());
   });
 }
@@ -4320,6 +4332,13 @@ function bindEvents() {
       renderChart();
     });
   });
+  els.atmosphereChartButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      state.activeAtmosphereChart = normalizeAtmosphereChart(button.dataset.atmosphereChart);
+      renderAtmosphereChart();
+      saveSettings();
+    });
+  });
 
   window.addEventListener("resize", () => {
     applyMobileNavigationUI();
@@ -4330,6 +4349,7 @@ function bindEvents() {
     renderActivity(getSelectedDay());
     renderTides(getSelectedDay());
     renderChart();
+    renderAtmosphereChart();
     renderAstro(getSelectedDay());
     updateMapScale();
   });
@@ -4362,6 +4382,7 @@ function setTimelineMinute(value) {
   renderActivity(selected);
   renderTides(selected);
   renderChart();
+  renderAtmosphereChart();
   renderAstro(selected);
   drawCompass();
 }
@@ -4875,6 +4896,7 @@ function renderAll() {
   renderRiggingCalculator(selected);
   drawCompass();
   renderChart();
+  renderAtmosphereChart();
   renderAstro(selected);
   renderCatchJournal();
   renderMarineOverlay();
@@ -6812,7 +6834,9 @@ function renderChart() {
           { label: "Courant surface", color: themeColor("current") },
           { label: "Courant profondeur", color: themeColor("depth") },
           { label: "Houle", color: themeColor("wave") },
+          { label: "Houle de fond", color: themeColor("swell") },
           { label: "Vent", color: themeColor("wind") },
+          { label: "Rafales", color: themeColor("gust") },
         ]
       : [
           { label: "Vent", color: themeColor("wind") },
@@ -6887,6 +6911,107 @@ function renderChart() {
   ctx.fillText(config.unit, padding.left, padding.top - 14);
 }
 
+function renderAtmosphereChart() {
+  if (!els.atmosphereChartCanvas || !els.atmosphereChartTitle || !els.atmosphereChartLegend) return;
+
+  state.activeAtmosphereChart = normalizeAtmosphereChart(state.activeAtmosphereChart);
+  els.atmosphereChartButtons.forEach((button) => {
+    const active = button.dataset.atmosphereChart === state.activeAtmosphereChart;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", String(active));
+    button.setAttribute("tabindex", active ? "0" : "-1");
+  });
+
+  const day = getSelectedDay();
+  const canvas = els.atmosphereChartCanvas;
+  const ctx = setupCanvas(canvas);
+  const theme = canvasTheme();
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  ctx.clearRect(0, 0, width, height);
+
+  if (!day) {
+    drawEmptyPanelCanvas(canvas, "Atmosphère indisponible");
+    return;
+  }
+
+  const config = atmosphereChartConfig(day);
+  els.atmosphereChartTitle.textContent = config.title;
+  renderLegend(config.series, els.atmosphereChartLegend);
+
+  const padding = { top: 28, right: 22, bottom: 38, left: 54 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  const values = config.series.flatMap((serie) => serie.values).filter(isValidNumber);
+
+  if (!values.length) {
+    drawEmptyPanelCanvas(canvas, `${config.title} indisponible`);
+    return;
+  }
+
+  const minValue = isValidNumber(config.minValue) ? config.minValue : 0;
+  const maxValue = isValidNumber(config.maxValue) ? config.maxValue : niceMax(max(values) ?? 1);
+  const valueRangeSize = Math.max(0.01, maxValue - minValue);
+
+  ctx.fillStyle = theme.bg;
+  roundRect(ctx, 0, 0, width, height, 8);
+  ctx.fill();
+
+  ctx.strokeStyle = theme.line;
+  ctx.lineWidth = 1;
+  ctx.fillStyle = theme.muted;
+  ctx.font = "700 12px Inter, system-ui, sans-serif";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+
+  for (let step = 0; step <= 4; step += 1) {
+    const displayValue = minValue + (valueRangeSize / 4) * step;
+    const y = padding.top + chartHeight - ((displayValue - minValue) / valueRangeSize) * chartHeight;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(width - padding.right, y);
+    ctx.stroke();
+    ctx.fillText(formatNumber(displayValue, displayValue >= 10 ? 0 : 1), padding.left - 10, y);
+  }
+
+  const rows = day.rows;
+  const pointX = (index) => padding.left + (rows.length <= 1 ? 0 : (index / (rows.length - 1)) * chartWidth);
+  const pointY = (value) => padding.top + chartHeight - (((value ?? minValue) - minValue) / valueRangeSize) * chartHeight;
+  drawTwoHourGrid(ctx, rows, pointX, padding, chartHeight);
+  drawTimelineMarker(ctx, timelineX(rows, pointX), padding, chartHeight);
+
+  config.series.forEach((serie) => {
+    ctx.save();
+    ctx.strokeStyle = serie.color;
+    ctx.lineWidth = serie.width ?? 3;
+    ctx.setLineDash(serie.dash ?? []);
+    ctx.beginPath();
+    let started = false;
+
+    serie.values.forEach((value, index) => {
+      if (!isValidNumber(value)) return;
+      const x = pointX(index);
+      const y = pointY(value);
+      if (!started) {
+        ctx.moveTo(x, y);
+        started = true;
+      } else {
+        ctx.lineTo(x, y);
+      }
+    });
+
+    ctx.stroke();
+    ctx.restore();
+  });
+
+  drawHourTickLabels(ctx, rows, pointX, height - padding.bottom + 14);
+
+  ctx.fillStyle = theme.ink;
+  ctx.font = "800 12px Inter, system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText(config.unit, padding.left, padding.top - 14);
+}
+
 function drawForcesHourlyChart(ctx, day, width, height, theme) {
   const rows = day.rows ?? [];
   if (!rows.length) {
@@ -6899,7 +7024,9 @@ function drawForcesHourlyChart(ctx, day, width, height, theme) {
         { label: "Courant", key: "surfaceCurrent", directionKey: "currentDirection", unit: "kt", digits: 1, type: "current", color: themeColor("current") },
         { label: "Fond", key: "depthCurrent", directionKey: "depthDirection", unit: "kt", digits: 1, type: "depth", color: themeColor("depth") },
         { label: "Houle", key: "waveHeight", directionKey: "waveDirection", unit: "m", digits: 1, type: "wave", color: themeColor("wave"), reverse: true },
+        { label: "Houle fond", key: "swellHeight", directionKey: "swellDirection", unit: "m", digits: 1, type: "swell", color: themeColor("swell"), reverse: true },
         { label: "Vent", key: "windSpeed", directionKey: "windDirection", unit: "kt", digits: 0, type: "wind", color: themeColor("wind"), reverse: true },
+        { label: "Rafales", key: "windGust", directionKey: "windDirection", unit: "kt", digits: 0, type: "gust", color: themeColor("gust"), reverse: true },
       ]
     : [
         { label: "Vent", key: "windSpeed", directionKey: "windDirection", unit: "kt", digits: 0, type: "wind", color: themeColor("wind"), reverse: true },
@@ -7008,7 +7135,9 @@ function forcePowerTone(type, value) {
     current: [0.45, 0.85, 1.25],
     depth: [0.35, 0.75, 1.15],
     wave: [0.45, 0.9, 1.35],
+    swell: [0.4, 0.8, 1.2],
     wind: [8, 16, 22],
+    gust: [12, 22, 30],
     rain: [0.3, 1.5, 5],
   }[type] ?? [0.4, 0.8, 1.2];
 
@@ -7081,14 +7210,48 @@ function chartConfig(day) {
   };
 }
 
-function renderLegend(series) {
-  els.chartLegend.innerHTML = "";
+function atmosphereChartConfig(day) {
+  const rows = day.rows ?? [];
+
+  if (state.activeAtmosphereChart === "pressure") {
+    const values = pluck(rows, "pressure").filter(isValidNumber);
+    const low = min(values);
+    const high = max(values);
+    const padding = isValidNumber(low) && isValidNumber(high)
+      ? Math.max(1, (high - low) * 0.25)
+      : 2;
+
+    return {
+      title: "Baromètre",
+      unit: "hPa",
+      minValue: isValidNumber(low) ? Math.floor(low - padding) : 1008,
+      maxValue: isValidNumber(high) ? Math.ceil(high + padding) : 1028,
+      series: [
+        { label: "Pression", color: themeColor("pressure"), values: pluck(rows, "pressure") },
+      ],
+    };
+  }
+
+  return {
+    title: "Couverture nuageuse",
+    unit: "%",
+    minValue: 0,
+    maxValue: 100,
+    series: [
+      { label: "Nuages", color: themeColor("cloud"), values: pluck(rows, "cloudCover") },
+    ],
+  };
+}
+
+function renderLegend(series, target = els.chartLegend) {
+  if (!target) return;
+  target.innerHTML = "";
   series.forEach((serie) => {
     const item = document.createElement("span");
     item.className = "legend-item";
     item.innerHTML = `<span class="legend-swatch"></span>${serie.label}`;
     item.querySelector(".legend-swatch").style.background = serie.color;
-    els.chartLegend.append(item);
+    target.append(item);
   });
 }
 
@@ -8025,6 +8188,7 @@ function saveSettings() {
     waterMode: state.waterMode,
     mobileView: state.activeMobileView,
     weatherSubtab: state.activeWeatherSubtab,
+    atmosphereChart: normalizeAtmosphereChart(state.activeAtmosphereChart),
     spotIndex: Number(els.spotPreset.value),
     spotName: spot.name,
     customName: state.selectedSpotName,
@@ -8204,6 +8368,7 @@ function normalizeSettings(settings) {
     waterMode: normalizeWaterMode(settings.waterMode),
     mobileView: normalizeMobileView(settings.mobileView),
     weatherSubtab: normalizeWeatherSubtab(settings.weatherSubtab ?? weatherSubtabFromMobileView(settings.mobileView)),
+    atmosphereChart: normalizeAtmosphereChart(settings.atmosphereChart),
     spotIndex: Number.isInteger(settings.spotIndex) ? settings.spotIndex : 0,
     spotName: typeof settings.spotName === "string" ? settings.spotName : "",
     customName: typeof settings.customName === "string" ? settings.customName : "",

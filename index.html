@@ -541,6 +541,21 @@ try {
       <div class="chart-legend" id="chartLegend"></div>
     </section>
 
+    <section class="atmosphere-chart-panel" data-mobile-view="weather" data-weather-subview="forces" aria-label="Ciel et baromètre">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Atmosphère</span>
+          <h2 id="atmosphereChartTitle">Couverture nuageuse</h2>
+        </div>
+        <div class="segmented atmosphere-segmented" role="tablist" aria-label="Vue atmosphère">
+          <button class="segment is-active" type="button" data-atmosphere-chart="cloud">Nuages</button>
+          <button class="segment" type="button" data-atmosphere-chart="pressure">Baromètre</button>
+        </div>
+      </div>
+      <canvas id="atmosphereChartCanvas" width="1180" height="360"></canvas>
+      <div class="chart-legend" id="atmosphereChartLegend"></div>
+    </section>
+
     <section class="rigging-panel" data-mobile-view="rigging" aria-label="Lestage">
       <div class="section-head">
         <div>
