@@ -44,14 +44,23 @@ def depth_current(
     start: str = Query(..., min_length=10),
     end: str = Query(..., min_length=10),
 ):
-    result = get_depth_current(
-        {
-            "latitude": latitude,
-            "longitude": longitude,
-            "depth": depth,
-            "start": start,
-            "end": end,
+    try:
+        result = get_depth_current(
+            {
+                "latitude": latitude,
+                "longitude": longitude,
+                "depth": depth,
+                "start": start,
+                "end": end,
+            }
+        )
+    except Exception as error:
+        result = {
+            "ok": False,
+            "error": "Erreur inattendue dans l'API Copernicus.",
+            "detail": str(error),
+            "errorType": error.__class__.__name__,
         }
-    )
+
     status_code = 200 if result.get("ok") else 503
     return JSONResponse(result, status_code=status_code)
