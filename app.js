@@ -2991,6 +2991,7 @@ function drawMarineOverlayMarkers(data) {
         tooltipAnchor: [0, -30],
       }),
       keyboard: false,
+      interactive: false,
       zIndexOffset: 180,
     });
 
@@ -3061,6 +3062,7 @@ function drawFocusedMarineOverlayMarker() {
       tooltipAnchor: [0, -34],
     }),
     keyboard: false,
+    interactive: false,
     zIndexOffset: 210,
   })
     .bindTooltip(`Centre carte · ${metric.tooltip}`, {
@@ -3984,11 +3986,23 @@ function bindEvents() {
 
   els.spotForm.addEventListener("submit", (event) => {
     event.preventDefault();
-    state.selectedSpotName = getSelectedPreset().custom ? getCustomSpotName() : getSelectedPreset().name;
-    centerMapOn(Number(els.latitude.value), Number(els.longitude.value));
+    const preset = getSelectedPreset();
+    const lat = Number(els.latitude.value);
+    const lon = Number(els.longitude.value);
+    if (!isValidNumber(lat) || !isValidNumber(lon)) {
+      setStatus("Coordonnées invalides", "error");
+      return;
+    }
+
+    const isPresetPosition = Math.abs(preset.lat - lat) < 0.00005 && Math.abs(preset.lon - lon) < 0.00005;
     setSpotPanelOpen(false);
-    renderSpotTools();
-    loadForecast();
+    if (preset.custom || !isPresetPosition) {
+      const name = preset.custom && state.selectedSpotName ? state.selectedSpotName : getCustomSpotName(lat, lon);
+      setCustomSpot(lat, lon, { load: true, name });
+      return;
+    }
+
+    selectSpot(Number(els.spotPreset.value), { load: true });
   });
 
   els.depth.addEventListener("input", () => {

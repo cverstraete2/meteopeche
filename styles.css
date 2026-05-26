@@ -853,6 +853,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .spot-form.is-hidden,
+.spot-form[aria-hidden="true"],
 .spot-form[hidden] {
   display: none;
 }
@@ -900,6 +901,11 @@ input[type="range"]::-moz-range-thumb {
   inset: 0;
 }
 
+.spot-map.is-leaflet .map-tiles,
+.spot-map.is-leaflet .map-markers {
+  pointer-events: none;
+}
+
 /* Leaflet overrides */
 .leaflet-container {
   font-family: var(--f-body) !important;
@@ -922,7 +928,7 @@ input[type="range"]::-moz-range-thumb {
   border-radius: var(--r-pill);
   border: 1px solid var(--glass-border);
   pointer-events: none;
-  z-index: 10;
+  z-index: 650;
 }
 
 .map-scale {
@@ -937,7 +943,7 @@ input[type="range"]::-moz-range-thumb {
   padding: 2px var(--sp-2);
   border-radius: var(--r-pill);
   border: 1px solid var(--glass-border);
-  z-index: 10;
+  z-index: 650;
   display: flex;
   align-items: center;
   gap: var(--sp-2);
@@ -950,7 +956,7 @@ input[type="range"]::-moz-range-thumb {
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
-  z-index: 20;
+  z-index: 700;
 }
 
 .map-control {
@@ -991,7 +997,7 @@ input[type="range"]::-moz-range-thumb {
   position: absolute;
   top: var(--sp-3);
   left: var(--sp-3);
-  z-index: 20;
+  z-index: 700;
 }
 
 .fish-filter-trigger {
@@ -1047,12 +1053,17 @@ input[type="range"]::-moz-range-thumb {
   display: none;
 }
 
+.marine-overlay-icon,
+.marine-overlay-icon * {
+  pointer-events: none;
+}
+
 /* Map layer sheet */
 .map-layer-sheet {
   position: absolute;
   inset: 0;
   background: var(--bg-elevated);
-  z-index: 30;
+  z-index: 900;
   display: flex;
   flex-direction: column;
   animation: fadeIn var(--dur-md) var(--ease-out);
@@ -1200,7 +1211,7 @@ input[type="range"]::-moz-range-thumb {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.5);
-  z-index: 25;
+  z-index: 850;
 }
 
 .map-layer-backdrop[hidden] {
@@ -1216,7 +1227,7 @@ input[type="range"]::-moz-range-thumb {
   background: var(--bg-elevated);
   border-radius: var(--r-lg) var(--r-lg) 0 0;
   padding: var(--sp-5) var(--sp-4);
-  z-index: 40;
+  z-index: 920;
   box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
