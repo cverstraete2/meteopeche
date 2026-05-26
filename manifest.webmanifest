@@ -1,6 +1,6 @@
 {
-  "name": "Météo Pêche",
-  "short_name": "Météo Pêche",
+  "name": "MeteoCatch",
+  "short_name": "MeteoCatch",
   "description": "Prévisions de pêche, météo marine, activité poisson et journal de prises.",
   "start_url": ".",
   "scope": ".",

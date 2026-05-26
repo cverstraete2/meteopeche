@@ -1,1 +1,1 @@
-"""Shared scripts for Meteo Peche."""
+"""Shared scripts for MeteoCatch."""

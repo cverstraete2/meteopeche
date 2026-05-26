@@ -2118,7 +2118,7 @@ async function sendTestNotification() {
         await notifications.createChannel({
           id: "fishing-alerts",
           name: "Alertes pêche",
-          description: "Rappels météo et sécurité Météo Pêche",
+          description: "Rappels météo et sécurité MeteoCatch",
           importance: 4,
           visibility: 1,
         });
@@ -2129,7 +2129,7 @@ async function sendTestNotification() {
     await notifications.schedule({
       notifications: [{
         id: Math.floor(Date.now() % 2147483647),
-        title: "Météo Pêche",
+        title: "MeteoCatch",
         body: "Les alertes de sortie sont activées.",
         channelId: "fishing-alerts",
         schedule: { at: new Date(Date.now() + 1500) },
@@ -2139,7 +2139,7 @@ async function sendTestNotification() {
   }
 
   if ("Notification" in window && Notification.permission === "granted") {
-    new Notification("Météo Pêche", { body: "Les alertes de sortie sont activées." });
+    new Notification("MeteoCatch", { body: "Les alertes de sortie sont activées." });
   }
 }
 

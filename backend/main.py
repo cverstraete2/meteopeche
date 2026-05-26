@@ -21,7 +21,7 @@ def allowed_origins():
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
-app = FastAPI(title="Meteo Peche Copernicus API", version="1.0.0")
+app = FastAPI(title="MeteoCatch Copernicus API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins(),

@@ -1,1 +1,1 @@
-"""Copernicus API package for Meteo Peche."""
+"""Copernicus API package for MeteoCatch."""

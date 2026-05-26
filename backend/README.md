@@ -1,4 +1,4 @@
-# API Copernicus Météo Pêche
+# API Copernicus MeteoCatch
 
 Ce service Python fournit `/api/depth-current` pour récupérer les courants `uo`/`vo` Copernicus Marine à la profondeur choisie par l'utilisateur.
 

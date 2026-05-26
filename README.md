@@ -1,4 +1,4 @@
-# Météo Pêche
+# MeteoCatch
 
 Application web locale pour consulter les conditions utiles à une sortie pêche:
 

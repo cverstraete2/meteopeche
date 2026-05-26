@@ -32,7 +32,7 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(port, host, () => {
-  console.log(`Météo Pêche: http://${host}:${port}`);
+  console.log(`MeteoCatch: http://${host}:${port}`);
 });
 
 async function handleDepthCurrent(url, response) {
