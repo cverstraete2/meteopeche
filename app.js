@@ -4350,6 +4350,9 @@ function setTimelineMinute(value) {
   state.timelineMinute = normalizeTimelineMinute(value);
   const selected = getSelectedDay();
   renderDayTimeline(selected);
+  renderConditionBrief(selected);
+  renderMetrics(selected);
+  renderWaterInsights(selected);
   renderActivity(selected);
   renderTides(selected);
   renderChart();
@@ -5164,22 +5167,22 @@ function renderConditionBrief(day) {
     els.conditionGoNoGo.className = "condition-go-nogo";
     els.conditionDecision.textContent = "--";
     els.conditionReason.textContent = "Données indisponibles.";
-    els.conditionScore.textContent = "--";
+    if (els.conditionScore) els.conditionScore.textContent = "--";
     els.conditionFacts.innerHTML = "";
     return;
   }
 
-  const score = dayActivityScore(day);
-  const goNoGo = weatherGoNoGo(day);
-  const decision = conditionDecision(day, score);
-  const facts = conditionFacts(day, score, goNoGo);
+  const sample = timelineSample(day);
+  const goNoGo = weatherGoNoGo(day, sample);
+  const decision = conditionDecision(day, sample, goNoGo);
+  const facts = conditionFacts(day, sample, goNoGo);
 
   els.conditionGoNoGo.textContent = goNoGo.label;
   els.conditionGoNoGo.className = `condition-go-nogo ${goNoGo.tone}`.trim();
   els.conditionGoNoGo.title = goNoGo.detail;
   els.conditionDecision.textContent = decision.title;
   els.conditionReason.textContent = goNoGo.tone === "good" ? decision.detail : `${goNoGo.detail} ${decision.detail}`;
-  els.conditionScore.textContent = String(score);
+  if (els.conditionScore) els.conditionScore.textContent = "";
   els.conditionFacts.innerHTML = "";
   els.conditionBrief.classList.toggle("is-good", goNoGo.tone === "good");
   els.conditionBrief.classList.toggle("is-warn", goNoGo.tone === "warn");
@@ -5193,9 +5196,12 @@ function renderConditionBrief(day) {
   });
 }
 
-function weatherGoNoGo(day) {
+function weatherGoNoGo(day, sample = timelineSample(day)) {
   const warnings = [];
   const blockers = [];
+  const rainValue = sample.precipitation ?? day.precipitationTotal;
+  const rainWarning = sample.precipitation == null ? (isSeaMode() ? 5 : 6) : 1.5;
+  const rainBlocker = sample.precipitation == null ? 15 : 5;
 
   const addLimit = (label, value, warningLimit, blockerLimit, unit, digits = 0) => {
     if (!isValidNumber(value)) return;
@@ -5204,14 +5210,13 @@ function weatherGoNoGo(day) {
     else if (value >= warningLimit) warnings.push(formatted);
   };
 
-  addLimit("Vent", day.windAvg, 16, 22, "kt");
-  addLimit("Rafales", day.windGustMax, 24, 32, "kt");
-  addLimit("Pluie", day.precipitationTotal, isSeaMode() ? 5 : 6, 15, "mm", 1);
+  addLimit("Vent", sample.windSpeed ?? day.windAvg, 16, 22, "kt");
+  addLimit("Rafales", sample.windGust ?? day.windGustMax, 24, 32, "kt");
+  addLimit("Pluie", rainValue, rainWarning, rainBlocker, "mm", 1);
 
   if (isSeaMode()) {
-    addLimit("Houle moy.", day.waveAvg, 0.9, 1.4, "m", 1);
-    addLimit("Houle max", day.waveMax, 1.2, 1.8, "m", 1);
-    addLimit("Courant", day.surfaceCurrent, 1, 1.5, "kt", 1);
+    addLimit("Houle", sample.waveHeight ?? day.waveAvg, 0.9, 1.4, "m", 1);
+    addLimit("Courant", sample.surfaceCurrent ?? day.surfaceCurrent, 1, 1.5, "kt", 1);
   } else if (day.turbidity) {
     if (day.turbidity.score >= 70) blockers.push(`Eau ${day.turbidity.label.toLowerCase()}`);
     else if (day.turbidity.score >= 45) warnings.push(`Eau ${day.turbidity.label.toLowerCase()}`);
@@ -5243,18 +5248,22 @@ function weatherGoNoGo(day) {
   };
 }
 
-function conditionDecision(day, score) {
-  const best = day.bestWindow?.label ?? "--";
+function conditionDecision(day, sample = timelineSample(day), goNoGo = weatherGoNoGo(day, sample)) {
+  const hour = formatHourCompact(selectedTimelineMinute());
+  const wind = sample.windSpeed ?? day.windAvg;
+  const gust = sample.windGust ?? day.windGustMax;
+  const wave = sample.waveHeight ?? day.waveAvg;
+  const current = sample.surfaceCurrent ?? day.surfaceCurrent;
 
   if (isSeaMode()) {
-    const roughSea = (day.waveMax ?? day.waveAvg ?? 0) >= 1.4 || (day.windGustMax ?? 0) >= 28;
-    const cleanWindow = score >= 62 && (day.windAvg ?? 99) <= 12 && (day.waveAvg ?? 99) <= 0.8;
+    const roughSea = (wave ?? 0) >= 1.4 || (gust ?? 0) >= 28;
+    const cleanWindow = goNoGo.tone === "good" && (wind ?? 99) <= 12 && (wave ?? 99) <= 0.8 && (current ?? 99) <= 1;
 
     if (roughSea) {
       return {
         tone: "bad",
         title: "Sortie prudente",
-        detail: `Mer ou rafales à surveiller. Si tu sors, vise ${best} et garde une zone abritée.`,
+        detail: `À ${hour}, mer ou rafales à surveiller. Garde une zone abritée et vérifie l'exposition du spot.`,
       };
     }
 
@@ -5262,106 +5271,107 @@ function conditionDecision(day, score) {
       return {
         tone: "good",
         title: "Créneau intéressant",
-        detail: `Activité correcte avec météo exploitable. Priorité au créneau ${best}.`,
+        detail: `À ${hour}, vent, houle et courant restent dans une fenêtre exploitable.`,
       };
     }
 
-    if (score < 42) {
+    if (goNoGo.tone === "warn") {
       return {
         tone: "warn",
-        title: "Activité limitée",
-        detail: `Conditions praticables, mais le poisson risque d'être discret. Cherche les bordures actives autour de ${best}.`,
+        title: "Conditions à affiner",
+        detail: `À ${hour}, la sortie reste possible mais dépend de l'abri, de la dérive et de la tenue au fond.`,
       };
     }
 
     return {
       tone: "warn",
       title: "Conditions correctes",
-      detail: `Sortie possible, à affiner avec courant, houle et exposition du spot. Meilleur repère: ${best}.`,
+      detail: `À ${hour}, les signaux sont exploitables sans marge énorme. Vérifie le courant et la houle sur place.`,
     };
   }
 
-  const heavyRain = (day.precipitationTotal ?? 0) >= 8 || day.turbidity?.score >= 62;
+  const heavyRain = (sample.precipitation ?? day.precipitationTotal ?? 0) >= 5 || day.turbidity?.score >= 62;
   const pressureDrop = (day.pressureTrend ?? 0) <= -3;
 
   if (heavyRain) {
     return {
       tone: "bad",
       title: "Eau à surveiller",
-      detail: `Pluie ou turbidité élevée: privilégie les zones calmes, arrivées d'eau et bordures abritées.`,
+      detail: `À ${hour}, pluie ou turbidité élevée: privilégie zones calmes, arrivées d'eau et bordures abritées.`,
     };
   }
 
-  if (score >= 62 || pressureDrop) {
+  if (goNoGo.tone === "good" || pressureDrop) {
     return {
       tone: "good",
-      title: "Fenêtre carnassier",
-      detail: `Pression et lumière intéressantes. Priorité au créneau ${best}.`,
-    };
-  }
-
-  if (score < 42) {
-    return {
-      tone: "warn",
-      title: "Activité douce",
-      detail: `Pêche plus lente probable. Réduis les animations et cible les postes marqués.`,
+      title: "Fenêtre exploitable",
+      detail: `À ${hour}, météo et pression restent cohérentes pour tenter les postes marqués.`,
     };
   }
 
   return {
     tone: "warn",
     title: "Conditions stables",
-    detail: `Sortie possible, sans signal fort. Cherche les changements de profondeur et les zones d'ombre.`,
+    detail: `À ${hour}, sortie possible sans signal fort. Cherche les changements de profondeur et les zones d'ombre.`,
   };
 }
 
-function conditionFacts(day, score, goNoGo = weatherGoNoGo(day)) {
+function conditionFacts(day, sample = timelineSample(day), goNoGo = weatherGoNoGo(day, sample)) {
+  const minute = selectedTimelineMinute();
+  const thermalRange = timelineThermalFrontRange(day, minute);
   const facts = [
     {
-      label: "Avis",
-      value: goNoGo.label,
-      tone: goNoGo.tone === "good" ? "" : goNoGo.tone,
-    },
-    {
-      label: "Score",
-      value: `${score}/100`,
-      tone: scoreClass(score),
-    },
-    {
       label: "Créneau",
-      value: day.bestWindow?.label ?? "--",
+      value: formatHourCompact(minute),
     },
   ];
 
   if (isSeaMode()) {
     facts.push(
       {
+        label: "Air",
+        value: formatTemperatureBrief(sample.airTemperature ?? day.airTemperature),
+      },
+      {
+        label: "SST",
+        value: formatTemperatureBrief(sample.seaTemperature ?? day.seaTemperature),
+      },
+      {
+        label: "Front thermique",
+        value: `${thermalFrontLabel(thermalRange)}${isValidNumber(thermalRange) ? ` · ${formatNumber(thermalRange, 1)} °C` : ""}`,
+        tone: (thermalRange ?? 0) >= 1.2 ? "warn" : "",
+      },
+      {
         label: "Vent",
-        value: `${formatNumber(day.windAvg, 0)} kt`,
-        tone: (day.windAvg ?? 0) >= 22 ? "bad" : (day.windAvg ?? 0) >= 16 ? "warn" : "",
+        value: `${formatNumber(sample.windSpeed ?? day.windAvg, 0)} kt`,
+        tone: (sample.windSpeed ?? day.windAvg ?? 0) >= 22 ? "bad" : (sample.windSpeed ?? day.windAvg ?? 0) >= 16 ? "warn" : "",
       },
       {
         label: "Houle",
-        value: `${formatNumber(day.waveAvg, 1)} m`,
-        tone: (day.waveAvg ?? 0) >= 1.4 ? "bad" : (day.waveAvg ?? 0) >= 0.9 ? "warn" : "",
+        value: `${formatNumber(sample.waveHeight ?? day.waveAvg, 1)} m`,
+        tone: (sample.waveHeight ?? day.waveAvg ?? 0) >= 1.4 ? "bad" : (sample.waveHeight ?? day.waveAvg ?? 0) >= 0.9 ? "warn" : "",
       },
       {
         label: "Courant",
-        value: `${formatNumber(day.surfaceCurrent, 1)} kt`,
-        tone: (day.surfaceCurrent ?? 0) >= 1.5 ? "bad" : (day.surfaceCurrent ?? 0) >= 1 ? "warn" : "",
+        value: `${formatNumber(sample.surfaceCurrent ?? day.surfaceCurrent, 1)} kt`,
+        tone: (sample.surfaceCurrent ?? day.surfaceCurrent ?? 0) >= 1.5 ? "bad" : (sample.surfaceCurrent ?? day.surfaceCurrent ?? 0) >= 1 ? "warn" : "",
       },
     );
   } else {
     facts.push(
       {
+        label: "Air",
+        value: formatTemperatureBrief(sample.airTemperature ?? day.airTemperature),
+      },
+      {
         label: "Pression",
-        value: formatPressureTrend(day.pressureTrend).replace("tendance ", ""),
+        value: `${formatNumber(sample.pressure ?? day.pressureAvg, 0)} hPa`,
         tone: (day.pressureTrend ?? 0) <= -3 ? "" : "warn",
       },
       {
         label: "Pluie",
-        value: `${formatNumber(day.precipitationTotal, 1)} mm`,
-        tone: (day.precipitationTotal ?? 0) >= 8 ? "bad" : "",
+        value: `${formatNumber(sample.precipitation ?? day.precipitationTotal, 1)} mm`,
+        tone: (sample.precipitation ?? day.precipitationTotal ?? 0) >= 5 ? "bad" : "",
       },
       {
         label: "Eau",
@@ -5380,37 +5390,53 @@ function renderMetrics(day) {
     return;
   }
 
+  const sample = timelineSample(day);
+  const hour = formatHourCompact(selectedTimelineMinute());
+  const surfaceCurrent = sample.surfaceCurrent ?? day.surfaceCurrent;
+  const surfaceDirection = sample.currentDirection ?? day.surfaceCurrentDirection;
+  const depthCurrent = sample.depthCurrent ?? day.depthCurrent;
+  const waveHeight = sample.waveHeight ?? day.waveAvg;
+  const waveDirection = sample.waveDirection ?? day.waveDirection;
+  const wavePeriod = sample.wavePeriod ?? day.wavePeriod;
+  const windSpeed = sample.windSpeed ?? day.windAvg;
+  const windDirection = sample.windDirection ?? day.windDirection;
+  const windGust = sample.windGust ?? day.windGustMax;
+  const pressure = sample.pressure ?? day.pressureAvg;
+  const precipitation = sample.precipitation ?? day.precipitationTotal;
+  const cloudCover = sample.cloudCover ?? day.cloudCoverAvg;
+  const airTemperature = sample.airTemperature ?? day.airTemperature;
+
   const metrics = isSeaMode()
     ? [
         {
           label: "Courant surface",
           shortLabel: "Surface",
-          value: `${formatNumber(day.surfaceCurrent, 1)} kt`,
-          detail: `vers ${compassLabel(day.surfaceCurrentDirection)} · moy. journée`,
+          value: `${formatNumber(surfaceCurrent, 1)} kt`,
+          detail: `vers ${compassLabel(surfaceDirection)} · ${hour}`,
           color: "current",
           icon: currentIcon(),
         },
         {
           label: "Courant profondeur",
           shortLabel: "Profondeur",
-          value: `${formatNumber(day.depthCurrent, 1)} kt`,
-          detail: depthDetail(day),
+          value: `${formatNumber(depthCurrent, 1)} kt`,
+          detail: depthDetail(day, sample),
           color: "depth",
           icon: depthIcon(),
         },
         {
           label: "Houle totale",
           shortLabel: "Houle",
-          value: `${formatNumber(day.waveAvg, 1)} m`,
-          detail: `de ${compassLabel(day.waveDirection)} · ${formatNumber(day.wavePeriod, 0)} s`,
+          value: `${formatNumber(waveHeight, 1)} m`,
+          detail: `de ${compassLabel(waveDirection)} · ${formatNumber(wavePeriod, 0)} s · ${hour}`,
           color: "wave",
           icon: waveIcon(),
         },
         {
           label: "Vent moyen",
           shortLabel: "Vent",
-          value: `${formatNumber(day.windAvg, 0)} kt`,
-          detail: `de ${compassLabel(day.windDirection)} · raf. ${formatNumber(day.windGustMax, 0)} kt`,
+          value: `${formatNumber(windSpeed, 0)} kt`,
+          detail: `de ${compassLabel(windDirection)} · raf. ${formatNumber(windGust, 0)} kt · ${hour}`,
           color: "wind",
           icon: windIcon(),
         },
@@ -5419,32 +5445,32 @@ function renderMetrics(day) {
         {
           label: "Vent moyen",
           shortLabel: "Vent",
-          value: `${formatNumber(day.windAvg, 0)} kt`,
-          detail: `de ${compassLabel(day.windDirection)} · raf. ${formatNumber(day.windGustMax, 0)} kt`,
+          value: `${formatNumber(windSpeed, 0)} kt`,
+          detail: `de ${compassLabel(windDirection)} · raf. ${formatNumber(windGust, 0)} kt · ${hour}`,
           color: "wind",
           icon: windIcon(),
         },
         {
           label: "Pression",
           shortLabel: "Pression",
-          value: `${formatNumber(day.pressureAvg, 0)} hPa`,
-          detail: `${formatPressureTrend(day.pressureTrend)} · moyenne journée`,
+          value: `${formatNumber(pressure, 0)} hPa`,
+          detail: `${formatPressureTrend(day.pressureTrend)} · ${hour}`,
           color: "pressure",
           icon: pressureIcon(),
         },
         {
-          label: "Pluie 24h",
+          label: "Pluie",
           shortLabel: "Pluie",
-          value: `${formatNumber(day.precipitationTotal, 1)} mm`,
-          detail: "indice turbidité à affiner au Ticket 5",
+          value: `${formatNumber(precipitation, 1)} mm`,
+          detail: `${hour} · indice turbidité à affiner au Ticket 5`,
           color: "rain",
           icon: rainIcon(),
         },
         {
           label: "Nuages",
           shortLabel: "Nuages",
-          value: `${formatNumber(day.cloudCoverAvg, 0)} %`,
-          detail: `air ${formatNumber(day.airTemperature, 1)} °C · moyenne`,
+          value: `${formatNumber(cloudCover, 0)} %`,
+          detail: `air ${formatNumber(airTemperature, 1)} °C · ${hour}`,
           color: "cloud",
           icon: cloudIcon(),
         },
@@ -5475,59 +5501,8 @@ function renderMetrics(day) {
 
 function renderWaterInsights(day) {
   if (!els.waterInsights) return;
-
-  if (!day) {
-    els.waterInsights.innerHTML = "";
-    return;
-  }
-
-  const insights = isSeaMode()
-    ? [
-        {
-          label: "Marée",
-          value: tideRangeLabel(day.seaLevelRange),
-          detail: tideSummary(day),
-        },
-        {
-          label: "SST",
-          value: `${formatNumber(day.seaTemperature, 1)} °C`,
-          detail: seaTemperatureDetail(day),
-        },
-        {
-          label: "Front thermique",
-          value: thermalFrontLabel(day.seaTemperatureRange),
-          detail: `écart jour ${formatNumber(day.seaTemperatureRange, 1)} °C`,
-        },
-      ]
-    : [
-        {
-          label: "Turbidité",
-          value: day.turbidity.label,
-          detail: day.turbidity.detail,
-        },
-        {
-          label: "Pression",
-          value: formatPressureTrend(day.pressureTrend).replace("tendance ", ""),
-          detail: pressureFishingHint(day.pressureTrend),
-        },
-        {
-          label: "Pluie",
-          value: `${formatNumber(day.precipitationTotal, 1)} mm`,
-          detail: "cumul 24 h estimé",
-        },
-      ];
-
   els.waterInsights.innerHTML = "";
-  insights.forEach((insight) => {
-    const card = document.createElement("article");
-    card.className = "water-insight";
-    card.innerHTML = `
-      <span>${escapeHtml(insight.label)}</span>
-      <strong>${escapeHtml(insight.value)}</strong>
-      <small>${escapeHtml(insight.detail)}</small>
-    `;
-    els.waterInsights.append(card);
-  });
+  els.waterInsights.hidden = true;
 }
 
 function renderDayTimeline(day) {
@@ -5542,13 +5517,16 @@ function renderDayTimeline(day) {
   const sample = timelineSample(day, minute);
   const tide = isSeaMode() ? `Marée ${formatTideHeight(sample.seaLevel)}` : `Air ${formatTemperatureBrief(sample.airTemperature)}`;
   const water = `Eau ${formatTemperatureBrief(sample.seaTemperature ?? dailyWaterTemperature(day))}`;
-  const activity = `Activité ${formatNumber(sample.score, 0)}/100`;
+  const wind = `Vent ${formatNumber(sample.windSpeed ?? day.windAvg, 0)} kt`;
+  const movement = isSeaMode()
+    ? `Houle ${formatNumber(sample.waveHeight ?? day.waveAvg, 1)} m`
+    : `Pluie ${formatNumber(sample.precipitation ?? day.precipitationTotal, 1)} mm`;
 
   els.dayTimeline.hidden = false;
   els.dayTimeRange.value = String(minute);
   els.dayTimeRange.style.setProperty("--timeline-progress", `${(minute / 1425) * 100}%`);
   els.dayTimelineTime.textContent = formatHourCompact(minute);
-  els.dayTimelineDetail.textContent = [tide, water, activity].join(" · ");
+  els.dayTimelineDetail.textContent = [tide, water, wind, movement].join(" · ");
 }
 
 function renderRiggingCalculator(day) {
@@ -5632,12 +5610,14 @@ function setNumberInputValue(input, value, digits) {
   input.value = isValidNumber(value) ? Number(value).toFixed(digits).replace(/\.0$/, "") : "";
 }
 
-function depthDetail(day) {
+function depthDetail(day, sample = null) {
   const depth = formatNumber(day.actualDepth ?? state.depth, 0);
-  const direction = compassLabel(day.depthDirection);
+  const direction = compassLabel(sample?.depthDirection ?? day.depthDirection);
+  const source = sample?.depthSource ?? day.depthSource;
+  const value = sample?.depthCurrent ?? day.depthCurrent;
 
-  if (day.depthSource === "copernicus") {
-    return `Copernicus ${depth} m · vers ${direction}`;
+  if (source === "copernicus" && isValidNumber(value)) {
+    return `Copernicus ${depth} m · vers ${direction} · ${formatHourCompact(selectedTimelineMinute())}`;
   }
 
   return state.realDepthError ? "Copernicus indisponible" : "En attente Copernicus";
@@ -5669,6 +5649,17 @@ function thermalFrontLabel(range) {
   return "Faible";
 }
 
+function timelineThermalFrontRange(day, minute = selectedTimelineMinute()) {
+  const rows = (day?.rows ?? [])
+    .map((row) => ({ row, minute: minutesFromClockOrNull(row.hour) }))
+    .filter((point) => point.minute != null && isValidNumber(point.row.seaTemperature));
+  if (!rows.length) return day?.seaTemperatureRange ?? null;
+
+  const windowRows = rows.filter((point) => Math.abs(point.minute - minute) <= 120);
+  const values = (windowRows.length >= 2 ? windowRows : rows).map((point) => point.row.seaTemperature);
+  return valueRange(values) ?? day?.seaTemperatureRange ?? null;
+}
+
 function tideRangeLabel(range) {
   if (!isValidNumber(range)) return "--";
   if (range >= 4) return "Fort";
@@ -5688,7 +5679,7 @@ function tideSummary(day) {
 }
 
 function renderTides(day) {
-  if (!els.tideCanvas || !els.tideSummaryGrid || !els.tideEventsList) return;
+  if (!els.tideCanvas || !els.tideSummaryGrid) return;
 
   if (els.tideLocation) {
     els.tideLocation.textContent = `${getActiveSpot().name} · ${day?.shortLabel ?? "--"}`;
@@ -5702,7 +5693,7 @@ function renderTides(day) {
       ["Pleine mer", "--", "Station marine indisponible"],
       ["Basse mer", "--", "Station marine indisponible"],
     ]);
-    els.tideEventsList.innerHTML = "";
+    if (els.tideEventsList) els.tideEventsList.innerHTML = "";
     return;
   }
 
@@ -5746,7 +5737,7 @@ function renderTides(day) {
   }
 
   els.tideSummaryGrid.innerHTML = summaryCards(summary);
-  renderTideEvents(rows, extrema);
+  if (els.tideEventsList) els.tideEventsList.innerHTML = "";
 }
 
 function tideRows(day) {
@@ -6443,7 +6434,6 @@ function drawCompassStatusBadge(ctx, width, day) {
   const theme = canvasTheme();
   const minute = selectedTimelineMinute();
   const sample = timelineSample(day, minute);
-  const score = sample.score ?? dayActivityScore(day);
   const waterTemperature = sample.seaTemperature ?? dailyWaterTemperature(day);
   const lines = [
     {
@@ -6452,14 +6442,9 @@ function drawCompassStatusBadge(ctx, width, day) {
       color: theme.ink,
     },
     {
-      text: `Eau ${formatTemperatureBrief(waterTemperature)}`,
+      text: `Air ${formatTemperatureBrief(sample.airTemperature ?? day.airTemperature)} · Eau ${formatTemperatureBrief(waterTemperature)}`,
       font: "800 11px Inter, system-ui, sans-serif",
       color: theme.muted,
-    },
-    {
-      text: `Activité ${Math.round(score)}/100`,
-      font: "800 11px Inter, system-ui, sans-serif",
-      color: themeColor("current"),
     },
   ];
 
@@ -6471,7 +6456,7 @@ function drawCompassStatusBadge(ctx, width, day) {
     textWidth = Math.max(textWidth, ctx.measureText(line.text).width);
   });
   const badgeWidth = Math.min(width - 24, textWidth + paddingX * 2);
-  const badgeHeight = 62;
+  const badgeHeight = 48;
   const x = width - badgeWidth - 12;
   const y = 12;
 
@@ -6999,13 +6984,18 @@ function defaultTimelineMinute(day) {
 function timelineSample(day, minute = selectedTimelineMinute()) {
   const activity = activityRows(day, state.activityFish);
   const nearest = nearestTimelineRow(activity, minute) ?? activity[0] ?? null;
+  const nearestWeatherRow = nearestTimelineRow(day?.rows, minute) ?? day?.rows?.[0] ?? null;
 
   return {
     row: nearest,
+    weatherRow: nearestWeatherRow,
     score: interpolateTimelineValue(activity, minute, "score") ?? nearest?.score ?? dayActivityScore(day),
     airTemperature: interpolateTimelineValue(day.rows, minute, "airTemperature"),
     seaTemperature: interpolateTimelineValue(day.rows, minute, "seaTemperature"),
     seaLevel: interpolateTimelineValue(day.rows, minute, "seaLevel"),
+    pressure: interpolateTimelineValue(day.rows, minute, "pressure"),
+    cloudCover: interpolateTimelineValue(day.rows, minute, "cloudCover"),
+    precipitation: interpolateTimelineValue(day.rows, minute, "precipitation"),
     windSpeed: interpolateTimelineValue(day.rows, minute, "windSpeed"),
     windDirection: interpolateTimelineDirection(day.rows, minute, "windDirection"),
     windGust: interpolateTimelineValue(day.rows, minute, "windGust"),
@@ -7018,6 +7008,7 @@ function timelineSample(day, minute = selectedTimelineMinute()) {
     currentDirection: interpolateTimelineDirection(day.rows, minute, "currentDirection"),
     depthCurrent: interpolateTimelineValue(day.rows, minute, "depthCurrent"),
     depthDirection: interpolateTimelineDirection(day.rows, minute, "depthDirection"),
+    depthSource: nearestWeatherRow?.depthSource ?? day.depthSource,
   };
 }
 
