@@ -22,6 +22,8 @@ const WEATHER_SUBTABS = ["overview", "forces", "sun", "tides"];
 const ATMOSPHERE_CHARTS = ["cloud", "pressure"];
 const MARINE_OVERLAY_MODES = ["none", "surface", "depth", "wave"];
 const THEME_MODES = ["light", "dark"];
+const PHOTO_MAX_EDGE = 1280;
+const PHOTO_JPEG_QUALITY = 0.76;
 const waterModeConfig = {
   [WATER_MODES.SEA]: {
     label: "Mer",
@@ -1418,6 +1420,17 @@ const state = {
   riggingDirty: false,
   renamingFavoriteId: null,
   pendingSpot: null,
+  onboardingCompleted: false,
+  privacyAccepted: false,
+  notificationsEnabled: false,
+  native: {
+    isNative: Boolean(window.Capacitor?.isNativePlatform?.()),
+    online: navigator.onLine !== false,
+    offlineReady: false,
+    gpsPermission: "prompt",
+    notificationPermission: "prompt",
+  },
+  pendingCatchMedia: [],
 };
 
 const els = {
@@ -1427,6 +1440,16 @@ const els = {
   weatherSubtabButtons: [...document.querySelectorAll("[data-weather-tab]")],
   weatherSubviewSections: [...document.querySelectorAll("[data-weather-subview]")],
   main: document.querySelector("main"),
+  onboardingScreen: document.querySelector("#onboardingScreen"),
+  onboardingClose: document.querySelector("#onboardingClose"),
+  onboardingGpsButton: document.querySelector("#onboardingGpsButton"),
+  onboardingNotificationButton: document.querySelector("#onboardingNotificationButton"),
+  onboardingDone: document.querySelector("#onboardingDone"),
+  onboardingLater: document.querySelector("#onboardingLater"),
+  onboardingGpsStatus: document.querySelector("#onboardingGpsStatus"),
+  onboardingNotificationStatus: document.querySelector("#onboardingNotificationStatus"),
+  onboardingOfflineStatus: document.querySelector("#onboardingOfflineStatus"),
+  onboardingOnlineBadge: document.querySelector("#onboardingOnlineBadge"),
   spotControls: document.querySelector("#spotControls"),
   spotPanelButton: document.querySelector("#spotPanelButton"),
   spotPanelClose: document.querySelector("#spotPanelClose"),
@@ -1448,6 +1471,15 @@ const els = {
   preferenceDepthOutput: document.querySelector("#preferenceDepthOutput"),
   preferenceSummary: document.querySelector("#preferenceSummary"),
   preferencesBack: document.querySelector("#preferencesBack"),
+  nativeGpsStatus: document.querySelector("#nativeGpsStatus"),
+  nativeNotificationStatus: document.querySelector("#nativeNotificationStatus"),
+  nativeOfflineStatus: document.querySelector("#nativeOfflineStatus"),
+  nativeOnlineBadge: document.querySelector("#nativeOnlineBadge"),
+  nativePrivacyStatus: document.querySelector("#nativePrivacyStatus"),
+  nativeGpsButton: document.querySelector("#nativeGpsButton"),
+  nativeNotificationButton: document.querySelector("#nativeNotificationButton"),
+  nativePrivacyButton: document.querySelector("#nativePrivacyButton"),
+  nativeOnboardingButton: document.querySelector("#nativeOnboardingButton"),
   activityFish: document.querySelector("#activityFish"),
   activityRing: document.querySelector("#activityRing"),
   activityScore: document.querySelector("#activityScore"),
@@ -1471,6 +1503,9 @@ const els = {
   catchLength: document.querySelector("#catchLength"),
   catchWeight: document.querySelector("#catchWeight"),
   catchNotes: document.querySelector("#catchNotes"),
+  catchPhotoInput: document.querySelector("#catchPhotoInput"),
+  catchPhotoButton: document.querySelector("#catchPhotoButton"),
+  catchPhotoPreview: document.querySelector("#catchPhotoPreview"),
   catchLogList: document.querySelector("#catchLogList"),
   conditionBrief: document.querySelector("#conditionBrief"),
   conditionGoNoGo: document.querySelector("#conditionGoNoGo"),
@@ -1591,6 +1626,7 @@ function init() {
   populateSpots();
   restoreState();
   applyTheme();
+  initNativeAppShell();
   state.favorites = readFavorites();
   populateActivityFish();
   populateCatchSpecies();
@@ -1604,6 +1640,9 @@ function init() {
   applyMobileNavigationUI();
   renderSpotTools();
   renderPreferenceControls();
+  renderNativeStatus();
+  renderCatchPhotoPreview();
+  maybeShowOnboarding();
   loadForecast();
 }
 
@@ -1838,6 +1877,9 @@ function restoreState() {
   state.activityFish = normalizeActivityFish(saved.activityFish);
   state.theme = normalizeTheme(saved.theme);
   state.profile = normalizeProfile(saved.profile);
+  state.onboardingCompleted = Boolean(saved.onboardingCompleted);
+  state.privacyAccepted = Boolean(saved.privacyAccepted);
+  state.notificationsEnabled = Boolean(saved.notificationsEnabled);
 }
 
 function applyTheme(options = {}) {
@@ -1848,6 +1890,339 @@ function applyTheme(options = {}) {
   if (options.render) {
     renderAll();
   }
+}
+
+function initNativeAppShell() {
+  state.native.isNative = Boolean(window.Capacitor?.isNativePlatform?.());
+  document.documentElement.classList.toggle("is-native-app", state.native.isNative);
+  initOfflineSupport();
+  syncNativePermissions();
+}
+
+function getCapacitorPlugin(globalName, pluginName) {
+  return window.Capacitor?.Plugins?.[pluginName] ?? window[globalName]?.[pluginName] ?? null;
+}
+
+function getGeolocationPlugin() {
+  return getCapacitorPlugin("capacitorGeolocationPluginCapacitor", "Geolocation");
+}
+
+function getCameraPlugin() {
+  return getCapacitorPlugin("capacitorCamera", "Camera");
+}
+
+function getNetworkPlugin() {
+  return getCapacitorPlugin("capacitorNetwork", "Network");
+}
+
+function getNotificationPlugin() {
+  return getCapacitorPlugin("capacitorLocalNotifications", "LocalNotifications");
+}
+
+async function initOfflineSupport() {
+  state.native.online = navigator.onLine !== false;
+  renderNativeStatus();
+
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    try {
+      const registration = await navigator.serviceWorker.register("sw.js");
+      await navigator.serviceWorker.ready;
+      state.native.offlineReady = Boolean(registration.active || registration.waiting || registration.installing);
+    } catch (error) {
+      console.warn("Service worker unavailable", error);
+      state.native.offlineReady = false;
+    }
+    renderNativeStatus();
+  }
+
+  window.addEventListener("online", () => setOnlineState(true));
+  window.addEventListener("offline", () => setOnlineState(false));
+
+  const network = getNetworkPlugin();
+  if (network?.getStatus) {
+    try {
+      const status = await network.getStatus();
+      setOnlineState(Boolean(status.connected), { silent: true });
+    } catch {
+      // Web previews can expose a partial Network plugin.
+    }
+  }
+  if (network?.addListener) {
+    try {
+      await network.addListener("networkStatusChange", (status) => {
+        setOnlineState(Boolean(status.connected));
+      });
+    } catch {
+      // Native listener is best-effort.
+    }
+  }
+}
+
+function setOnlineState(online, options = {}) {
+  state.native.online = Boolean(online);
+  if (!state.native.online && !options.silent) setStatus("Offline", "offline");
+  if (state.native.online && els.statusPill?.classList.contains("is-offline")) setStatus("Prêt", "ready");
+  renderNativeStatus();
+}
+
+async function syncNativePermissions() {
+  await Promise.allSettled([syncGpsPermission(), syncNotificationPermission()]);
+  renderNativeStatus();
+}
+
+async function syncGpsPermission() {
+  const geolocation = getGeolocationPlugin();
+  if (geolocation?.checkPermissions) {
+    try {
+      const result = await geolocation.checkPermissions();
+      state.native.gpsPermission = normalizePermissionState(result.location ?? result.coarseLocation);
+      return state.native.gpsPermission;
+    } catch {
+      // Fall through to browser permissions.
+    }
+  }
+
+  if (navigator.permissions?.query) {
+    try {
+      const result = await navigator.permissions.query({ name: "geolocation" });
+      state.native.gpsPermission = normalizePermissionState(result.state);
+      result.onchange = () => {
+        state.native.gpsPermission = normalizePermissionState(result.state);
+        renderNativeStatus();
+      };
+      return state.native.gpsPermission;
+    } catch {
+      // Some browsers do not support geolocation in Permissions API.
+    }
+  }
+
+  state.native.gpsPermission = navigator.geolocation ? "prompt" : "unavailable";
+  return state.native.gpsPermission;
+}
+
+async function syncNotificationPermission() {
+  const notifications = getNotificationPlugin();
+  if (notifications?.checkPermissions) {
+    try {
+      const result = await notifications.checkPermissions();
+      state.native.notificationPermission = normalizePermissionState(result.display);
+      return state.native.notificationPermission;
+    } catch {
+      // Fall through to browser notifications.
+    }
+  }
+
+  if ("Notification" in window) {
+    state.native.notificationPermission = normalizePermissionState(Notification.permission);
+  } else {
+    state.native.notificationPermission = "unavailable";
+  }
+  return state.native.notificationPermission;
+}
+
+async function requestGpsPermission() {
+  setStatus("GPS", "loading");
+  const geolocation = getGeolocationPlugin();
+
+  try {
+    if (state.native.isNative && geolocation?.requestPermissions) {
+      const result = await geolocation.requestPermissions({ permissions: ["location"] });
+      state.native.gpsPermission = normalizePermissionState(result.location ?? result.coarseLocation);
+    }
+
+    const position = await getCurrentPosition();
+    applyPositionToSpot(position.coords.latitude, position.coords.longitude, "Ma position");
+    state.native.gpsPermission = "granted";
+    renderNativeStatus();
+    setStatus("GPS actif", "ready");
+    loadForecast();
+  } catch (error) {
+    console.warn("Location permission failed", error);
+    await syncGpsPermission();
+    setStatus("GPS refusé", "error");
+    renderNativeStatus();
+  }
+}
+
+async function getCurrentPosition() {
+  const geolocation = getGeolocationPlugin();
+  if (state.native.isNative && geolocation?.getCurrentPosition) {
+    return geolocation.getCurrentPosition({
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 900000,
+    });
+  }
+
+  if (!navigator.geolocation) {
+    throw new Error("Localisation indisponible.");
+  }
+
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 900000,
+    });
+  });
+}
+
+function applyPositionToSpot(lat, lon, name = "Ma position") {
+  els.latitude.value = Number(lat).toFixed(4);
+  els.longitude.value = Number(lon).toFixed(4);
+  els.spotPreset.value = String(spots.length - 1);
+  state.selectedSpotName = name;
+  centerMapOn(Number(els.latitude.value), Number(els.longitude.value));
+  renderSpotTools();
+  saveSettings();
+}
+
+async function requestNotificationPermission() {
+  const notifications = getNotificationPlugin();
+  setStatus("Notifications", "loading");
+
+  try {
+    if (notifications?.requestPermissions) {
+      const result = await notifications.requestPermissions();
+      state.native.notificationPermission = normalizePermissionState(result.display);
+    } else if ("Notification" in window) {
+      const result = await Notification.requestPermission();
+      state.native.notificationPermission = normalizePermissionState(result);
+    } else {
+      state.native.notificationPermission = "unavailable";
+    }
+
+    state.notificationsEnabled = state.native.notificationPermission === "granted";
+    saveSettings();
+    renderNativeStatus();
+
+    if (state.notificationsEnabled) {
+      await sendTestNotification();
+      setStatus("Notifications actives", "ready");
+    } else {
+      setStatus("Notifications refusées", "warning");
+    }
+  } catch (error) {
+    console.warn("Notification permission failed", error);
+    await syncNotificationPermission();
+    setStatus("Notifications refusées", "error");
+    renderNativeStatus();
+  }
+}
+
+async function sendTestNotification() {
+  const notifications = getNotificationPlugin();
+  if (state.native.isNative && notifications?.schedule) {
+    if (notifications.createChannel) {
+      try {
+        await notifications.createChannel({
+          id: "fishing-alerts",
+          name: "Alertes pêche",
+          description: "Rappels météo et sécurité Météo Pêche",
+          importance: 4,
+          visibility: 1,
+        });
+      } catch {
+        // iOS and web do not use Android notification channels.
+      }
+    }
+    await notifications.schedule({
+      notifications: [{
+        id: Math.floor(Date.now() % 2147483647),
+        title: "Météo Pêche",
+        body: "Les alertes de sortie sont activées.",
+        channelId: "fishing-alerts",
+        schedule: { at: new Date(Date.now() + 1500) },
+      }],
+    });
+    return;
+  }
+
+  if ("Notification" in window && Notification.permission === "granted") {
+    new Notification("Météo Pêche", { body: "Les alertes de sortie sont activées." });
+  }
+}
+
+function normalizePermissionState(value) {
+  if (value === "granted" || value === "denied" || value === "prompt" || value === "prompt-with-rationale") {
+    return value === "prompt-with-rationale" ? "prompt" : value;
+  }
+  return value ? String(value) : "prompt";
+}
+
+function permissionLabel(value) {
+  if (value === "granted") return "Autorisé";
+  if (value === "denied") return "Refusé";
+  if (value === "unavailable") return "Indisponible";
+  return "À configurer";
+}
+
+function renderNativeStatus() {
+  const gpsLabel = permissionLabel(state.native.gpsPermission);
+  const notificationLabel = state.notificationsEnabled
+    ? "Actives"
+    : permissionLabel(state.native.notificationPermission);
+  const offlineLabel = state.native.offlineReady ? "Écran principal disponible hors ligne" : "Cache en préparation";
+  const privacyLabel = state.privacyAccepted ? "Validée" : "À valider";
+  const onlineLabel = state.native.online ? "En ligne" : "Offline";
+
+  setText(els.nativeGpsStatus, gpsLabel);
+  setText(els.onboardingGpsStatus, gpsLabel);
+  setText(els.nativeNotificationStatus, notificationLabel);
+  setText(els.onboardingNotificationStatus, notificationLabel);
+  setText(els.nativeOfflineStatus, offlineLabel);
+  setText(els.onboardingOfflineStatus, offlineLabel);
+  setText(els.nativePrivacyStatus, privacyLabel);
+
+  [els.nativeOnlineBadge, els.onboardingOnlineBadge].forEach((badge) => {
+    if (!badge) return;
+    badge.textContent = onlineLabel;
+    badge.classList.toggle("is-offline", !state.native.online);
+  });
+
+  togglePermissionButton(els.nativeGpsButton, state.native.gpsPermission === "granted", "Autorisé", "Autoriser");
+  togglePermissionButton(els.onboardingGpsButton, state.native.gpsPermission === "granted", "Autorisé", "Autoriser");
+  togglePermissionButton(els.nativeNotificationButton, state.notificationsEnabled, "Actives", "Activer");
+  togglePermissionButton(els.onboardingNotificationButton, state.notificationsEnabled, "Actives", "Activer");
+  togglePermissionButton(els.nativePrivacyButton, state.privacyAccepted, "Validée", "Valider");
+}
+
+function togglePermissionButton(button, done, doneLabel, todoLabel) {
+  if (!button) return;
+  button.textContent = done ? doneLabel : todoLabel;
+  button.disabled = Boolean(done);
+}
+
+function setText(element, text) {
+  if (element) element.textContent = text;
+}
+
+function maybeShowOnboarding() {
+  if (!state.onboardingCompleted) {
+    showOnboarding();
+  }
+}
+
+function showOnboarding(options = {}) {
+  if (!els.onboardingScreen) return;
+  if (state.onboardingCompleted && !options.force) return;
+  els.onboardingScreen.hidden = false;
+  document.body.classList.add("is-onboarding-open");
+  renderNativeStatus();
+}
+
+function hideOnboarding() {
+  if (!els.onboardingScreen) return;
+  els.onboardingScreen.hidden = true;
+  document.body.classList.remove("is-onboarding-open");
+}
+
+function completeOnboarding(options = {}) {
+  state.onboardingCompleted = true;
+  if (options.privacyAccepted) state.privacyAccepted = true;
+  saveSettings();
+  hideOnboarding();
+  renderNativeStatus();
 }
 
 function applyWaterModeUI() {
@@ -2874,6 +3249,26 @@ function anchorWatchSummary() {
 function notifyAnchorDrift() {
   navigator.vibrate?.([250, 120, 250, 120, 350]);
   playAlertTone();
+  sendAnchorNotification();
+}
+
+async function sendAnchorNotification() {
+  if (!state.notificationsEnabled) return;
+  const notifications = getNotificationPlugin();
+  if (!state.native.isNative || !notifications?.schedule) return;
+  try {
+    await notifications.schedule({
+      notifications: [{
+        id: Math.floor((Date.now() + 31) % 2147483647),
+        title: "Alerte ancre",
+        body: "Le bateau semble dériver au-delà du rayon configuré.",
+        channelId: "fishing-alerts",
+        schedule: { at: new Date(Date.now() + 500) },
+      }],
+    });
+  } catch {
+    // The vibration and sound remain as local fallbacks.
+  }
 }
 
 function playAlertTone() {
@@ -4066,6 +4461,19 @@ function bindEvents() {
     button.addEventListener("click", () => setMobileView(button.dataset.mobileTab));
   });
   els.preferencesBack?.addEventListener("click", () => setMobileView("map"));
+  els.onboardingClose?.addEventListener("click", () => completeOnboarding({ privacyAccepted: false }));
+  els.onboardingLater?.addEventListener("click", () => completeOnboarding({ privacyAccepted: false }));
+  els.onboardingDone?.addEventListener("click", () => completeOnboarding({ privacyAccepted: true }));
+  els.onboardingGpsButton?.addEventListener("click", requestGpsPermission);
+  els.onboardingNotificationButton?.addEventListener("click", requestNotificationPermission);
+  els.nativeGpsButton?.addEventListener("click", requestGpsPermission);
+  els.nativeNotificationButton?.addEventListener("click", requestNotificationPermission);
+  els.nativePrivacyButton?.addEventListener("click", () => {
+    state.privacyAccepted = true;
+    saveSettings();
+    renderNativeStatus();
+  });
+  els.nativeOnboardingButton?.addEventListener("click", () => showOnboarding({ force: true }));
 
   els.spotPanelButton.addEventListener("click", () => setSpotPanelOpen(!state.spotPanelOpen));
   els.spotPanelClose.addEventListener("click", () => setSpotPanelOpen(false));
@@ -4260,20 +4668,40 @@ function bindEvents() {
   });
   els.catchForm?.addEventListener("submit", (event) => {
     event.preventDefault();
-    const entry = saveCatchLogEntry(createCatchLogEntry({
-      species: els.catchSpecies.value || state.activityFish,
-      measurements: {
-        lengthCm: readOptionalNumber(els.catchLength.value),
-        weightKg: readOptionalNumber(els.catchWeight.value),
-      },
-      notes: els.catchNotes.value.trim(),
-    }));
+    let entry = null;
+    try {
+      entry = saveCatchLogEntry(createCatchLogEntry({
+        species: els.catchSpecies.value || state.activityFish,
+        measurements: {
+          lengthCm: readOptionalNumber(els.catchLength.value),
+          weightKg: readOptionalNumber(els.catchWeight.value),
+        },
+        notes: els.catchNotes.value.trim(),
+        media: state.pendingCatchMedia,
+      }));
+    } catch (error) {
+      console.warn("Catch save failed", error);
+      setStatus("Stockage plein", "error");
+      return;
+    }
 
     if (!entry) return;
     els.catchLength.value = "";
     els.catchWeight.value = "";
     els.catchNotes.value = "";
+    state.pendingCatchMedia = [];
+    renderCatchPhotoPreview();
     renderCatchJournal();
+  });
+  els.catchPhotoButton?.addEventListener("click", pickCatchPhoto);
+  els.catchPhotoInput?.addEventListener("change", handleCatchPhotoInput);
+  els.catchPhotoPreview?.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const removeButton = target.closest("[data-remove-photo]");
+    if (!removeButton) return;
+    state.pendingCatchMedia = state.pendingCatchMedia.filter((item) => item.id !== removeButton.dataset.removePhoto);
+    renderCatchPhotoPreview();
   });
   els.catchLogList?.addEventListener("click", (event) => {
     const target = event.target;
@@ -7307,6 +7735,7 @@ function renderCatchJournal() {
     const notes = entry.notes
       ? `<p class="journal-notes">${escapeHtml(entry.notes)}</p>`
       : "";
+    const media = renderCatchMedia(entry.media);
     const tags = catchWeatherTags(entry)
       .map((tag) => `<span class="journal-tag">${escapeHtml(tag)}</span>`)
       .join("");
@@ -7329,10 +7758,118 @@ function renderCatchJournal() {
           ${measurements ? `<span>${escapeHtml(measurements)}</span>` : ""}
         </div>
         ${tags ? `<div class="journal-tags">${tags}</div>` : ""}
+        ${media}
         ${notes}
       </article>
     `;
   }).join("");
+}
+
+function renderCatchMedia(media = []) {
+  const photos = media.filter((item) => item?.type === "image" && typeof item.dataUrl === "string");
+  if (!photos.length) return "";
+  return `
+    <div class="journal-media">
+      ${photos.map((item) => `<img src="${escapeHtml(item.dataUrl)}" alt="${escapeHtml(item.alt ?? "Photo de prise")}" loading="lazy" />`).join("")}
+    </div>
+  `;
+}
+
+function renderCatchPhotoPreview() {
+  if (!els.catchPhotoPreview) return;
+  const photos = state.pendingCatchMedia.filter((item) => item.type === "image");
+  els.catchPhotoPreview.hidden = photos.length === 0;
+  els.catchPhotoPreview.innerHTML = photos.map((item) => `
+    <span class="catch-photo-thumb-wrap">
+      <img class="catch-photo-thumb" src="${escapeHtml(item.dataUrl)}" alt="${escapeHtml(item.alt ?? "Photo de prise")}" />
+      <button class="catch-photo-remove" type="button" data-remove-photo="${escapeHtml(item.id)}" aria-label="Retirer la photo">x</button>
+    </span>
+  `).join("");
+}
+
+async function pickCatchPhoto() {
+  const camera = getCameraPlugin();
+
+  if (state.native.isNative && camera?.getPhoto) {
+    try {
+      const cameraEnums = window.capacitorCamera ?? {};
+      const photo = await camera.getPhoto({
+        quality: Math.round(PHOTO_JPEG_QUALITY * 100),
+        resultType: cameraEnums.CameraResultType?.DataUrl ?? "dataUrl",
+        source: cameraEnums.CameraSource?.Prompt ?? "PROMPT",
+        correctOrientation: true,
+        width: PHOTO_MAX_EDGE,
+      });
+      if (photo?.dataUrl) {
+        await addCatchPhotoFromDataUrl(photo.dataUrl);
+      }
+      return;
+    } catch (error) {
+      if (!String(error?.message ?? "").toLowerCase().includes("cancel")) {
+        console.warn("Native camera failed", error);
+      }
+    }
+  }
+
+  els.catchPhotoInput?.click();
+}
+
+async function handleCatchPhotoInput(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  try {
+    const dataUrl = await readFileAsDataUrl(file);
+    await addCatchPhotoFromDataUrl(dataUrl, file.name);
+  } catch (error) {
+    console.warn("Photo import failed", error);
+    setStatus("Photo impossible", "error");
+  } finally {
+    event.target.value = "";
+  }
+}
+
+async function addCatchPhotoFromDataUrl(dataUrl, name = "") {
+  const resized = await resizeImageDataUrl(dataUrl);
+  const media = {
+    id: `photo:${Date.now()}:${Math.random().toString(36).slice(2, 7)}`,
+    type: "image",
+    dataUrl: resized,
+    alt: name ? `Photo ${name}` : "Photo de prise",
+    createdAt: new Date().toISOString(),
+  };
+  state.pendingCatchMedia = [media, ...state.pendingCatchMedia].slice(0, 4);
+  renderCatchPhotoPreview();
+  setStatus("Photo ajoutée", "ready");
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+function resizeImageDataUrl(dataUrl) {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => {
+      const scale = Math.min(1, PHOTO_MAX_EDGE / Math.max(image.width, image.height));
+      const width = Math.max(1, Math.round(image.width * scale));
+      const height = Math.max(1, Math.round(image.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#071526";
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(image, 0, 0, width, height);
+      resolve(canvas.toDataURL("image/jpeg", PHOTO_JPEG_QUALITY));
+    };
+    image.onerror = () => resolve(dataUrl);
+    image.src = dataUrl;
+  });
 }
 
 function formatCatchMeasurements(measurements = {}) {
@@ -7394,24 +7931,8 @@ function moonPhaseLabel(phase) {
   return "décroissante";
 }
 
-function locateUser() {
-  if (!navigator.geolocation) {
-    setStatus("Localisation absente", "error");
-    return;
-  }
-
-  setStatus("Localisation", "loading");
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      els.latitude.value = position.coords.latitude.toFixed(4);
-      els.longitude.value = position.coords.longitude.toFixed(4);
-      els.spotPreset.value = String(spots.length - 1);
-      state.selectedSpotName = "Ma position";
-      loadForecast();
-    },
-    () => setStatus("Localisation refusée", "error"),
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 900000 },
-  );
+async function locateUser() {
+  await requestGpsPermission();
 }
 
 function getSelectedDay() {
@@ -8180,6 +8701,7 @@ function setStatus(label, mode) {
   els.statusPill.classList.toggle("is-error", mode === "error");
   els.statusPill.classList.toggle("is-warning", mode === "warning");
   els.statusPill.classList.toggle("is-ready", mode === "ready");
+  els.statusPill.classList.toggle("is-offline", mode === "offline");
 }
 
 function saveSettings() {
@@ -8205,6 +8727,9 @@ function saveSettings() {
     activityFish: state.activityFish,
     theme: normalizeTheme(state.theme),
     profile: normalizeProfile(state.profile),
+    onboardingCompleted: Boolean(state.onboardingCompleted),
+    privacyAccepted: Boolean(state.privacyAccepted),
+    notificationsEnabled: Boolean(state.notificationsEnabled),
   };
   updateAppStore((store) => {
     store.settings = {
@@ -8385,6 +8910,9 @@ function normalizeSettings(settings) {
     activityFish: typeof settings.activityFish === "string" ? settings.activityFish : "",
     theme: normalizeTheme(settings.theme),
     profile: normalizeProfile(settings.profile),
+    onboardingCompleted: Boolean(settings.onboardingCompleted),
+    privacyAccepted: Boolean(settings.privacyAccepted),
+    notificationsEnabled: Boolean(settings.notificationsEnabled),
   };
 }
 
@@ -8443,7 +8971,21 @@ function normalizeCatchLogEntry(entry) {
     },
     notes: typeof entry.notes === "string" ? entry.notes : "",
     weatherSnapshot: entry.weatherSnapshot && typeof entry.weatherSnapshot === "object" ? entry.weatherSnapshot : {},
-    media: Array.isArray(entry.media) ? entry.media : [],
+    media: Array.isArray(entry.media) ? entry.media.map(normalizeCatchMediaItem).filter(Boolean) : [],
+  };
+}
+
+function normalizeCatchMediaItem(item) {
+  if (!item || typeof item !== "object") return null;
+  if (item.type !== "image" || typeof item.dataUrl !== "string" || !item.dataUrl.startsWith("data:image/")) {
+    return null;
+  }
+  return {
+    id: typeof item.id === "string" ? item.id : `photo:${Date.now()}`,
+    type: "image",
+    dataUrl: item.dataUrl,
+    alt: typeof item.alt === "string" ? item.alt.slice(0, 80) : "Photo de prise",
+    createdAt: item.createdAt ?? new Date().toISOString(),
   };
 }
 

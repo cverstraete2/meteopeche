@@ -444,6 +444,189 @@ footer {
   border-color: var(--stop-bg);
 }
 
+.status-pill.is-offline {
+  background: var(--warn-bg);
+  color: var(--warn);
+  border-color: var(--warn-bg);
+}
+
+/* ── 4B. ONBOARDING ──────────────────────────────────────── */
+.onboarding-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  overflow-y: auto;
+  background:
+    linear-gradient(180deg, rgba(0,88,204,0.14), transparent 36%),
+    var(--bg);
+  padding: calc(var(--safe-top) + var(--sp-4)) calc(var(--safe-right) + var(--sp-4))
+    calc(var(--safe-bottom) + var(--sp-4)) calc(var(--safe-left) + var(--sp-4));
+}
+
+.onboarding-panel {
+  width: min(720px, 100%);
+  min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - var(--sp-8));
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+.onboarding-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.onboarding-close {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-pill);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.onboarding-close svg,
+.catch-photo-button svg,
+.native-card-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.onboarding-hero {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.onboarding-hero h2 {
+  max-width: 680px;
+  font-size: clamp(2.45rem, 12vw, 4.8rem);
+  line-height: 0.95;
+  color: var(--text-1);
+}
+
+.onboarding-hero p,
+.privacy-summary p,
+.privacy-copy {
+  color: var(--text-2);
+  font-size: 0.96rem;
+  line-height: 1.5;
+}
+
+.onboarding-grid,
+.native-status-grid {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.native-card,
+.native-status-card,
+.privacy-summary {
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.native-card {
+  min-height: 78px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+}
+
+.native-card-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.native-card strong,
+.native-status-card strong,
+.privacy-summary strong {
+  display: block;
+  color: var(--text-1);
+  font-family: var(--f-display);
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+}
+
+.native-card small,
+.native-status-card small {
+  color: var(--text-3);
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+
+.native-card .ghost-button,
+.native-status-card .ghost-button,
+.native-onboarding-button {
+  min-height: 38px;
+  border: 1px solid var(--border-focus);
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 0 var(--sp-3);
+  font-family: var(--f-display);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.native-badge {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border-radius: var(--r-pill);
+  background: var(--go-bg);
+  color: var(--go);
+  padding: 4px 8px;
+  font-family: var(--f-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.native-badge.is-offline {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.privacy-summary {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+}
+
+.onboarding-actions {
+  display: grid;
+  gap: var(--sp-2);
+  margin-top: auto;
+}
+
+.onboarding-actions .primary-button,
+.onboarding-actions .ghost-button {
+  min-height: 52px;
+  width: 100%;
+}
+
 /* ── 5. BOTTOM TABBAR ─────────────────────────────────────── */
 .mobile-tabbar {
   position: fixed;
@@ -2112,6 +2295,68 @@ body.is-map-fullscreen-active .mobile-tabbar {
   grid-column: 1 / -1;
 }
 
+.catch-photo-field {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.catch-photo-button {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  border: 1px solid var(--border-focus);
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--f-display);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.catch-photo-preview,
+.journal-media {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.catch-photo-thumb,
+.journal-media img {
+  width: 76px;
+  height: 76px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--bg-input);
+}
+
+.catch-photo-thumb-wrap {
+  position: relative;
+  width: 76px;
+  height: 76px;
+}
+
+.catch-photo-remove {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-pill);
+  background: var(--stop-bg);
+  color: var(--stop);
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: var(--shadow-sm);
+}
+
 .catch-form .primary-button {
   grid-column: 1 / -1;
   width: 100%;
@@ -2245,6 +2490,38 @@ body.is-map-fullscreen-active .mobile-tabbar {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-3);
+}
+
+.native-preferences {
+  gap: var(--sp-3);
+}
+
+.native-status-grid {
+  grid-template-columns: 1fr;
+}
+
+.native-status-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px var(--sp-3);
+  align-items: center;
+  padding: var(--sp-3);
+}
+
+.native-status-card small {
+  grid-column: 1;
+}
+
+.native-status-card .ghost-button,
+.native-status-card .native-badge {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  white-space: nowrap;
+}
+
+.native-onboarding-button {
+  justify-self: start;
 }
 
 /* ── 22. GENERATED APP COMPATIBILITY ─────────────────────── */
@@ -2985,7 +3262,11 @@ body.is-map-fullscreen-active .mobile-tabbar {
   }
 
   .catch-form .catch-notes {
-    grid-column: 1 / 4;
+    grid-column: 1 / 3;
+  }
+
+  .catch-photo-field {
+    grid-column: 3 / 4;
   }
 
   .catch-form .primary-button {
@@ -3005,6 +3286,27 @@ body.is-map-fullscreen-active .mobile-tabbar {
 
   .preference-depth {
     grid-column: 1 / -1;
+  }
+
+  .native-preferences {
+    grid-column: 1 / -1;
+  }
+
+  .native-status-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .native-status-card {
+    grid-template-columns: 1fr;
+    align-content: start;
+  }
+
+  .native-status-card .ghost-button,
+  .native-status-card .native-badge {
+    grid-column: auto;
+    grid-row: auto;
+    justify-self: start;
+    margin-top: var(--sp-2);
   }
 
   .preferences-page .section-head {

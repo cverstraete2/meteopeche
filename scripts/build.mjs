@@ -5,7 +5,7 @@ import { join } from "node:path";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const dist = join(root, "dist");
 const localVendor = join(root, "vendor");
-const files = ["index.html", "styles.css", "app.js", "mobile-runtime.js", "config.js", "_headers"];
+const files = ["index.html", "styles.css", "app.js", "mobile-runtime.js", "config.js", "manifest.webmanifest", "sw.js", "_headers"];
 const defaultApiBaseUrl = "https://meteopeche-copernicus-977572434171.europe-west1.run.app";
 
 await rm(dist, { force: true, recursive: true });
@@ -41,6 +41,10 @@ async function copyVendor(target) {
     copyFile(join(root, "node_modules", "@capacitor", "core", "dist", "capacitor.js"), join(target, "capacitor", "capacitor.js")),
     copyFile(join(root, "node_modules", "@capacitor", "status-bar", "dist", "plugin.js"), join(target, "capacitor", "status-bar.js")),
     copyFile(join(root, "node_modules", "@capacitor", "splash-screen", "dist", "plugin.js"), join(target, "capacitor", "splash-screen.js")),
+    copyFile(join(root, "node_modules", "@capacitor", "geolocation", "dist", "plugin.js"), join(target, "capacitor", "geolocation.js")),
+    copyFile(join(root, "node_modules", "@capacitor", "camera", "dist", "plugin.js"), join(target, "capacitor", "camera.js")),
+    copyFile(join(root, "node_modules", "@capacitor", "network", "dist", "plugin.js"), join(target, "capacitor", "network.js")),
+    copyFile(join(root, "node_modules", "@capacitor", "local-notifications", "dist", "plugin.js"), join(target, "capacitor", "local-notifications.js")),
     copyFile(join(root, "node_modules", "@tabler", "icons-webfont", "dist", "fonts", "tabler-icons.woff2"), join(target, "tabler", "fonts", "tabler-icons.woff2")),
     copyFile(join(root, "node_modules", "@tabler", "icons-webfont", "dist", "fonts", "tabler-icons.woff"), join(target, "tabler", "fonts", "tabler-icons.woff")),
     copyFile(join(root, "node_modules", "@tabler", "icons-webfont", "dist", "fonts", "tabler-icons.ttf"), join(target, "tabler", "fonts", "tabler-icons.ttf")),

@@ -1,0 +1,13 @@
+{
+  "name": "Météo Pêche",
+  "short_name": "Météo Pêche",
+  "description": "Prévisions de pêche, météo marine, activité poisson et journal de prises.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#040c1c",
+  "theme_color": "#0058cc",
+  "categories": ["weather", "sports", "navigation"],
+  "lang": "fr"
+}

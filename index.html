@@ -30,8 +30,78 @@ try {
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
 <link rel="stylesheet" href="vendor/tabler/tabler-icons.min.css" />
 <link rel="stylesheet" href="styles.css" />
+<link rel="manifest" href="manifest.webmanifest" />
 </head>
 <body>
+
+<section class="onboarding-screen" id="onboardingScreen" role="dialog" aria-modal="true"
+  aria-labelledby="onboardingTitle" hidden>
+  <div class="onboarding-panel">
+    <div class="onboarding-head">
+      <span class="eyebrow">Météo Pêche mobile</span>
+      <button class="icon-button onboarding-close" id="onboardingClose" type="button"
+        aria-label="Fermer l'onboarding">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 6l12 12"/><path d="M18 6 6 18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="onboarding-hero">
+      <h2 id="onboardingTitle">Prépare tes sorties comme une vraie app de terrain</h2>
+      <p>Position précise pour choisir le spot, rappels locaux, journal photo et accès hors ligne aux écrans essentiels.</p>
+    </div>
+    <div class="onboarding-grid">
+      <article class="native-card">
+        <span class="native-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 2v3"/><path d="M12 19v3"/><path d="M2 12h3"/><path d="M19 12h3"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/></svg>
+        </span>
+        <div>
+          <strong>GPS précis</strong>
+          <small id="onboardingGpsStatus">À configurer</small>
+        </div>
+        <button class="ghost-button" id="onboardingGpsButton" type="button">Autoriser</button>
+      </article>
+      <article class="native-card">
+        <span class="native-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+        </span>
+        <div>
+          <strong>Notifications</strong>
+          <small id="onboardingNotificationStatus">À configurer</small>
+        </div>
+        <button class="ghost-button" id="onboardingNotificationButton" type="button">Activer</button>
+      </article>
+      <article class="native-card">
+        <span class="native-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M4 7h16v12H4Z"/><path d="m8 7 1.5-3h5L16 7"/><circle cx="12" cy="13" r="3"/></svg>
+        </span>
+        <div>
+          <strong>Journal photo</strong>
+          <small>Photos stockées dans le journal local</small>
+        </div>
+        <span class="native-badge">Prêt</span>
+      </article>
+      <article class="native-card">
+        <span class="native-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M7 19h10"/><path d="M12 3v11"/><path d="m8 10 4 4 4-4"/></svg>
+        </span>
+        <div>
+          <strong>Mode offline</strong>
+          <small id="onboardingOfflineStatus">Préparation du cache</small>
+        </div>
+        <span class="native-badge" id="onboardingOnlineBadge">En ligne</span>
+      </article>
+    </div>
+    <div class="privacy-summary">
+      <strong>Confidentialité</strong>
+      <p>La position sert à charger les prévisions du spot. Le journal et les photos restent sur ton appareil, sauf si tu les exportes volontairement. Les services météo et Copernicus reçoivent uniquement les coordonnées nécessaires aux données.</p>
+    </div>
+    <div class="onboarding-actions">
+      <button class="primary-button" id="onboardingDone" type="button">Continuer</button>
+      <button class="ghost-button" id="onboardingLater" type="button">Plus tard</button>
+    </div>
+  </div>
+</section>
 
 <div class="app-shell">
 
@@ -167,6 +237,34 @@ try {
           <strong><output id="preferenceDepthOutput" for="preferenceDepth">15 m</output></strong>
           <input id="preferenceDepth" type="range" min="0" max="80" step="1" value="15" />
         </label>
+
+        <div class="preference-control native-preferences">
+          <span>App native & confidentialité</span>
+          <div class="native-status-grid">
+            <article class="native-status-card">
+              <strong>GPS</strong>
+              <small id="nativeGpsStatus">À configurer</small>
+              <button class="ghost-button" id="nativeGpsButton" type="button">Autoriser</button>
+            </article>
+            <article class="native-status-card">
+              <strong>Notifications</strong>
+              <small id="nativeNotificationStatus">À configurer</small>
+              <button class="ghost-button" id="nativeNotificationButton" type="button">Activer</button>
+            </article>
+            <article class="native-status-card">
+              <strong>Offline</strong>
+              <small id="nativeOfflineStatus">Cache en attente</small>
+              <span class="native-badge" id="nativeOnlineBadge">En ligne</span>
+            </article>
+            <article class="native-status-card">
+              <strong>Privacy</strong>
+              <small id="nativePrivacyStatus">À valider</small>
+              <button class="ghost-button" id="nativePrivacyButton" type="button">Valider</button>
+            </article>
+          </div>
+          <p class="privacy-copy">Le GPS n'est utilisé que pour sélectionner un spot et charger les conditions. Les photos du journal restent dans le stockage local de l'appareil.</p>
+          <button class="ghost-button native-onboarding-button" id="nativeOnboardingButton" type="button">Revoir l'onboarding</button>
+        </div>
       </div>
     </section>
 
@@ -635,6 +733,16 @@ try {
           <input id="catchNotes" type="text" maxlength="120" autocomplete="off"
             placeholder="Leurre, poste, comportement..." />
         </label>
+        <div class="catch-photo-field">
+          <input id="catchPhotoInput" type="file" accept="image/*" capture="environment" hidden />
+          <button class="ghost-button catch-photo-button" id="catchPhotoButton" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h16v12H4Z"/><path d="m8 7 1.5-3h5L16 7"/><circle cx="12" cy="13" r="3"/>
+            </svg>
+            Ajouter photo
+          </button>
+          <div class="catch-photo-preview" id="catchPhotoPreview" hidden></div>
+        </div>
         <button class="primary-button" type="submit">Ajouter prise</button>
       </form>
       <div class="journal-list" id="catchLogList"></div>
@@ -722,10 +830,14 @@ try {
 <script src="vendor/capacitor/capacitor.js" defer></script>
 <script src="vendor/capacitor/status-bar.js" defer></script>
 <script src="vendor/capacitor/splash-screen.js" defer></script>
+<script src="vendor/capacitor/geolocation.js" defer></script>
+<script src="vendor/capacitor/camera.js" defer></script>
+<script src="vendor/capacitor/network.js" defer></script>
+<script src="vendor/capacitor/local-notifications.js" defer></script>
 <script src="mobile-runtime.js" defer></script>
 <script src="vendor/leaflet/leaflet.js" defer></script>
 <script src="config.js" defer></script>
-<script src="app.js?v=20260526-copernicus-real" defer></script>
+<script src="app.js?v=20260526-native-app" defer></script>
 
 </body>
 </html>
