@@ -2,6 +2,7 @@ const CACHE_NAME = "meteopeche-shell-20260526-brand-v3";
 const APP_SHELL = [
   "./",
   "./index.html",
+  "./privacy.html",
   "./styles.css",
   "./app.js",
   "./mobile-runtime.js",

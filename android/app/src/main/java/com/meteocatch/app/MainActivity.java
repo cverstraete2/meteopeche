@@ -1,4 +1,4 @@
-package com.meteopeche.app;
+package com.meteocatch.app;
 
 import com.getcapacitor.BridgeActivity;
 

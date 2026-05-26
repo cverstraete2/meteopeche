@@ -422,6 +422,16 @@ footer {
   text-overflow: ellipsis;
 }
 
+.privacy-copy a {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.privacy-copy a:hover {
+  text-decoration: underline;
+}
+
 .topbar-actions {
   display: flex;
   align-items: center;
@@ -464,6 +474,87 @@ footer {
   background: var(--warn-bg);
   color: var(--warn);
   border-color: var(--warn-bg);
+}
+
+/* ── Legal Pages ─────────────────────────────────────────── */
+.legal-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(56,189,248,0.12), transparent 34%),
+    radial-gradient(circle at 90% 10%, rgba(45,212,191,0.10), transparent 30%),
+    var(--bg);
+}
+
+.legal-shell {
+  width: min(860px, 100%);
+  margin: 0 auto;
+  padding: calc(var(--safe-top) + var(--sp-6)) var(--sp-4) calc(var(--safe-bottom) + var(--sp-8));
+}
+
+.legal-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  margin-bottom: var(--sp-5);
+  color: var(--accent);
+  font-family: var(--f-display);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.legal-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-6);
+}
+
+.legal-hero img {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: var(--shadow-md);
+}
+
+.legal-hero h1 {
+  color: var(--text-1);
+  font-family: var(--f-brand);
+  font-size: clamp(2rem, 7vw, 3.3rem);
+  line-height: 0.98;
+  letter-spacing: 0;
+}
+
+.legal-hero p:not(.eyebrow) {
+  margin-top: var(--sp-2);
+  color: var(--text-2);
+}
+
+.legal-card {
+  padding: var(--sp-5);
+  margin-bottom: var(--sp-4);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.legal-card h2 {
+  margin-bottom: var(--sp-3);
+  color: var(--text-1);
+  font-family: var(--f-display);
+  font-size: 1.45rem;
+  letter-spacing: 0.02em;
+}
+
+.legal-card p {
+  color: var(--text-2);
+}
+
+.legal-card p + p {
+  margin-top: var(--sp-3);
 }
 
 /* ── 4B. ONBOARDING ──────────────────────────────────────── */

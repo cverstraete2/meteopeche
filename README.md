@@ -71,7 +71,7 @@ npm run mobile:open:ios
 npm run mobile:open:android
 ```
 
-Le bundle id iOS/Android est `com.meteopeche.app`. Avant soumission App Store / Google Play, prévoir les assets natifs définitifs: icône, splash screen, textes de permissions GPS, captures store et politique de confidentialité.
+Le bundle id iOS/Android est `com.meteocatch.app`. Avant soumission App Store / Google Play, prévoir les captures store, les textes de fiche, les informations App Privacy / Data safety et la publication de `privacy.html` avec Cloudflare Pages.
 
 ## Note sur le courant en profondeur
 
