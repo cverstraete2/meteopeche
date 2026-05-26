@@ -2611,13 +2611,16 @@ function openSpotNameSheet(lat, lon) {
   renderSpotTools();
 
   window.requestAnimationFrame(() => {
-    els.spotNameInput.focus();
-    els.spotNameInput.select();
+    if (!isMobileLayout()) {
+      els.spotNameInput.focus();
+      els.spotNameInput.select();
+    }
   });
 }
 
 function renderSpotNameSheet() {
   const pending = state.pendingSpot;
+  document.body.classList.toggle("is-spot-name-open", Boolean(pending));
   els.spotMap.classList.toggle("has-name-sheet", Boolean(pending));
   els.spotNameSheet.classList.toggle("is-open", Boolean(pending));
   els.spotNameSheet.setAttribute("aria-hidden", pending ? "false" : "true");
@@ -2632,6 +2635,7 @@ function renderSpotNameSheet() {
 }
 
 function closeSpotNameSheet() {
+  els.spotNameInput.blur();
   state.pendingSpot = null;
   renderSpotTools();
 }
@@ -2641,6 +2645,7 @@ function confirmPendingSpot(options = {}) {
   if (!pending) return;
 
   const name = sanitizeSpotName(els.spotNameInput.value) || getCustomSpotName(pending.lat, pending.lon);
+  els.spotNameInput.blur();
   state.pendingSpot = null;
   setCustomSpot(pending.lat, pending.lon, { load: true, name });
 
@@ -3863,17 +3868,20 @@ function renderLeafletMarkers() {
 
   state.favorites.forEach((favorite) => {
     if (!isValidNumber(favorite.lat) || !isValidNumber(favorite.lon)) return;
+    const isActiveFavorite = favorite.id === activeId;
 
     const marker = L.marker([favorite.lat, favorite.lon], {
       icon: L.divIcon({
-        className: "favorite-star-marker",
+        className: `favorite-star-marker${isActiveFavorite ? " is-active" : ""}`,
         html: starIcon(),
-        iconSize: [30, 30],
-        iconAnchor: [15, 15],
+        iconSize: isActiveFavorite ? [38, 38] : [32, 32],
+        iconAnchor: isActiveFavorite ? [19, 19] : [16, 16],
         tooltipAnchor: [0, -14],
       }),
       keyboard: true,
+      riseOnHover: true,
       title: favorite.name,
+      zIndexOffset: isActiveFavorite ? 1200 : 900,
     });
 
     marker.bindTooltip(escapeHtml(favorite.name), {
@@ -3889,7 +3897,7 @@ function renderLeafletMarkers() {
     marker.addTo(state.leafletMarkers);
   });
 
-  if (active.custom && isValidNumber(active.lat) && isValidNumber(active.lon)) {
+  if (active.custom && !hasFavorite(active.id) && isValidNumber(active.lat) && isValidNumber(active.lon)) {
     L.circleMarker([active.lat, active.lon], {
       radius: 8,
       color: "#fff",
@@ -3976,6 +3984,26 @@ function renderMapMarkers() {
     marker.title = active.name;
     els.mapMarkers.append(marker);
   }
+
+  state.favorites.forEach((favorite) => {
+    if (!isValidNumber(favorite.lat) || !isValidNumber(favorite.lon) || !isInsideMapBounds(favorite.lat, favorite.lon)) return;
+    const point = latLonToMapPoint(favorite.lat, favorite.lon);
+    if (!isInsideMapViewport(point)) return;
+    const marker = document.createElement("button");
+    marker.type = "button";
+    marker.className = "favorite-star-marker";
+    marker.classList.toggle("is-active", favorite.id === active.id);
+    marker.style.left = `${point.x * 100}%`;
+    marker.style.top = `${point.y * 100}%`;
+    marker.title = favorite.name;
+    marker.setAttribute("aria-label", `Sélectionner le favori ${favorite.name}`);
+    marker.innerHTML = starIcon();
+    marker.addEventListener("click", (event) => {
+      event.stopPropagation();
+      selectFavorite(favorite);
+    });
+    els.mapMarkers.append(marker);
+  });
 
   if (state.pendingSpot && isInsideMapBounds(state.pendingSpot.lat, state.pendingSpot.lon)) {
     const point = latLonToMapPoint(state.pendingSpot.lat, state.pendingSpot.lon);
