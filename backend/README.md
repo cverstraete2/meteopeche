@@ -29,4 +29,6 @@ docker build -t meteo-peche-copernicus .
 docker run -p 8787:8080 meteo-peche-copernicus
 ```
 
+Si Cloud Run est configuré avec `backend/` comme dossier source, utiliser `backend/Dockerfile`; il est autonome et embarque le module Copernicus du backend.
+
 Après déploiement du backend, définir `METEOPECHE_API_BASE_URL` dans Cloudflare Pages avec l'URL publique du service, puis redéployer le front.
