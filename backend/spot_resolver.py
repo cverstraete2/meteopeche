@@ -31,7 +31,7 @@ def _resolve_spot_cached(lat, lon):
 
     osm_kind = classify_osm_payload(osm)
     nearby_kind = classify_osm_tags(nearby.get("tags", {}) if nearby else {})
-    water_kind = pick_water_kind(osm_kind, nearby_kind, marine)
+    water_kind = pick_water_kind(osm_kind, nearby, nearby_kind, marine)
     water_mode = water_mode_for_kind(water_kind)
     confidence_score = confidence_for(water_kind, osm_kind, nearby_kind, marine)
     name = spot_name(osm, nearby, water_kind, lat, lon)
@@ -241,15 +241,26 @@ def classify_osm_tags(tags):
     return None
 
 
-def pick_water_kind(osm_kind, nearby_kind, marine):
-    for kind in (osm_kind, nearby_kind):
-        if kind in FRESHWATER_KINDS:
-            return kind
-    for kind in (osm_kind, nearby_kind):
-        if kind in MARINE_KINDS:
-            return kind
+def pick_water_kind(osm_kind, nearby, nearby_kind, marine):
+    nearby_distance = nearby.get("distanceMeters") if nearby else None
+    nearby_freshwater_is_close = (
+        nearby_kind in FRESHWATER_KINDS
+        and isinstance(nearby_distance, (int, float))
+        and nearby_distance <= 350
+    )
+
+    if osm_kind in FRESHWATER_KINDS:
+        return osm_kind
+    if osm_kind in MARINE_KINDS:
+        return osm_kind
+    if nearby_freshwater_is_close:
+        return nearby_kind
+    if nearby_kind in MARINE_KINDS:
+        return nearby_kind
     if marine.get("available"):
         return "sea"
+    if nearby_kind in FRESHWATER_KINDS:
+        return nearby_kind
     return "unknown"
 
 
