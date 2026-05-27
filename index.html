@@ -37,7 +37,7 @@ try {
 
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
 <link rel="stylesheet" href="vendor/tabler/tabler-icons.min.css" />
-<link rel="stylesheet" href="styles.css?v=20260527-global-search" />
+<link rel="stylesheet" href="styles.css?v=20260527-nearby-waters" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon-v2.png" />
 </head>
@@ -317,6 +317,12 @@ try {
                 <button class="ghost-button spot-search-button" id="spotSearchButton" type="button">Rechercher</button>
               </div>
               <div class="spot-search-results field-wide" id="spotSearchResults" aria-live="polite" hidden></div>
+              <div class="nearby-spots-control field-wide">
+                <button class="ghost-button nearby-spots-button" id="nearbySpotsButton" type="button">
+                  Explorer les eaux à proximité
+                </button>
+              </div>
+              <div class="nearby-spot-results field-wide" id="nearbySpotResults" aria-live="polite" hidden></div>
               <label class="field field-wide" for="spotPreset">
                 <span>Spot</span>
                 <select id="spotPreset" name="spotPreset"></select>
@@ -900,7 +906,7 @@ try {
 <script src="mobile-runtime.js" defer></script>
 <script src="vendor/leaflet/leaflet.js" defer></script>
 <script src="config.js" defer></script>
-<script src="app.js?v=20260527-global-search-v2" defer></script>
+<script src="app.js?v=20260527-nearby-waters" defer></script>
 
 </body>
 </html>

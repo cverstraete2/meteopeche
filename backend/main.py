@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 
 from .copernicus_depth import get_depth_current
 from .river_forecast import get_river_forecast
-from .spot_resolver import resolve_spot, search_spots
+from .spot_resolver import discover_nearby_spots, resolve_spot, search_spots
 
 
 DEFAULT_ALLOWED_ORIGINS = [
@@ -24,7 +24,7 @@ def allowed_origins():
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
-API_VERSION = "1.3.0"
+API_VERSION = "1.4.0"
 
 app = FastAPI(title="MeteoCatch Copernicus API", version=API_VERSION)
 app.add_middleware(
@@ -107,6 +107,35 @@ def spot_search(
         result = {
             "ok": False,
             "error": "Erreur inattendue pendant la recherche mondiale.",
+            "detail": str(error),
+            "errorType": error.__class__.__name__,
+            "results": [],
+        }
+
+    status_code = 200 if result.get("ok") else 503
+    return JSONResponse(result, status_code=status_code)
+
+
+@app.get("/api/nearby-spots")
+def nearby_spots(
+    latitude: float = Query(..., ge=-90, le=90),
+    longitude: float = Query(..., ge=-180, le=180),
+    radius: int = Query(25000, ge=1000, le=50000),
+    limit: int = Query(12, ge=1, le=20),
+    waterMode: str | None = Query(None, pattern="^(sea|freshwater)$"),
+):
+    try:
+        result = discover_nearby_spots({
+            "latitude": latitude,
+            "longitude": longitude,
+            "radius": radius,
+            "limit": limit,
+            "waterMode": waterMode,
+        })
+    except Exception as error:
+        result = {
+            "ok": False,
+            "error": "Erreur inattendue pendant la découverte des eaux proches.",
             "detail": str(error),
             "errorType": error.__class__.__name__,
             "results": [],

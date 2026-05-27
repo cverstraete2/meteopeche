@@ -37,6 +37,19 @@ def search_spots(params):
     return _search_spots_cached(query, limit)
 
 
+def discover_nearby_spots(params):
+    lat = round(float(params["latitude"]), 5)
+    lon = round(float(params["longitude"]), 5)
+    radius = int(params.get("radius", 25000))
+    radius = max(1000, min(radius, 50000))
+    limit = int(params.get("limit", 12))
+    limit = max(1, min(limit, 20))
+    preferred_mode = str(params.get("waterMode") or "").strip().lower()
+    if preferred_mode not in {"sea", "freshwater"}:
+        preferred_mode = ""
+    return _discover_nearby_spots_cached(lat, lon, radius, limit, preferred_mode)
+
+
 @lru_cache(maxsize=512)
 def _search_spots_cached(query, limit):
     payload = search_osm(query, limit)
@@ -48,6 +61,32 @@ def _search_spots_cached(query, limit):
         "query": query,
         "provider": "OpenStreetMap Nominatim",
         "results": results,
+    }
+
+
+@lru_cache(maxsize=1024)
+def _discover_nearby_spots_cached(lat, lon, radius, limit, preferred_mode):
+    features = nearby_water_features(lat, lon, radius, limit)
+    marine_context = any(
+        classify_osm_tags(feature.get("tags", {})) in {"sea", "ocean", "coast", "bay", "strait"}
+        for feature in features
+    )
+    results = [nearby_search_result(feature, lat, lon, marine_context) for feature in features]
+    results = [item for item in results if item]
+    if preferred_mode:
+        results.sort(key=lambda item: (
+            0 if item.get("waterMode") == preferred_mode else 1,
+            item.get("distanceMeters") or 0,
+            item.get("name", "").lower(),
+        ))
+
+    return {
+        "ok": True,
+        "provider": "OpenStreetMap Overpass",
+        "latitude": lat,
+        "longitude": lon,
+        "radiusMeters": radius,
+        "results": results[:limit],
     }
 
 
@@ -192,6 +231,145 @@ def nearby_water_feature(lat, lon):
     return {"ok": False, "error": "; ".join(errors) or "No nearby water feature found"}
 
 
+def nearby_water_features(lat, lon, radius, limit):
+    elements = []
+    errors = []
+    for query in nearby_water_discovery_queries(lat, lon, radius, limit):
+        try:
+            payload = fetch_json(f"{OVERPASS_API}?{urlencode({'data': query})}", timeout=8)
+        except Exception as error:
+            errors.append(str(error))
+            continue
+        elements.extend(payload.get("elements") or [])
+
+    if not elements and errors:
+        raise RuntimeError("; ".join(errors[:2]))
+
+    features = [feature_from_overpass(element, lat, lon) for element in elements]
+    features = [feature for feature in features if feature and classify_osm_tags(feature.get("tags", {}))]
+    features = dedupe_features(features)
+    features.sort(key=lambda item: (
+        item["distanceMeters"],
+        kind_priority(classify_osm_tags(item["tags"])),
+        preferred_name(item).lower(),
+    ))
+    return features[: max(limit * 2, limit)]
+
+
+def nearby_water_discovery_queries(lat, lon, radius, limit):
+    output_limit = max(20, min(limit * 4, 80))
+    compact_radius = min(radius, 15000)
+    return [
+        f"""
+    [out:json][timeout:7];
+    (
+      way(around:{radius},{lat:.5f},{lon:.5f})["waterway"~"^(river|stream|canal|riverbank)$"];
+      relation(around:{radius},{lat:.5f},{lon:.5f})["waterway"~"^(river|stream|canal|riverbank)$"];
+    );
+    out tags center {output_limit};
+    """,
+        f"""
+    [out:json][timeout:7];
+    (
+      way(around:{compact_radius},{lat:.5f},{lon:.5f})["natural"="water"];
+      relation(around:{compact_radius},{lat:.5f},{lon:.5f})["natural"="water"];
+      way(around:{compact_radius},{lat:.5f},{lon:.5f})["water"~"^(lake|reservoir|river|pond|lagoon|canal|stream)$"];
+      relation(around:{compact_radius},{lat:.5f},{lon:.5f})["water"~"^(lake|reservoir|river|pond|lagoon|canal|stream)$"];
+      way(around:{compact_radius},{lat:.5f},{lon:.5f})["landuse"="reservoir"];
+      relation(around:{compact_radius},{lat:.5f},{lon:.5f})["landuse"="reservoir"];
+    );
+    out tags center {output_limit};
+    """,
+        f"""
+    [out:json][timeout:7];
+    (
+      way(around:{radius},{lat:.5f},{lon:.5f})["natural"~"^(bay|strait|coastline)$"];
+      relation(around:{radius},{lat:.5f},{lon:.5f})["natural"~"^(bay|strait|coastline)$"];
+      node(around:{radius},{lat:.5f},{lon:.5f})["place"~"^(sea|ocean)$"];
+    );
+    out tags center {output_limit};
+    """,
+        f"""
+    [out:json][timeout:7];
+    (
+      node(around:{radius},{lat:.5f},{lon:.5f})["leisure"="marina"];
+      way(around:{radius},{lat:.5f},{lon:.5f})["leisure"="marina"];
+      node(around:{radius},{lat:.5f},{lon:.5f})["harbour"];
+      way(around:{radius},{lat:.5f},{lon:.5f})["harbour"];
+      node(around:{radius},{lat:.5f},{lon:.5f})["seamark:type"~"^(harbour|marina)$"];
+      way(around:{radius},{lat:.5f},{lon:.5f})["seamark:type"~"^(harbour|marina)$"];
+    );
+    out tags center {output_limit};
+    """,
+    ]
+
+
+def dedupe_features(features):
+    seen = set()
+    unique = []
+    for feature in features:
+        tags = feature.get("tags") or {}
+        kind = classify_osm_tags(tags)
+        name = preferred_name(feature).lower()
+        lat = round(float(feature["lat"]), 4)
+        lon = round(float(feature["lon"]), 4)
+        key = (name or kind, kind, lat, lon)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(feature)
+    return unique
+
+
+def nearby_search_result(feature, origin_lat, origin_lon, marine_context=False):
+    tags = feature.get("tags") or {}
+    water_kind = classify_osm_tags(tags) or "unknown"
+    water_mode = "sea" if water_kind in {"harbour", "marina"} and marine_context else water_mode_for_kind(water_kind)
+    if water_kind in {"harbour", "marina"} and not marine_context:
+        water_mode = "freshwater"
+    if not water_mode:
+        return None
+
+    lat = round(float(feature["lat"]), 5)
+    lon = round(float(feature["lon"]), 5)
+    name = preferred_name(feature) or nearby_kind_fallback_name(water_kind, lat, lon)
+    distance = round(haversine_meters(origin_lat, origin_lon, lat, lon))
+
+    return {
+        "id": f"{feature.get('type', 'osm')}/{feature.get('id', f'{lat:.5f},{lon:.5f}')}",
+        "name": name,
+        "displayName": name,
+        "detail": nearby_kind_fallback_name(water_kind, lat, lon),
+        "latitude": lat,
+        "longitude": lon,
+        "waterKind": water_kind,
+        "waterMode": water_mode,
+        "countryCode": None,
+        "distanceMeters": distance,
+        "category": tags.get("natural") or tags.get("waterway") or tags.get("water") or tags.get("leisure") or tags.get("harbour"),
+        "type": feature.get("type"),
+    }
+
+
+def nearby_kind_fallback_name(kind, lat, lon):
+    labels = {
+        "river": "Rivière proche",
+        "canal": "Canal proche",
+        "lake": "Lac proche",
+        "reservoir": "Réservoir proche",
+        "pond": "Plan d'eau proche",
+        "freshwater": "Eau douce proche",
+        "sea": "Zone marine proche",
+        "ocean": "Zone océanique proche",
+        "coast": "Côte proche",
+        "bay": "Baie proche",
+        "strait": "Détroit proche",
+        "harbour": "Port proche",
+        "marina": "Marina proche",
+    }
+    return labels.get(kind, f"Spot {lat:.4f}, {lon:.4f}")
+
+
 def nearby_water_queries(lat, lon):
     radius = NEARBY_WATER_RADIUS_METERS
     compact_radius = min(radius, 3000)
@@ -300,6 +478,8 @@ def classify_osm_tags(tags):
     water = str(tags.get("water") or "").lower()
     waterway = str(tags.get("waterway") or "").lower()
     seamark = str(tags.get("seamark:type") or "").lower()
+    leisure = str(tags.get("leisure") or "").lower()
+    harbour = str(tags.get("harbour") or "").lower()
 
     if osm_class == "waterway" or waterway in {"river", "stream", "canal", "riverbank"} or osm_type in {"river", "stream", "canal"}:
         return "river" if (waterway or osm_type) != "canal" else "canal"
@@ -315,8 +495,8 @@ def classify_osm_tags(tags):
         return "coast"
     if osm_type in {"sea", "ocean"} or tags.get("sea") or tags.get("ocean"):
         return osm_type if osm_type in {"sea", "ocean"} else "sea"
-    if seamark or osm_type in {"harbour", "marina", "dock"}:
-        return "harbour"
+    if leisure == "marina" or seamark in {"harbour", "marina"} or harbour or osm_type in {"harbour", "marina", "dock"}:
+        return "marina" if leisure == "marina" or seamark == "marina" or osm_type == "marina" else "harbour"
     if natural == "water":
         return "freshwater"
     return None

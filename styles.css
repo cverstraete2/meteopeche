@@ -1237,6 +1237,10 @@ input[type="range"]::-moz-range-thumb {
   align-items: end;
 }
 
+.nearby-spots-control {
+  grid-column: 1 / -1;
+}
+
 .spot-search-control .field {
   min-width: 0;
 }
@@ -1250,7 +1254,13 @@ input[type="range"]::-moz-range-thumb {
   white-space: nowrap;
 }
 
-.spot-search-results {
+.nearby-spots-button {
+  width: 100%;
+  min-height: 44px;
+}
+
+.spot-search-results,
+.nearby-spot-results {
   grid-column: 1 / -1;
   display: grid;
   gap: var(--sp-2);
@@ -1262,7 +1272,8 @@ input[type="range"]::-moz-range-thumb {
   background: var(--bg-card);
 }
 
-.spot-search-results[hidden] {
+.spot-search-results[hidden],
+.nearby-spot-results[hidden] {
   display: none;
 }
 

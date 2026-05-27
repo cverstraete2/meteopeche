@@ -7,6 +7,7 @@ const METNO_API = "https://api.met.no/weatherapi/locationforecast/2.0/compact";
 const MARINE_API = "https://marine-api.open-meteo.com/v1/marine";
 const SPOT_RESOLVE_API_PATH = "api/spot-resolve";
 const SPOT_SEARCH_API_PATH = "api/spot-search";
+const NEARBY_SPOTS_API_PATH = "api/nearby-spots";
 const RIVER_FORECAST_API_PATH = "api/river-forecast";
 const BATHYMETRY_WMS = "https://ows.emodnet-bathymetry.eu/wms";
 const BATHYMETRY_REST = "https://rest.emodnet-bathymetry.eu/depth/point";
@@ -122,6 +123,10 @@ const I18N_TRANSLATIONS = {
   "Recherche indisponible": { en: "Search unavailable", es: "Búsqueda no disponible", de: "Suche nicht verfügbar", pt: "Pesquisa indisponível" },
   "Saisis au moins 2 caractères": { en: "Enter at least 2 characters", es: "Introduce al menos 2 caracteres", de: "Mindestens 2 Zeichen eingeben", pt: "Introduz pelo menos 2 caracteres" },
   "Choisir ce spot": { en: "Choose this spot", es: "Elegir este spot", de: "Diesen Spot wählen", pt: "Escolher este spot" },
+  "Explorer les eaux à proximité": { en: "Explore nearby waters", es: "Explorar aguas cercanas", de: "Gewässer in der Nähe erkunden", pt: "Explorar águas próximas" },
+  "Recherche des eaux proches": { en: "Searching nearby waters", es: "Buscando aguas cercanas", de: "Suche Gewässer in der Nähe", pt: "A pesquisar águas próximas" },
+  "Aucun spot proche trouvé": { en: "No nearby spot found", es: "No se encontró ningún spot cercano", de: "Kein Spot in der Nähe gefunden", pt: "Nenhum spot próximo encontrado" },
+  "Exploration indisponible": { en: "Exploration unavailable", es: "Exploración no disponible", de: "Erkundung nicht verfügbar", pt: "Exploração indisponível" },
   "Latitude": { en: "Latitude", es: "Latitud", de: "Breitengrad", pt: "Latitude" },
   "Longitude": { en: "Longitude", es: "Longitud", de: "Längengrad", pt: "Longitude" },
   "Actualiser": { en: "Refresh", es: "Actualizar", de: "Aktualisieren", pt: "Atualizar" },
@@ -1859,6 +1864,10 @@ const state = {
   spotSearchLoading: false,
   spotSearchError: "",
   spotSearchRequestId: 0,
+  nearbySpotResults: [],
+  nearbySpotLoading: false,
+  nearbySpotError: "",
+  nearbySpotRequestId: 0,
   depth: 15,
   realDepthAvailable: false,
   realDepthError: "",
@@ -1965,6 +1974,8 @@ const els = {
   spotSearchInput: document.querySelector("#spotSearchInput"),
   spotSearchButton: document.querySelector("#spotSearchButton"),
   spotSearchResults: document.querySelector("#spotSearchResults"),
+  nearbySpotsButton: document.querySelector("#nearbySpotsButton"),
+  nearbySpotResults: document.querySelector("#nearbySpotResults"),
   latitude: document.querySelector("#latitude"),
   longitude: document.querySelector("#longitude"),
   spotForm: document.querySelector("#spotForm"),
@@ -3416,6 +3427,7 @@ function confirmPendingSpot(options = {}) {
 
 function renderSpotTools() {
   renderSpotSearchResults();
+  renderNearbySpotResults();
   renderFishFilterControls();
   renderMapTiles();
   renderMapMarkers();
@@ -5323,6 +5335,17 @@ function bindEvents() {
     event.preventDefault();
     selectSpotSearchResult(button.dataset.spotSearchResult);
   });
+  els.nearbySpotsButton?.addEventListener("click", () => {
+    loadNearbySpots();
+  });
+  els.nearbySpotResults?.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest("[data-nearby-spot-result]");
+    if (!button) return;
+    event.preventDefault();
+    selectNearbySpotResult(button.dataset.nearbySpotResult);
+  });
 
   els.spotForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -5702,6 +5725,16 @@ function buildSpotSearchUrl(query) {
   return url;
 }
 
+function buildNearbySpotsUrl(lat, lon) {
+  const url = buildAppApiUrl(NEARBY_SPOTS_API_PATH);
+  url.searchParams.set("latitude", Number(lat).toFixed(5));
+  url.searchParams.set("longitude", Number(lon).toFixed(5));
+  url.searchParams.set("radius", "20000");
+  url.searchParams.set("limit", "12");
+  url.searchParams.set("waterMode", state.waterMode);
+  return url;
+}
+
 async function searchSpotLocations() {
   const query = (els.spotSearchInput?.value || "").trim();
   if (query.length < 2) {
@@ -5735,6 +5768,39 @@ async function searchSpotLocations() {
   }
 }
 
+async function loadNearbySpots() {
+  const active = getActiveSpot();
+  if (!isValidNumber(active.lat) || !isValidNumber(active.lon)) {
+    state.nearbySpotResults = [];
+    state.nearbySpotError = "Coordonnées invalides";
+    state.nearbySpotLoading = false;
+    renderNearbySpotResults();
+    return;
+  }
+
+  const requestId = state.nearbySpotRequestId + 1;
+  state.nearbySpotRequestId = requestId;
+  state.nearbySpotLoading = true;
+  state.nearbySpotError = "";
+  renderNearbySpotResults();
+
+  try {
+    const payload = await fetchJson(buildNearbySpotsUrl(active.lat, active.lon), { timeoutMs: 15000 });
+    if (requestId !== state.nearbySpotRequestId) return;
+    state.nearbySpotResults = normalizeNearbySpotResults(payload);
+    state.nearbySpotError = state.nearbySpotResults.length ? "" : "Aucun spot proche trouvé";
+  } catch (error) {
+    if (requestId !== state.nearbySpotRequestId) return;
+    state.nearbySpotResults = [];
+    state.nearbySpotError = error?.message || "Exploration indisponible";
+  } finally {
+    if (requestId === state.nearbySpotRequestId) {
+      state.nearbySpotLoading = false;
+      renderNearbySpotResults();
+    }
+  }
+}
+
 function normalizeSpotSearchResults(payload) {
   if (!payload?.ok || !Array.isArray(payload.results)) return [];
 
@@ -5750,6 +5816,24 @@ function normalizeSpotSearchResults(payload) {
       countryCode: typeof item.countryCode === "string" ? item.countryCode : "",
     }))
     .filter((item) => item.name && isValidNumber(item.lat) && isValidNumber(item.lon));
+}
+
+function normalizeNearbySpotResults(payload) {
+  if (!payload?.ok || !Array.isArray(payload.results)) return [];
+
+  return payload.results
+    .map((item) => ({
+      id: String(item.id || `${item.latitude},${item.longitude}`),
+      name: String(item.name || "").trim(),
+      detail: String(item.detail || item.displayName || "").trim(),
+      lat: numberOrNull(item.latitude),
+      lon: numberOrNull(item.longitude),
+      waterKind: typeof item.waterKind === "string" ? item.waterKind : "unknown",
+      waterMode: item.waterMode ? normalizeWaterMode(item.waterMode) : null,
+      countryCode: typeof item.countryCode === "string" ? item.countryCode : "",
+      distanceMeters: numberOrNull(item.distanceMeters),
+    }))
+    .filter((item) => item.name && item.waterMode && isValidNumber(item.lat) && isValidNumber(item.lon));
 }
 
 function renderSpotSearchResults() {
@@ -5789,6 +5873,43 @@ function renderSpotSearchResults() {
   }).join("");
 }
 
+function renderNearbySpotResults() {
+  if (!els.nearbySpotResults) return;
+
+  const shouldShow = state.nearbySpotLoading || state.nearbySpotError || state.nearbySpotResults.length > 0;
+  els.nearbySpotResults.hidden = !shouldShow;
+  if (!shouldShow) {
+    els.nearbySpotResults.innerHTML = "";
+    return;
+  }
+
+  if (state.nearbySpotLoading) {
+    els.nearbySpotResults.innerHTML = `<span class="spot-search-state">${escapeHtml(t("Recherche des eaux proches"))}</span>`;
+    return;
+  }
+
+  if (state.nearbySpotError && !state.nearbySpotResults.length) {
+    els.nearbySpotResults.innerHTML = `<span class="spot-search-state">${escapeHtml(t(state.nearbySpotError))}</span>`;
+    return;
+  }
+
+  els.nearbySpotResults.innerHTML = state.nearbySpotResults.map((result) => {
+    const modeLabel = result.waterMode
+      ? t(waterModeConfig[result.waterMode]?.label ?? "Spot")
+      : t("Spot mondial");
+    const distance = isValidNumber(result.distanceMeters) ? ` · ${formatMapDistance(result.distanceMeters)}` : "";
+    return `
+      <button class="spot-search-result nearby-spot-result" type="button" data-nearby-spot-result="${escapeHtml(result.id)}">
+        <span>
+          <strong>${escapeHtml(result.name)}</strong>
+          <small>${escapeHtml(result.detail || formatCoordinates(result.lat, result.lon))}</small>
+        </span>
+        <em>${escapeHtml(`${modeLabel}${distance}`)}</em>
+      </button>
+    `;
+  }).join("");
+}
+
 function selectSpotSearchResult(id) {
   const result = state.spotSearchResults.find((item) => item.id === id);
   if (!result) return;
@@ -5799,6 +5920,21 @@ function selectSpotSearchResult(id) {
   }
   state.spotSearchResults = [];
   state.spotSearchError = "";
+  state.pendingSpot = null;
+  if (result.waterMode) {
+    setWaterMode(result.waterMode, { load: false });
+  }
+  state.spotResolution = provisionalSpotResolutionFromSearchResult(result);
+  setCustomSpot(result.lat, result.lon, { load: true, name: result.name });
+  setSpotPanelOpen(false);
+}
+
+function selectNearbySpotResult(id) {
+  const result = state.nearbySpotResults.find((item) => item.id === id);
+  if (!result) return;
+
+  state.nearbySpotResults = [];
+  state.nearbySpotError = "";
   state.pendingSpot = null;
   if (result.waterMode) {
     setWaterMode(result.waterMode, { load: false });
