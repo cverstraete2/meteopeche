@@ -127,6 +127,7 @@ const I18N_TRANSLATIONS = {
   "Recherche des eaux proches": { en: "Searching nearby waters", es: "Buscando aguas cercanas", de: "Suche Gewässer in der Nähe", pt: "A pesquisar águas próximas" },
   "Aucun spot proche trouvé": { en: "No nearby spot found", es: "No se encontró ningún spot cercano", de: "Kein Spot in der Nähe gefunden", pt: "Nenhum spot próximo encontrado" },
   "Exploration indisponible": { en: "Exploration unavailable", es: "Exploración no disponible", de: "Erkundung nicht verfügbar", pt: "Exploração indisponível" },
+  "La recherche prend trop longtemps": { en: "Search is taking too long", es: "La búsqueda tarda demasiado", de: "Die Suche dauert zu lange", pt: "A pesquisa está a demorar demasiado" },
   "Latitude": { en: "Latitude", es: "Latitud", de: "Breitengrad", pt: "Latitude" },
   "Longitude": { en: "Longitude", es: "Longitud", de: "Längengrad", pt: "Longitude" },
   "Actualiser": { en: "Refresh", es: "Actualizar", de: "Aktualisieren", pt: "Atualizar" },
@@ -5785,14 +5786,17 @@ async function loadNearbySpots() {
   renderNearbySpotResults();
 
   try {
-    const payload = await fetchJson(buildNearbySpotsUrl(active.lat, active.lon), { timeoutMs: 15000 });
+    const payload = await fetchJson(buildNearbySpotsUrl(active.lat, active.lon), { timeoutMs: 25000 });
     if (requestId !== state.nearbySpotRequestId) return;
     state.nearbySpotResults = normalizeNearbySpotResults(payload);
     state.nearbySpotError = state.nearbySpotResults.length ? "" : "Aucun spot proche trouvé";
   } catch (error) {
     if (requestId !== state.nearbySpotRequestId) return;
     state.nearbySpotResults = [];
-    state.nearbySpotError = error?.message || "Exploration indisponible";
+    const message = error?.message || "";
+    state.nearbySpotError = message.startsWith("Délai dépassé")
+      ? "La recherche prend trop longtemps"
+      : (message || "Exploration indisponible");
   } finally {
     if (requestId === state.nearbySpotRequestId) {
       state.nearbySpotLoading = false;
