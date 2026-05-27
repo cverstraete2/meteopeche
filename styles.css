@@ -1229,6 +1229,102 @@ input[type="range"]::-moz-range-thumb {
   grid-column: 1 / -1;
 }
 
+.spot-search-control {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--sp-2);
+  align-items: end;
+}
+
+.spot-search-control .field {
+  min-width: 0;
+}
+
+.spot-search-control input {
+  width: 100%;
+}
+
+.spot-search-button {
+  min-height: 48px;
+  white-space: nowrap;
+}
+
+.spot-search-results {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: var(--sp-2);
+  max-height: 220px;
+  overflow-y: auto;
+  padding: var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--bg-card);
+}
+
+.spot-search-results[hidden] {
+  display: none;
+}
+
+.spot-search-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  width: 100%;
+  min-height: 58px;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  color: var(--text-1);
+  text-align: left;
+}
+
+.spot-search-result:hover,
+.spot-search-result:focus-visible {
+  background: var(--bg-input);
+}
+
+.spot-search-result span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.spot-search-result strong,
+.spot-search-result small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spot-search-result strong {
+  font-size: 0.9rem;
+}
+
+.spot-search-result small,
+.spot-search-result em,
+.spot-search-state {
+  color: var(--text-3);
+  font-size: 0.72rem;
+  font-style: normal;
+}
+
+.spot-search-result em {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border-radius: var(--r-pill);
+  background: var(--bg-input);
+  color: var(--accent);
+  font-family: var(--f-display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.spot-search-state {
+  padding: var(--sp-2);
+}
+
 .spot-form .primary-button {
   width: 100%;
 }
@@ -3590,6 +3686,14 @@ body.is-map-fullscreen-active .mobile-tabbar {
   .spot-map .spot-form {
     grid-template-columns: 1fr;
     max-height: min(54dvh, 420px);
+  }
+
+  .spot-search-control {
+    grid-template-columns: 1fr;
+  }
+
+  .spot-search-button {
+    width: 100%;
   }
 
   .map-controls,

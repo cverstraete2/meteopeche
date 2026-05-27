@@ -9,6 +9,7 @@ from urllib.request import Request, urlopen
 USER_AGENT = "MeteoCatch/1.0 https://meteopeche.pages.dev"
 OPEN_METEO_MARINE = "https://marine-api.open-meteo.com/v1/marine"
 NOMINATIM_REVERSE = "https://nominatim.openstreetmap.org/reverse"
+NOMINATIM_SEARCH = "https://nominatim.openstreetmap.org/search"
 OVERPASS_API = "https://overpass-api.de/api/interpreter"
 MAX_MARINE_GRID_DISTANCE_METERS = 50000
 NEARBY_WATER_RADIUS_METERS = 5000
@@ -21,6 +22,33 @@ def resolve_spot(params):
     lat = round(float(params["latitude"]), 5)
     lon = round(float(params["longitude"]), 5)
     return _resolve_spot_cached(lat, lon)
+
+
+def search_spots(params):
+    query = str(params.get("query") or params.get("q") or "").strip()
+    limit = int(params.get("limit", 8))
+    limit = max(1, min(limit, 10))
+    if len(query) < 2:
+        return {
+            "ok": False,
+            "error": "La recherche doit contenir au moins 2 caractères.",
+            "results": [],
+        }
+    return _search_spots_cached(query, limit)
+
+
+@lru_cache(maxsize=512)
+def _search_spots_cached(query, limit):
+    payload = search_osm(query, limit)
+    results = [search_result_from_osm(item) for item in payload if isinstance(item, dict)]
+    results = [item for item in results if item]
+
+    return {
+        "ok": True,
+        "query": query,
+        "provider": "OpenStreetMap Nominatim",
+        "results": results,
+    }
 
 
 @lru_cache(maxsize=2048)
@@ -88,6 +116,59 @@ def reverse_osm(lat, lon):
     payload = fetch_json(f"{NOMINATIM_REVERSE}?{query}", timeout=4)
     payload["ok"] = True
     return payload
+
+
+def search_osm(query, limit):
+    search_query = urlencode({
+        "format": "jsonv2",
+        "q": query,
+        "limit": limit,
+        "addressdetails": 1,
+        "extratags": 1,
+    })
+    return fetch_json(f"{NOMINATIM_SEARCH}?{search_query}", timeout=6)
+
+
+def search_result_from_osm(item):
+    try:
+        lat = float(item.get("lat"))
+        lon = float(item.get("lon"))
+    except (TypeError, ValueError):
+        return None
+
+    water_kind = classify_osm_payload({**item, "ok": True}) or "unknown"
+    address = item.get("address") or {}
+    display_name = str(item.get("display_name") or "").strip()
+    name = preferred_name({**item, "ok": True}) or display_name.split(",")[0].strip()
+    details = compact_search_details(address, display_name)
+
+    return {
+        "id": str(item.get("place_id") or f"{lat:.5f},{lon:.5f}"),
+        "name": name or f"Spot {lat:.4f}, {lon:.4f}",
+        "displayName": display_name,
+        "detail": details,
+        "latitude": round(lat, 5),
+        "longitude": round(lon, 5),
+        "waterKind": water_kind,
+        "waterMode": water_mode_for_kind(water_kind),
+        "countryCode": country_code(item),
+        "category": item.get("category") or item.get("class"),
+        "type": item.get("type"),
+    }
+
+
+def compact_search_details(address, display_name):
+    parts = []
+    for key in ("city", "town", "village", "municipality", "county", "state", "country"):
+        value = address.get(key)
+        if value and value not in parts:
+            parts.append(str(value))
+        if len(parts) >= 3:
+            break
+
+    if not parts and display_name:
+        parts = [part.strip() for part in display_name.split(",")[1:4] if part.strip()]
+    return ", ".join(parts)
 
 
 def nearby_water_feature(lat, lon):

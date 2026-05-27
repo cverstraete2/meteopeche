@@ -6,6 +6,7 @@ const WEATHER_API_FALLBACKS = [
 const METNO_API = "https://api.met.no/weatherapi/locationforecast/2.0/compact";
 const MARINE_API = "https://marine-api.open-meteo.com/v1/marine";
 const SPOT_RESOLVE_API_PATH = "api/spot-resolve";
+const SPOT_SEARCH_API_PATH = "api/spot-search";
 const RIVER_FORECAST_API_PATH = "api/river-forecast";
 const BATHYMETRY_WMS = "https://ows.emodnet-bathymetry.eu/wms";
 const BATHYMETRY_REST = "https://rest.emodnet-bathymetry.eu/depth/point";
@@ -113,6 +114,14 @@ const I18N_TRANSLATIONS = {
   "Ma position": { en: "My location", es: "Mi ubicación", de: "Mein Standort", pt: "A minha posição" },
   "Utiliser ma position": { en: "Use my location", es: "Usar mi ubicación", de: "Meinen Standort verwenden", pt: "Usar a minha posição" },
   "Spot": { en: "Spot", es: "Spot", de: "Spot", pt: "Spot" },
+  "Recherche mondiale": { en: "Global search", es: "Búsqueda global", de: "Weltweite Suche", pt: "Pesquisa global" },
+  "Ville, rivière, lac, port...": { en: "City, river, lake, harbor...", es: "Ciudad, río, lago, puerto...", de: "Stadt, Fluss, See, Hafen...", pt: "Cidade, rio, lago, porto..." },
+  "Rechercher": { en: "Search", es: "Buscar", de: "Suchen", pt: "Pesquisar" },
+  "Recherche en cours": { en: "Searching", es: "Buscando", de: "Suche läuft", pt: "A pesquisar" },
+  "Aucun résultat": { en: "No results", es: "Sin resultados", de: "Keine Ergebnisse", pt: "Sem resultados" },
+  "Recherche indisponible": { en: "Search unavailable", es: "Búsqueda no disponible", de: "Suche nicht verfügbar", pt: "Pesquisa indisponível" },
+  "Saisis au moins 2 caractères": { en: "Enter at least 2 characters", es: "Introduce al menos 2 caracteres", de: "Mindestens 2 Zeichen eingeben", pt: "Introduz pelo menos 2 caracteres" },
+  "Choisir ce spot": { en: "Choose this spot", es: "Elegir este spot", de: "Diesen Spot wählen", pt: "Escolher este spot" },
   "Latitude": { en: "Latitude", es: "Latitud", de: "Breitengrad", pt: "Latitude" },
   "Longitude": { en: "Longitude", es: "Longitud", de: "Längengrad", pt: "Longitude" },
   "Actualiser": { en: "Refresh", es: "Actualizar", de: "Aktualisieren", pt: "Atualizar" },
@@ -1846,6 +1855,10 @@ const state = {
   spotResolutionLoading: false,
   spotResolutionError: "",
   spotResolutionRequestId: 0,
+  spotSearchResults: [],
+  spotSearchLoading: false,
+  spotSearchError: "",
+  spotSearchRequestId: 0,
   depth: 15,
   realDepthAvailable: false,
   realDepthError: "",
@@ -1949,6 +1962,9 @@ const els = {
   spotSummaryName: document.querySelector("#spotSummaryName"),
   spotSummaryCoords: document.querySelector("#spotSummaryCoords"),
   spotPreset: document.querySelector("#spotPreset"),
+  spotSearchInput: document.querySelector("#spotSearchInput"),
+  spotSearchButton: document.querySelector("#spotSearchButton"),
+  spotSearchResults: document.querySelector("#spotSearchResults"),
   latitude: document.querySelector("#latitude"),
   longitude: document.querySelector("#longitude"),
   spotForm: document.querySelector("#spotForm"),
@@ -3399,6 +3415,7 @@ function confirmPendingSpot(options = {}) {
 }
 
 function renderSpotTools() {
+  renderSpotSearchResults();
   renderFishFilterControls();
   renderMapTiles();
   renderMapMarkers();
@@ -5284,6 +5301,29 @@ function bindEvents() {
     selectSpot(Number(els.spotPreset.value), { load: true });
   });
 
+  els.spotSearchButton?.addEventListener("click", () => {
+    searchSpotLocations();
+  });
+  els.spotSearchInput?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    searchSpotLocations();
+  });
+  els.spotSearchInput?.addEventListener("input", () => {
+    if (els.spotSearchInput.value.trim()) return;
+    state.spotSearchResults = [];
+    state.spotSearchError = "";
+    renderSpotSearchResults();
+  });
+  els.spotSearchResults?.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest("[data-spot-search-result]");
+    if (!button) return;
+    event.preventDefault();
+    selectSpotSearchResult(button.dataset.spotSearchResult);
+  });
+
   els.spotForm.addEventListener("submit", (event) => {
     event.preventDefault();
     const preset = getSelectedPreset();
@@ -5647,6 +5687,115 @@ function buildSpotResolveUrl(lat, lon) {
   url.searchParams.set("latitude", Number(lat).toFixed(5));
   url.searchParams.set("longitude", Number(lon).toFixed(5));
   return url;
+}
+
+function buildSpotSearchUrl(query) {
+  const url = buildAppApiUrl(SPOT_SEARCH_API_PATH);
+  url.searchParams.set("q", query);
+  url.searchParams.set("limit", "8");
+  return url;
+}
+
+async function searchSpotLocations() {
+  const query = (els.spotSearchInput?.value || "").trim();
+  if (query.length < 2) {
+    state.spotSearchResults = [];
+    state.spotSearchError = "Saisis au moins 2 caractères";
+    state.spotSearchLoading = false;
+    renderSpotSearchResults();
+    return;
+  }
+
+  const requestId = state.spotSearchRequestId + 1;
+  state.spotSearchRequestId = requestId;
+  state.spotSearchLoading = true;
+  state.spotSearchError = "";
+  renderSpotSearchResults();
+
+  try {
+    const payload = await fetchJson(buildSpotSearchUrl(query), { timeoutMs: 9000 });
+    if (requestId !== state.spotSearchRequestId) return;
+    state.spotSearchResults = normalizeSpotSearchResults(payload);
+    state.spotSearchError = state.spotSearchResults.length ? "" : "Aucun résultat";
+  } catch (error) {
+    if (requestId !== state.spotSearchRequestId) return;
+    state.spotSearchResults = [];
+    state.spotSearchError = error?.message || "Recherche indisponible";
+  } finally {
+    if (requestId === state.spotSearchRequestId) {
+      state.spotSearchLoading = false;
+      renderSpotSearchResults();
+    }
+  }
+}
+
+function normalizeSpotSearchResults(payload) {
+  if (!payload?.ok || !Array.isArray(payload.results)) return [];
+
+  return payload.results
+    .map((item) => ({
+      id: String(item.id || `${item.latitude},${item.longitude}`),
+      name: String(item.name || "").trim(),
+      detail: String(item.detail || item.displayName || "").trim(),
+      lat: numberOrNull(item.latitude),
+      lon: numberOrNull(item.longitude),
+      waterKind: typeof item.waterKind === "string" ? item.waterKind : "unknown",
+      waterMode: item.waterMode ? normalizeWaterMode(item.waterMode) : null,
+      countryCode: typeof item.countryCode === "string" ? item.countryCode : "",
+    }))
+    .filter((item) => item.name && isValidNumber(item.lat) && isValidNumber(item.lon));
+}
+
+function renderSpotSearchResults() {
+  if (!els.spotSearchResults) return;
+
+  const shouldShow = state.spotSearchLoading || state.spotSearchError || state.spotSearchResults.length > 0;
+  els.spotSearchResults.hidden = !shouldShow;
+  if (!shouldShow) {
+    els.spotSearchResults.innerHTML = "";
+    return;
+  }
+
+  if (state.spotSearchLoading) {
+    els.spotSearchResults.innerHTML = `<span class="spot-search-state">${escapeHtml(t("Recherche en cours"))}</span>`;
+    return;
+  }
+
+  if (state.spotSearchError && !state.spotSearchResults.length) {
+    els.spotSearchResults.innerHTML = `<span class="spot-search-state">${escapeHtml(t(state.spotSearchError))}</span>`;
+    return;
+  }
+
+  els.spotSearchResults.innerHTML = state.spotSearchResults.map((result) => {
+    const modeLabel = result.waterMode
+      ? t(waterModeConfig[result.waterMode]?.label ?? "Spot")
+      : t("Spot mondial");
+    const country = result.countryCode ? ` · ${result.countryCode}` : "";
+    return `
+      <button class="spot-search-result" type="button" data-spot-search-result="${escapeHtml(result.id)}">
+        <span>
+          <strong>${escapeHtml(result.name)}</strong>
+          <small>${escapeHtml(result.detail || formatCoordinates(result.lat, result.lon))}</small>
+        </span>
+        <em>${escapeHtml(`${modeLabel}${country}`)}</em>
+      </button>
+    `;
+  }).join("");
+}
+
+function selectSpotSearchResult(id) {
+  const result = state.spotSearchResults.find((item) => item.id === id);
+  if (!result) return;
+
+  if (els.spotSearchInput) {
+    els.spotSearchInput.value = result.name;
+    els.spotSearchInput.blur();
+  }
+  state.spotSearchResults = [];
+  state.spotSearchError = "";
+  state.pendingSpot = null;
+  setCustomSpot(result.lat, result.lon, { load: true, name: result.name });
+  setSpotPanelOpen(false);
 }
 
 function normalizeSpotResolution(payload, lat, lon) {

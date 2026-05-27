@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 
 from .copernicus_depth import get_depth_current
 from .river_forecast import get_river_forecast
-from .spot_resolver import resolve_spot
+from .spot_resolver import resolve_spot, search_spots
 
 
 DEFAULT_ALLOWED_ORIGINS = [
@@ -24,7 +24,7 @@ def allowed_origins():
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
-API_VERSION = "1.2.0"
+API_VERSION = "1.3.0"
 
 app = FastAPI(title="MeteoCatch Copernicus API", version=API_VERSION)
 app.add_middleware(
@@ -87,6 +87,29 @@ def spot_resolve(
             "error": "Erreur inattendue pendant l'analyse mondiale du spot.",
             "detail": str(error),
             "errorType": error.__class__.__name__,
+        }
+
+    status_code = 200 if result.get("ok") else 503
+    return JSONResponse(result, status_code=status_code)
+
+
+@app.get("/api/spot-search")
+def spot_search(
+    q: str = Query(..., min_length=2, max_length=120),
+    limit: int = Query(8, ge=1, le=10),
+):
+    try:
+        result = search_spots({
+            "query": q,
+            "limit": limit,
+        })
+    except Exception as error:
+        result = {
+            "ok": False,
+            "error": "Erreur inattendue pendant la recherche mondiale.",
+            "detail": str(error),
+            "errorType": error.__class__.__name__,
+            "results": [],
         }
 
     status_code = 200 if result.get("ok") else 503
