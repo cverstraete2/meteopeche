@@ -5653,6 +5653,7 @@ function setTimelineMinute(value) {
 
 async function resolveSpotContext(lat, lon) {
   const requestId = state.spotResolutionRequestId + 1;
+  const previousResolution = state.spotResolution;
   state.spotResolutionRequestId = requestId;
   state.spotResolutionLoading = true;
   state.spotResolutionError = "";
@@ -5663,7 +5664,12 @@ async function resolveSpotContext(lat, lon) {
     const payload = await fetchJson(url, { timeoutMs: 8500 });
     if (requestId !== state.spotResolutionRequestId) return state.spotResolution;
 
-    const resolution = normalizeSpotResolution(payload, lat, lon);
+    const resolution = mergeKnownSpotResolution(
+      normalizeSpotResolution(payload, lat, lon),
+      previousResolution,
+      lat,
+      lon,
+    );
     state.spotResolution = resolution;
     applyResolvedWaterMode(resolution);
     return resolution;
@@ -5794,6 +5800,10 @@ function selectSpotSearchResult(id) {
   state.spotSearchResults = [];
   state.spotSearchError = "";
   state.pendingSpot = null;
+  if (result.waterMode) {
+    setWaterMode(result.waterMode, { load: false });
+  }
+  state.spotResolution = provisionalSpotResolutionFromSearchResult(result);
   setCustomSpot(result.lat, result.lon, { load: true, name: result.name });
   setSpotPanelOpen(false);
 }
@@ -5808,6 +5818,8 @@ function normalizeSpotResolution(payload, lat, lon) {
 
   return {
     ok: payload?.ok !== false,
+    latitude: roundNumber(lat, 5),
+    longitude: roundNumber(lon, 5),
     name,
     waterKind,
     waterMode,
@@ -5822,10 +5834,61 @@ function normalizeSpotResolution(payload, lat, lon) {
   };
 }
 
+function provisionalSpotResolutionFromSearchResult(result) {
+  return {
+    ok: true,
+    latitude: roundNumber(result.lat, 5),
+    longitude: roundNumber(result.lon, 5),
+    name: result.name || getCustomSpotName(result.lat, result.lon),
+    waterKind: result.waterKind || "unknown",
+    waterMode: result.waterMode || null,
+    confidence: result.waterMode ? "medium" : "low",
+    confidenceScore: result.waterMode ? 0.68 : 0.35,
+    countryCode: result.countryCode || "",
+    distanceMeters: null,
+    providers: [
+      { id: "openstreetmap", label: "OpenStreetMap", status: "available", quality: "context", variables: ["place-search"] },
+      { id: "open-meteo-weather", label: "Open-Meteo Weather", status: "available", quality: "forecast" },
+    ],
+    badges: result.waterMode === WATER_MODES.FRESHWATER
+      ? ["weather-global", "freshwater"]
+      : result.waterMode === WATER_MODES.SEA
+        ? ["weather-global", "marine-partial"]
+        : ["weather-global", "manual-check"],
+    sources: { osmSearch: "available" },
+    resolvedAt: new Date().toISOString(),
+  };
+}
+
+function mergeKnownSpotResolution(resolution, previous, lat, lon) {
+  if (resolution?.waterMode || !previous?.waterMode) return resolution;
+  if (!sameSpotResolutionLocation(previous, lat, lon)) return resolution;
+
+  return {
+    ...resolution,
+    waterKind: resolution.waterKind && resolution.waterKind !== "unknown" ? resolution.waterKind : previous.waterKind,
+    waterMode: previous.waterMode,
+    confidence: previous.confidence ?? resolution.confidence,
+    confidenceScore: max([resolution.confidenceScore, previous.confidenceScore].filter(isValidNumber)) ?? resolution.confidenceScore,
+    countryCode: resolution.countryCode || previous.countryCode,
+    providers: resolution.providers?.length ? resolution.providers : previous.providers,
+    badges: resolution.badges?.length ? Array.from(new Set([...resolution.badges, ...(previous.badges ?? [])])) : previous.badges,
+    sources: { ...(previous.sources ?? {}), ...(resolution.sources ?? {}) },
+  };
+}
+
+function sameSpotResolutionLocation(resolution, lat, lon) {
+  if (!isValidNumber(resolution?.latitude) || !isValidNumber(resolution?.longitude)) return false;
+  return Math.abs(resolution.latitude - roundNumber(lat, 5)) < 0.0001
+    && Math.abs(resolution.longitude - roundNumber(lon, 5)) < 0.0001;
+}
+
 function fallbackSpotResolution(lat, lon) {
   const mode = state.waterMode;
   return {
     ok: false,
+    latitude: roundNumber(lat, 5),
+    longitude: roundNumber(lon, 5),
     name: getActiveSpot()?.name || getCustomSpotName(lat, lon),
     waterKind: isSeaMode() ? "sea" : "freshwater",
     waterMode: mode,
@@ -9822,6 +9885,11 @@ function max(values) {
   const clean = values.filter(isValidNumber);
   if (!clean.length) return null;
   return Math.max(...clean);
+}
+
+function roundNumber(value, precision = 2) {
+  if (!isValidNumber(value)) return null;
+  return Number(Number(value).toFixed(precision));
 }
 
 function min(values) {
