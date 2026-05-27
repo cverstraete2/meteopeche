@@ -91,27 +91,59 @@ def reverse_osm(lat, lon):
 
 
 def nearby_water_feature(lat, lon):
-    query = f"""
-    [out:json][timeout:8];
-    (
-      nwr(around:{NEARBY_WATER_RADIUS_METERS},{lat:.5f},{lon:.5f})["waterway"~"^(river|stream|canal|riverbank)$"];
-      nwr(around:{NEARBY_WATER_RADIUS_METERS},{lat:.5f},{lon:.5f})["natural"~"^(water|bay|strait|coastline)$"];
-      nwr(around:{NEARBY_WATER_RADIUS_METERS},{lat:.5f},{lon:.5f})["water"~"^(lake|reservoir|river|pond|lagoon|canal|stream)$"];
-      nwr(around:{NEARBY_WATER_RADIUS_METERS},{lat:.5f},{lon:.5f})["landuse"="reservoir"];
-    );
-    out tags center 30;
-    """
-    payload = fetch_json(f"{OVERPASS_API}?{urlencode({'data': query})}", timeout=7)
-    elements = payload.get("elements") or []
-    candidates = [feature_from_overpass(element, lat, lon) for element in elements]
-    candidates = [candidate for candidate in candidates if candidate]
-    if not candidates:
-        return {"ok": False, "error": "No nearby water feature found"}
+    errors = []
+    for query in nearby_water_queries(lat, lon):
+        try:
+            payload = fetch_json(f"{OVERPASS_API}?{urlencode({'data': query})}", timeout=8)
+        except Exception as error:
+            errors.append(str(error))
+            continue
 
-    candidates.sort(key=lambda item: (kind_priority(classify_osm_tags(item["tags"])), item["distanceMeters"]))
-    best = candidates[0]
-    best["ok"] = True
-    return best
+        elements = payload.get("elements") or []
+        candidates = [feature_from_overpass(element, lat, lon) for element in elements]
+        candidates = [candidate for candidate in candidates if candidate]
+        if candidates:
+            candidates.sort(key=lambda item: (kind_priority(classify_osm_tags(item["tags"])), item["distanceMeters"]))
+            best = candidates[0]
+            best["ok"] = True
+            return best
+
+    return {"ok": False, "error": "; ".join(errors) or "No nearby water feature found"}
+
+
+def nearby_water_queries(lat, lon):
+    radius = NEARBY_WATER_RADIUS_METERS
+    compact_radius = min(radius, 3000)
+    return [
+        f"""
+        [out:json][timeout:6];
+        (
+          way(around:{radius},{lat:.5f},{lon:.5f})["waterway"~"^(river|stream|canal|riverbank)$"];
+          relation(around:{radius},{lat:.5f},{lon:.5f})["waterway"~"^(river|stream|canal|riverbank)$"];
+        );
+        out tags center 20;
+        """,
+        f"""
+        [out:json][timeout:6];
+        (
+          way(around:{compact_radius},{lat:.5f},{lon:.5f})["natural"="water"];
+          relation(around:{compact_radius},{lat:.5f},{lon:.5f})["natural"="water"];
+          way(around:{compact_radius},{lat:.5f},{lon:.5f})["water"~"^(lake|reservoir|river|pond|lagoon|canal|stream)$"];
+          relation(around:{compact_radius},{lat:.5f},{lon:.5f})["water"~"^(lake|reservoir|river|pond|lagoon|canal|stream)$"];
+          way(around:{compact_radius},{lat:.5f},{lon:.5f})["landuse"="reservoir"];
+          relation(around:{compact_radius},{lat:.5f},{lon:.5f})["landuse"="reservoir"];
+        );
+        out tags center 20;
+        """,
+        f"""
+        [out:json][timeout:6];
+        (
+          way(around:{compact_radius},{lat:.5f},{lon:.5f})["natural"~"^(bay|strait|coastline)$"];
+          relation(around:{compact_radius},{lat:.5f},{lon:.5f})["natural"~"^(bay|strait|coastline)$"];
+        );
+        out tags center 20;
+        """,
+    ]
 
 
 def marine_available(lat, lon):
