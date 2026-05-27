@@ -724,6 +724,11 @@ footer {
   color: var(--warn);
 }
 
+.native-badge.is-warning {
+  background: var(--maybe-bg);
+  color: var(--maybe);
+}
+
 .privacy-summary {
   display: grid;
   gap: var(--sp-2);
@@ -1183,6 +1188,15 @@ input[type="range"]::-moz-range-thumb {
   font-family: var(--f-data);
   font-size: 0.7rem;
   color: var(--text-3);
+}
+
+.spot-current #activeSpotContext {
+  font-family: var(--f-ui);
+  font-size: 0.68rem;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .spot-form {

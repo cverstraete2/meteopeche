@@ -5,6 +5,7 @@ const WEATHER_API_FALLBACKS = [
 ];
 const METNO_API = "https://api.met.no/weatherapi/locationforecast/2.0/compact";
 const MARINE_API = "https://marine-api.open-meteo.com/v1/marine";
+const SPOT_RESOLVE_API_PATH = "api/spot-resolve";
 const BATHYMETRY_WMS = "https://ows.emodnet-bathymetry.eu/wms";
 const BATHYMETRY_REST = "https://rest.emodnet-bathymetry.eu/depth/point";
 const DEFAULT_API_BASE_URL = "https://meteopeche-copernicus-977572434171.europe-west1.run.app";
@@ -58,7 +59,7 @@ const I18N_TRANSLATIONS = {
   "En ligne": { en: "Online", es: "En línea", de: "Online", pt: "Online" },
   "Offline": { en: "Offline", es: "Sin conexión", de: "Offline", pt: "Offline" },
   "Confidentialité": { en: "Privacy", es: "Privacidad", de: "Datenschutz", pt: "Privacidade" },
-  "La position sert à charger les prévisions du spot. Le journal et les photos restent sur ton appareil, sauf si tu les exportes volontairement. Les services météo et Copernicus reçoivent uniquement les coordonnées nécessaires aux données.": { en: "Location is used to load spot forecasts. The log and photos stay on your device unless you choose to export them. Weather services and Copernicus receive only the coordinates needed for the data.", es: "La ubicación se usa para cargar las previsiones del spot. El diario y las fotos permanecen en tu dispositivo salvo que los exportes voluntariamente. Los servicios meteorológicos y Copernicus reciben solo las coordenadas necesarias.", de: "Der Standort wird genutzt, um Spot-Vorhersagen zu laden. Tagebuch und Fotos bleiben auf deinem Gerät, außer du exportierst sie bewusst. Wetterdienste und Copernicus erhalten nur die nötigen Koordinaten.", pt: "A localização serve para carregar previsões do spot. O diário e as fotos ficam no teu dispositivo, salvo exportação voluntária. Os serviços meteorológicos e Copernicus recebem apenas as coordenadas necessárias." },
+  "La position sert à charger les prévisions du spot. Le journal et les photos restent sur ton appareil, sauf si tu les exportes volontairement. Les services météo, cartographie, Copernicus et GloFAS reçoivent uniquement les coordonnées nécessaires aux données.": { en: "Location is used to load spot forecasts. The log and photos stay on your device unless you choose to export them. Weather, mapping, Copernicus and GloFAS services receive only the coordinates needed for the data.", es: "La ubicación se usa para cargar las previsiones del spot. El diario y las fotos permanecen en tu dispositivo salvo que los exportes voluntariamente. Los servicios meteorológicos, cartográficos, Copernicus y GloFAS reciben solo las coordenadas necesarias.", de: "Der Standort wird genutzt, um Spot-Vorhersagen zu laden. Tagebuch und Fotos bleiben auf deinem Gerät, außer du exportierst sie bewusst. Wetter-, Karten-, Copernicus- und GloFAS-Dienste erhalten nur die nötigen Koordinaten.", pt: "A localização serve para carregar previsões do spot. O diário e as fotos ficam no teu dispositivo, salvo exportação voluntária. Os serviços meteorológicos, cartográficos, Copernicus e GloFAS recebem apenas as coordenadas necessárias." },
   "Continuer": { en: "Continue", es: "Continuar", de: "Weiter", pt: "Continuar" },
   "Plus tard": { en: "Later", es: "Más tarde", de: "Später", pt: "Mais tarde" },
   "Prévisions marines par spot": { en: "Marine forecasts by spot", es: "Previsiones marinas por spot", de: "Meeresvorhersagen nach Spot", pt: "Previsões marinhas por spot" },
@@ -93,7 +94,7 @@ const I18N_TRANSLATIONS = {
   "À valider": { en: "To accept", es: "Por validar", de: "Zu bestätigen", pt: "Por validar" },
   "Validée": { en: "Accepted", es: "Validada", de: "Bestätigt", pt: "Validada" },
   "Valider": { en: "Accept", es: "Validar", de: "Bestätigen", pt: "Validar" },
-  "Le GPS n'est utilisé que pour sélectionner un spot et charger les conditions. Les photos du journal restent dans le stockage local de l'appareil.": { en: "GPS is only used to select a spot and load conditions. Log photos stay in local device storage.", es: "El GPS solo se usa para seleccionar un spot y cargar las condiciones. Las fotos del diario permanecen en el almacenamiento local del dispositivo.", de: "GPS wird nur verwendet, um einen Spot zu wählen und Bedingungen zu laden. Fotos bleiben lokal auf dem Gerät.", pt: "O GPS é usado apenas para selecionar um spot e carregar condições. As fotos do diário ficam no armazenamento local do dispositivo." },
+  "Le GPS n'est utilisé que pour sélectionner un spot et charger les conditions. Les photos du journal restent dans le stockage local de l'appareil. Les services météo, cartographie et eau reçoivent seulement les coordonnées nécessaires.": { en: "GPS is only used to select a spot and load conditions. Log photos stay in local device storage. Weather, mapping and water services receive only the coordinates they need.", es: "El GPS solo se usa para seleccionar un spot y cargar las condiciones. Las fotos del diario permanecen en el almacenamiento local del dispositivo. Los servicios meteorológicos, cartográficos y de agua reciben solo las coordenadas necesarias.", de: "GPS wird nur verwendet, um einen Spot zu wählen und Bedingungen zu laden. Fotos bleiben lokal auf dem Gerät. Wetter-, Karten- und Gewässerdienste erhalten nur die nötigen Koordinaten.", pt: "O GPS é usado apenas para selecionar um spot e carregar condições. As fotos do diário ficam no armazenamento local do dispositivo. Os serviços meteorológicos, cartográficos e de água recebem apenas as coordenadas necessárias." },
   "Politique de confidentialité": { en: "Privacy policy", es: "Política de privacidad", de: "Datenschutzerklärung", pt: "Política de privacidade" },
   "Revoir l'onboarding": { en: "Review onboarding", es: "Revisar onboarding", de: "Onboarding erneut ansehen", pt: "Rever onboarding" },
   "Carte": { en: "Map", es: "Mapa", de: "Karte", pt: "Mapa" },
@@ -304,6 +305,36 @@ const I18N_TRANSLATIONS = {
   "Partiel": { en: "Partial", es: "Parcial", de: "Teilweise", pt: "Parcial" },
   "Copernicus": { en: "Copernicus", es: "Copernicus", de: "Copernicus", pt: "Copernicus" },
   "Copernicus indispo": { en: "Copernicus unavailable", es: "Copernicus no disponible", de: "Copernicus nicht verfügbar", pt: "Copernicus indisponível" },
+  "Couverture mondiale": { en: "Global coverage", es: "Cobertura mundial", de: "Weltweite Abdeckung", pt: "Cobertura mundial" },
+  "Analyse mondiale": { en: "Global analysis", es: "Análisis mundial", de: "Weltweite Analyse", pt: "Análise mundial" },
+  "Analyse mondiale du spot": { en: "Global spot analysis", es: "Análisis global del spot", de: "Weltweite Spotanalyse", pt: "Análise global do spot" },
+  "Analyse en cours": { en: "Analysis running", es: "Análisis en curso", de: "Analyse läuft", pt: "Análise em curso" },
+  "Analyse indisponible": { en: "Analysis unavailable", es: "Análisis no disponible", de: "Analyse nicht verfügbar", pt: "Análise indisponível" },
+  "Auto": { en: "Auto", es: "Auto", de: "Auto", pt: "Auto" },
+  "Spot mondial": { en: "Global spot", es: "Spot global", de: "Globaler Spot", pt: "Spot global" },
+  "Spot à qualifier": { en: "Spot to classify", es: "Spot por clasificar", de: "Spot zu klassifizieren", pt: "Spot a classificar" },
+  "Mer détectée": { en: "Sea detected", es: "Mar detectado", de: "Meer erkannt", pt: "Mar detetado" },
+  "Océan détecté": { en: "Ocean detected", es: "Océano detectado", de: "Ozean erkannt", pt: "Oceano detetado" },
+  "Côte détectée": { en: "Coast detected", es: "Costa detectada", de: "Küste erkannt", pt: "Costa detetada" },
+  "Baie détectée": { en: "Bay detected", es: "Bahía detectada", de: "Bucht erkannt", pt: "Baía detetada" },
+  "Détroit détecté": { en: "Strait detected", es: "Estrecho detectado", de: "Meerenge erkannt", pt: "Estreito detetado" },
+  "Port détecté": { en: "Harbour detected", es: "Puerto detectado", de: "Hafen erkannt", pt: "Porto detetado" },
+  "Rivière détectée": { en: "River detected", es: "Río detectado", de: "Fluss erkannt", pt: "Rio detetado" },
+  "Canal détecté": { en: "Canal detected", es: "Canal detectado", de: "Kanal erkannt", pt: "Canal detetado" },
+  "Lac détecté": { en: "Lake detected", es: "Lago detectado", de: "See erkannt", pt: "Lago detetado" },
+  "Réservoir détecté": { en: "Reservoir detected", es: "Embalse detectado", de: "Stausee erkannt", pt: "Reservatório detetado" },
+  "Eau douce détectée": { en: "Freshwater detected", es: "Agua dulce detectada", de: "Süßwasser erkannt", pt: "Água doce detetada" },
+  "Type d'eau à confirmer": { en: "Water type to confirm", es: "Tipo de agua por confirmar", de: "Gewässertyp bestätigen", pt: "Tipo de água a confirmar" },
+  "Confiance élevée": { en: "High confidence", es: "Alta confianza", de: "Hohe Sicherheit", pt: "Confiança elevada" },
+  "Confiance moyenne": { en: "Medium confidence", es: "Confianza media", de: "Mittlere Sicherheit", pt: "Confiança média" },
+  "Confiance faible": { en: "Low confidence", es: "Baja confianza", de: "Geringe Sicherheit", pt: "Confiança baixa" },
+  "Météo mondiale": { en: "Global weather", es: "Meteorología mundial", de: "Weltweites Wetter", pt: "Meteorologia mundial" },
+  "Marine mondiale": { en: "Global marine", es: "Marina mundial", de: "Weltweite Meeresdaten", pt: "Marinha mundial" },
+  "Données partielles": { en: "Partial data", es: "Datos parciales", de: "Teilweise Daten", pt: "Dados parciais" },
+  "Copernicus Marine prêt": { en: "Copernicus Marine ready", es: "Copernicus Marine listo", de: "Copernicus Marine bereit", pt: "Copernicus Marine pronto" },
+  "GloFAS prêt": { en: "GloFAS ready", es: "GloFAS listo", de: "GloFAS bereit", pt: "GloFAS pronto" },
+  "Vérification manuelle": { en: "Manual check", es: "Comprobación manual", de: "Manuelle Prüfung", pt: "Verificação manual" },
+  "Source mondiale": { en: "Global source", es: "Fuente mundial", de: "Weltweite Quelle", pt: "Fonte mundial" },
   "À jour": { en: "Up to date", es: "Actualizado", de: "Aktuell", pt: "Atualizado" },
   "Données indisponibles": { en: "Data unavailable", es: "Datos no disponibles", de: "Daten nicht verfügbar", pt: "Dados indisponíveis" },
   "Prévisions marines": { en: "Marine forecasts", es: "Previsiones marinas", de: "Meeresvorhersagen", pt: "Previsões marinhas" },
@@ -438,6 +469,38 @@ const waterModeConfig = {
     showMarine: false,
   },
 };
+const spotWaterKindLabels = {
+  sea: "Mer détectée",
+  ocean: "Océan détecté",
+  coast: "Côte détectée",
+  bay: "Baie détectée",
+  strait: "Détroit détecté",
+  harbour: "Port détecté",
+  marina: "Port détecté",
+  river: "Rivière détectée",
+  stream: "Rivière détectée",
+  canal: "Canal détecté",
+  lake: "Lac détecté",
+  reservoir: "Réservoir détecté",
+  pond: "Lac détecté",
+  freshwater: "Eau douce détectée",
+  unknown: "Type d'eau à confirmer",
+};
+const spotConfidenceLabels = {
+  high: "Confiance élevée",
+  medium: "Confiance moyenne",
+  low: "Confiance faible",
+};
+const spotProviderBadgeLabels = {
+  "weather-global": "Météo mondiale",
+  "marine-global": "Marine mondiale",
+  "marine-partial": "Données partielles",
+  "copernicus-marine-route": "Copernicus Marine prêt",
+  freshwater: "Eau douce",
+  "glofas-route": "GloFAS prêt",
+  "manual-check": "Vérification manuelle",
+  "high-confidence": "Confiance élevée",
+};
 const DEFAULT_PROFILE = {
   experience: "intermediate",
   approach: "shore",
@@ -460,8 +523,8 @@ const profileOptions = {
     { id: "spots", label: "Spots" },
   ],
 };
-const MAP_BASE_ZOOM = 7;
-const MAP_MIN_ZOOM = 6;
+const MAP_BASE_ZOOM = 6;
+const MAP_MIN_ZOOM = 2;
 const MAP_MAX_ZOOM = 19;
 const MAP_TILE_SIZE = 256;
 const MAP_TILE_BUFFER = 1;
@@ -1757,6 +1820,10 @@ const state = {
   selectedDate: "",
   timelineMinute: 12 * 60,
   selectedSpotName: spots[0].name,
+  spotResolution: null,
+  spotResolutionLoading: false,
+  spotResolutionError: "",
+  spotResolutionRequestId: 0,
   depth: 15,
   realDepthAvailable: false,
   realDepthError: "",
@@ -1878,6 +1945,8 @@ const els = {
   nativeOfflineStatus: document.querySelector("#nativeOfflineStatus"),
   nativeOnlineBadge: document.querySelector("#nativeOnlineBadge"),
   forecastStatusDetail: document.querySelector("#forecastStatusDetail"),
+  spotResolutionStatus: document.querySelector("#spotResolutionStatus"),
+  spotResolutionBadge: document.querySelector("#spotResolutionBadge"),
   nativePrivacyStatus: document.querySelector("#nativePrivacyStatus"),
   nativeGpsButton: document.querySelector("#nativeGpsButton"),
   nativeNotificationButton: document.querySelector("#nativeNotificationButton"),
@@ -1943,6 +2012,7 @@ const els = {
   spotDock: document.querySelector("#spotDock"),
   activeSpotName: document.querySelector("#activeSpotName"),
   activeSpotCoords: document.querySelector("#activeSpotCoords"),
+  activeSpotContext: document.querySelector("#activeSpotContext"),
   mapZoomIn: document.querySelector("#mapZoomIn"),
   mapZoomOut: document.querySelector("#mapZoomOut"),
   mapFullscreenButton: document.querySelector("#mapFullscreenButton"),
@@ -3321,6 +3391,7 @@ function renderSpotTools() {
   updateRegulationOverlay();
   renderAnchorWatch();
   renderSafetyStatus();
+  renderSpotResolution();
   updateMapLayerPanel();
   updateSpotPanel();
   renderSpotNameSheet();
@@ -5515,6 +5586,95 @@ function setTimelineMinute(value) {
   drawCompass();
 }
 
+async function resolveSpotContext(lat, lon) {
+  const requestId = state.spotResolutionRequestId + 1;
+  state.spotResolutionRequestId = requestId;
+  state.spotResolutionLoading = true;
+  state.spotResolutionError = "";
+  renderSpotResolution();
+
+  try {
+    const url = buildSpotResolveUrl(lat, lon);
+    const payload = await fetchJson(url, { timeoutMs: 8500 });
+    if (requestId !== state.spotResolutionRequestId) return state.spotResolution;
+
+    const resolution = normalizeSpotResolution(payload, lat, lon);
+    state.spotResolution = resolution;
+    applyResolvedWaterMode(resolution);
+    return resolution;
+  } catch (error) {
+    if (requestId !== state.spotResolutionRequestId) return state.spotResolution;
+    state.spotResolutionError = error?.message || "Analyse indisponible";
+    state.spotResolution = fallbackSpotResolution(lat, lon);
+    return state.spotResolution;
+  } finally {
+    if (requestId === state.spotResolutionRequestId) {
+      state.spotResolutionLoading = false;
+      renderSpotResolution();
+      updateSpotMeta();
+      renderPreferenceControls(getSelectedDay());
+    }
+  }
+}
+
+function buildSpotResolveUrl(lat, lon) {
+  const url = buildAppApiUrl(SPOT_RESOLVE_API_PATH);
+  url.searchParams.set("latitude", Number(lat).toFixed(5));
+  url.searchParams.set("longitude", Number(lon).toFixed(5));
+  return url;
+}
+
+function normalizeSpotResolution(payload, lat, lon) {
+  const waterMode = payload?.waterMode ? normalizeWaterMode(payload.waterMode) : null;
+  const waterKind = typeof payload?.waterKind === "string" ? payload.waterKind : "unknown";
+  const confidence = ["high", "medium", "low"].includes(payload?.confidence) ? payload.confidence : "low";
+  const name = typeof payload?.name === "string" && payload.name.trim()
+    ? payload.name.trim()
+    : getCustomSpotName(lat, lon);
+
+  return {
+    ok: payload?.ok !== false,
+    name,
+    waterKind,
+    waterMode,
+    confidence,
+    confidenceScore: isValidNumber(payload?.confidenceScore) ? payload.confidenceScore : null,
+    countryCode: typeof payload?.countryCode === "string" ? payload.countryCode : "",
+    distanceMeters: isValidNumber(payload?.distanceMeters) ? payload.distanceMeters : null,
+    providers: Array.isArray(payload?.providers) ? payload.providers : [],
+    badges: Array.isArray(payload?.badges) ? payload.badges.filter((badge) => typeof badge === "string") : [],
+    sources: payload?.sources && typeof payload.sources === "object" ? payload.sources : {},
+    resolvedAt: new Date().toISOString(),
+  };
+}
+
+function fallbackSpotResolution(lat, lon) {
+  const mode = state.waterMode;
+  return {
+    ok: false,
+    name: getActiveSpot()?.name || getCustomSpotName(lat, lon),
+    waterKind: isSeaMode() ? "sea" : "freshwater",
+    waterMode: mode,
+    confidence: "low",
+    confidenceScore: 0.25,
+    countryCode: "",
+    distanceMeters: null,
+    providers: [
+      { id: "open-meteo-weather", label: "Open-Meteo Weather", status: "available", quality: "forecast" },
+      ...(isSeaMode() ? [{ id: "open-meteo-marine", label: "Open-Meteo Marine", status: "candidate", quality: "forecast" }] : []),
+    ],
+    badges: isSeaMode() ? ["weather-global", "marine-partial", "manual-check"] : ["weather-global", "freshwater", "manual-check"],
+    sources: {},
+    resolvedAt: new Date().toISOString(),
+  };
+}
+
+function applyResolvedWaterMode(resolution) {
+  const nextMode = resolution?.waterMode ? normalizeWaterMode(resolution.waterMode) : null;
+  if (!nextMode || nextMode === state.waterMode) return;
+  setWaterMode(nextMode, { load: false });
+}
+
 async function loadForecast() {
   const lat = Number(els.latitude.value);
   const lon = Number(els.longitude.value);
@@ -5528,6 +5688,7 @@ async function loadForecast() {
   saveSettings();
 
   try {
+    await resolveSpotContext(lat, lon);
     const [weatherResult, marineResult] = await Promise.allSettled([
       loadWeatherPayload(lat, lon),
       loadMarinePayload(lat, lon),
@@ -6028,7 +6189,65 @@ function renderAll() {
   renderAstro(selected);
   renderCatchJournal();
   renderMarineOverlay();
+  renderSpotResolution();
   applyTranslations(document.body);
+}
+
+function renderSpotResolution() {
+  const resolution = state.spotResolution;
+  const kindLabel = spotWaterKindLabel(resolution);
+  const confidenceLabel = resolution ? t(spotConfidenceLabels[resolution.confidence] ?? "Confiance faible") : t("Analyse mondiale");
+  const badgeLabel = spotResolutionBadgeLabel(resolution);
+  const detail = state.spotResolutionLoading
+    ? t("Analyse en cours")
+    : resolution
+      ? `${kindLabel} · ${confidenceLabel}`
+      : t("Analyse mondiale du spot");
+  const context = state.spotResolutionLoading
+    ? t("Analyse en cours")
+    : resolution
+      ? `${kindLabel} · ${spotProviderSummary(resolution)}`
+      : t("Analyse mondiale du spot");
+
+  if (els.activeSpotContext) {
+    els.activeSpotContext.textContent = context;
+    els.activeSpotContext.title = context;
+  }
+
+  if (els.spotResolutionStatus) {
+    els.spotResolutionStatus.textContent = state.spotResolutionError && !state.spotResolutionLoading
+      ? `${t("Analyse indisponible")} · ${detail}`
+      : detail;
+  }
+
+  if (els.spotResolutionBadge) {
+    els.spotResolutionBadge.textContent = badgeLabel;
+    els.spotResolutionBadge.classList.toggle("is-warning", state.spotResolutionError && !state.spotResolutionLoading);
+  }
+}
+
+function spotWaterKindLabel(resolution) {
+  if (!resolution) return t("Spot mondial");
+  return t(spotWaterKindLabels[resolution.waterKind] ?? "Type d'eau à confirmer");
+}
+
+function spotProviderSummary(resolution) {
+  if (!resolution) return t("Source mondiale");
+  const badges = (resolution.badges ?? [])
+    .map((badge) => spotProviderBadgeLabels[badge])
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((label) => t(label));
+
+  return badges.length ? badges.join(" · ") : t("Source mondiale");
+}
+
+function spotResolutionBadgeLabel(resolution) {
+  if (state.spotResolutionLoading) return t("Auto");
+  if (!resolution) return t("Auto");
+  if (resolution.waterMode === WATER_MODES.SEA) return t("Marine mondiale");
+  if (resolution.waterMode === WATER_MODES.FRESHWATER) return t("Eau douce");
+  return t("Vérification manuelle");
 }
 
 function updateSpotMeta() {

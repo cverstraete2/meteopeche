@@ -37,7 +37,7 @@ try {
 
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
 <link rel="stylesheet" href="vendor/tabler/tabler-icons.min.css" />
-<link rel="stylesheet" href="styles.css?v=20260527-i18n" />
+<link rel="stylesheet" href="styles.css?v=20260527-global-spots" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon-v2.png" />
 </head>
@@ -113,7 +113,7 @@ try {
     </div>
     <div class="privacy-summary">
       <strong>Confidentialité</strong>
-      <p>La position sert à charger les prévisions du spot. Le journal et les photos restent sur ton appareil, sauf si tu les exportes volontairement. Les services météo et Copernicus reçoivent uniquement les coordonnées nécessaires aux données.</p>
+      <p>La position sert à charger les prévisions du spot. Le journal et les photos restent sur ton appareil, sauf si tu les exportes volontairement. Les services météo, cartographie, Copernicus et GloFAS reçoivent uniquement les coordonnées nécessaires aux données.</p>
     </div>
     <div class="onboarding-actions">
       <button class="primary-button" id="onboardingDone" type="button">Continuer</button>
@@ -250,13 +250,18 @@ try {
               <small id="forecastStatusDetail">Sources météo et Copernicus en attente</small>
               <span class="status-pill" id="statusPill">Prêt</span>
             </article>
+            <article class="native-status-card data-status-card">
+              <strong>Couverture mondiale</strong>
+              <small id="spotResolutionStatus">Analyse mondiale du spot</small>
+              <span class="native-badge" id="spotResolutionBadge">Auto</span>
+            </article>
             <article class="native-status-card">
               <strong>Privacy</strong>
               <small id="nativePrivacyStatus">À valider</small>
               <button class="ghost-button" id="nativePrivacyButton" type="button">Valider</button>
             </article>
           </div>
-          <p class="privacy-copy">Le GPS n'est utilisé que pour sélectionner un spot et charger les conditions. Les photos du journal restent dans le stockage local de l'appareil. <a href="privacy.html" target="_blank" rel="noopener">Politique de confidentialité</a></p>
+          <p class="privacy-copy">Le GPS n'est utilisé que pour sélectionner un spot et charger les conditions. Les photos du journal restent dans le stockage local de l'appareil. Les services météo, cartographie et eau reçoivent seulement les coordonnées nécessaires. <a href="privacy.html" target="_blank" rel="noopener">Politique de confidentialité</a></p>
           <button class="ghost-button native-onboarding-button" id="nativeOnboardingButton" type="button">Revoir l'onboarding</button>
         </div>
       </div>
@@ -282,6 +287,7 @@ try {
                 <span>Spot actif</span>
                 <strong id="activeSpotName">--</strong>
                 <small id="activeSpotCoords">--</small>
+                <small id="activeSpotContext">Analyse mondiale du spot</small>
               </div>
               <button class="icon-button favorite-toggle" id="favoriteBtn" type="button"
                 title="Favoris" aria-label="Ajouter aux favoris" aria-pressed="false">
@@ -885,7 +891,7 @@ try {
 <script src="mobile-runtime.js" defer></script>
 <script src="vendor/leaflet/leaflet.js" defer></script>
 <script src="config.js" defer></script>
-<script src="app.js?v=20260527-i18n" defer></script>
+<script src="app.js?v=20260527-global-spots" defer></script>
 
 </body>
 </html>

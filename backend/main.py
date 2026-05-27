@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .copernicus_depth import get_depth_current
+from .spot_resolver import resolve_spot
 
 
 DEFAULT_ALLOWED_ORIGINS = [
@@ -12,6 +13,7 @@ DEFAULT_ALLOWED_ORIGINS = [
     "http://localhost:8080",
     "http://127.0.0.1:8080",
     "http://127.0.0.1:8081",
+    "http://127.0.0.1:8090",
 ]
 DEFAULT_ALLOWED_ORIGIN_REGEX = r"https://([a-z0-9-]+\.)?meteopeche\.pages\.dev"
 
@@ -21,7 +23,7 @@ def allowed_origins():
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
-app = FastAPI(title="MeteoCatch Copernicus API", version="1.0.0")
+app = FastAPI(title="MeteoCatch Copernicus API", version="1.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins(),
@@ -58,6 +60,28 @@ def depth_current(
         result = {
             "ok": False,
             "error": "Erreur inattendue dans l'API Copernicus.",
+            "detail": str(error),
+            "errorType": error.__class__.__name__,
+        }
+
+    status_code = 200 if result.get("ok") else 503
+    return JSONResponse(result, status_code=status_code)
+
+
+@app.get("/api/spot-resolve")
+def spot_resolve(
+    latitude: float = Query(..., ge=-90, le=90),
+    longitude: float = Query(..., ge=-180, le=180),
+):
+    try:
+        result = resolve_spot({
+            "latitude": latitude,
+            "longitude": longitude,
+        })
+    except Exception as error:
+        result = {
+            "ok": False,
+            "error": "Erreur inattendue pendant l'analyse mondiale du spot.",
             "detail": str(error),
             "errorType": error.__class__.__name__,
         }
