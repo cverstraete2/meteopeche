@@ -29,11 +29,21 @@ try {
 
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
 <link rel="stylesheet" href="vendor/tabler/tabler-icons.min.css" />
-<link rel="stylesheet" href="styles.css?v=20260527-map-fullscreen-overlay" />
+<link rel="stylesheet" href="styles.css?v=20260527-mobile-header-splash" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon-v2.png" />
 </head>
 <body>
+
+<div class="app-splash" id="appSplash" role="status" aria-live="polite">
+  <div class="app-splash-card">
+    <img class="app-splash-logo" src="assets/meteocatch-logo-v2.png" alt="" width="128" height="128" />
+    <strong class="app-splash-title" aria-label="MeteoCatch">
+      <span class="brand-title-main">Meteo</span><span class="brand-title-accent">Catch</span>
+    </strong>
+    <span class="app-splash-status">Chargement des conditions</span>
+  </div>
+</div>
 
 <section class="onboarding-screen" id="onboardingScreen" role="dialog" aria-modal="true"
   aria-labelledby="onboardingTitle" hidden>
@@ -857,7 +867,7 @@ try {
 <script src="mobile-runtime.js" defer></script>
 <script src="vendor/leaflet/leaflet.js" defer></script>
 <script src="config.js" defer></script>
-<script src="app.js?v=20260527-map-fullscreen-overlay" defer></script>
+<script src="app.js?v=20260527-mobile-header-splash" defer></script>
 
 </body>
 </html>

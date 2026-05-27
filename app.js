@@ -1441,6 +1441,7 @@ const els = {
   weatherSubtabButtons: [...document.querySelectorAll("[data-weather-tab]")],
   weatherSubviewSections: [...document.querySelectorAll("[data-weather-subview]")],
   main: document.querySelector("main"),
+  appSplash: document.querySelector("#appSplash"),
   onboardingScreen: document.querySelector("#onboardingScreen"),
   onboardingClose: document.querySelector("#onboardingClose"),
   onboardingGpsButton: document.querySelector("#onboardingGpsButton"),
@@ -1651,6 +1652,7 @@ function init() {
   renderCatchPhotoPreview();
   maybeShowOnboarding();
   loadForecast();
+  scheduleHideAppSplash(650);
 }
 
 function initMapEngine() {
@@ -1935,6 +1937,38 @@ function getNetworkPlugin() {
 
 function getNotificationPlugin() {
   return getCapacitorPlugin("capacitorLocalNotifications", "LocalNotifications");
+}
+
+function getSplashPlugin() {
+  return getCapacitorPlugin("capacitorSplashScreen", "SplashScreen");
+}
+
+function hideNativeSplash() {
+  const splash = getSplashPlugin();
+  if (!splash?.hide) return;
+
+  try {
+    Promise.resolve(splash.hide({ fadeOutDuration: 180 })).catch(() => {});
+  } catch {
+    // Native splash is optional in the browser preview.
+  }
+}
+
+function hideAppSplash() {
+  hideNativeSplash();
+  if (!els.appSplash || els.appSplash.hidden || els.appSplash.classList.contains("is-hidden")) return;
+
+  els.appSplash.classList.add("is-hidden");
+  els.appSplash.setAttribute("aria-hidden", "true");
+  window.setTimeout(() => {
+    if (els.appSplash) {
+      els.appSplash.hidden = true;
+    }
+  }, 320);
+}
+
+function scheduleHideAppSplash(delay = 0) {
+  window.setTimeout(hideAppSplash, delay);
 }
 
 async function initOfflineSupport() {
@@ -9225,3 +9259,4 @@ function pinIcon() {
 }
 
 init();
+window.addEventListener("load", () => scheduleHideAppSplash(250), { once: true });

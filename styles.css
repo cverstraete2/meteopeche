@@ -371,6 +371,7 @@ footer {
   justify-content: space-between;
   gap: var(--sp-3);
   z-index: var(--z-topbar, 200);
+  transition: opacity var(--dur-md) var(--ease-out), transform var(--dur-md) var(--ease-out);
 }
 
 .brand {
@@ -568,7 +569,7 @@ footer {
 .onboarding-screen {
   position: fixed;
   inset: 0;
-  z-index: 900;
+  z-index: 2100;
   overflow-y: auto;
   background:
     linear-gradient(180deg, rgba(0,88,204,0.14), transparent 36%),
@@ -755,7 +756,7 @@ footer {
   box-shadow: var(--tab-shadow);
   display: flex;
   align-items: stretch;
-  z-index: var(--z-tabbar, 300);
+  z-index: var(--z-tabbar, 1000);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   transition: transform var(--dur-md) var(--ease-out), opacity var(--dur-sm) var(--ease-out);
@@ -3302,6 +3303,63 @@ body.is-map-fullscreen-active .mobile-tabbar {
   border-radius: var(--r-sm);
 }
 
+.app-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 2400;
+  display: grid;
+  place-items: center;
+  padding: max(var(--safe-top), var(--sp-6)) max(var(--safe-right), var(--sp-6)) max(var(--safe-bottom), var(--sp-6)) max(var(--safe-left), var(--sp-6));
+  background: var(--bg-soft);
+  color: var(--text-1);
+  transition: opacity var(--dur-md) var(--ease-out), visibility var(--dur-md) var(--ease-out);
+}
+
+.app-splash.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.app-splash-card {
+  display: grid;
+  justify-items: center;
+  gap: var(--sp-3);
+  text-align: center;
+}
+
+.app-splash-logo {
+  width: clamp(92px, 24vw, 132px);
+  height: clamp(92px, 24vw, 132px);
+  border-radius: 30px;
+  background: #fff;
+  object-fit: cover;
+  box-shadow: 0 16px 42px rgba(0, 68, 112, 0.18);
+}
+
+.app-splash-title {
+  font-family: var(--f-brand);
+  font-size: clamp(2.1rem, 10vw, 3.6rem);
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.app-splash-status {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-splash {
+    transition: none;
+  }
+}
+
 /* ── 23. MOBILE READABILITY PASS ──────────────────────────── */
 @media (max-width: 720px) {
   input:not([type="range"]),
@@ -3327,6 +3385,26 @@ body.is-map-fullscreen-active .mobile-tabbar {
     max-width: 100%;
   }
 
+  .topbar {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-100%);
+  }
+
+  main {
+    padding-top: var(--safe-top);
+  }
+
+  html[data-current-mobile-view="preferences"] .topbar {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  html[data-current-mobile-view="preferences"] main {
+    padding-top: calc(var(--topbar-h) + var(--safe-top));
+  }
+
   .spot-name-sheet {
     position: fixed;
     left: var(--safe-left);
@@ -3347,6 +3425,12 @@ body.is-map-fullscreen-active .mobile-tabbar {
     opacity: 0;
     pointer-events: none;
     transform: translateY(-100%);
+  }
+
+  html[data-current-mobile-view="map"] .mobile-tabbar {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
   }
 
   html[data-current-mobile-view="map"] main {
