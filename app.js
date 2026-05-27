@@ -1522,7 +1522,6 @@ const els = {
   dayTimeline: document.querySelector("#dayTimeline"),
   dayTimeRange: document.querySelector("#dayTimeRange"),
   dayTimelineTime: document.querySelector("#dayTimelineTime"),
-  dayTimelineDetail: document.querySelector("#dayTimelineDetail"),
   compassCanvas: document.querySelector("#compassCanvas"),
   chartCanvas: document.querySelector("#chartCanvas"),
   chartLegend: document.querySelector("#chartLegend"),
@@ -6365,7 +6364,7 @@ function renderWaterInsights(day) {
 }
 
 function renderDayTimeline(day) {
-  if (!els.dayTimeline || !els.dayTimeRange || !els.dayTimelineTime || !els.dayTimelineDetail) return;
+  if (!els.dayTimeline || !els.dayTimeRange || !els.dayTimelineTime) return;
 
   if (!day) {
     els.dayTimeline.hidden = true;
@@ -6373,19 +6372,11 @@ function renderDayTimeline(day) {
   }
 
   const minute = selectedTimelineMinute();
-  const sample = timelineSample(day, minute);
-  const tide = isSeaMode() ? `Marée ${formatTideHeight(sample.seaLevel)}` : `Air ${formatTemperatureBrief(sample.airTemperature)}`;
-  const water = `Eau ${formatTemperatureBrief(sample.seaTemperature ?? dailyWaterTemperature(day))}`;
-  const wind = `Vent ${formatNumber(sample.windSpeed ?? day.windAvg, 0)} kt`;
-  const movement = isSeaMode()
-    ? `Houle ${formatNumber(sample.waveHeight ?? day.waveAvg, 1)} m`
-    : `Pluie ${formatNumber(sample.precipitation ?? day.precipitationTotal, 1)} mm`;
 
   els.dayTimeline.hidden = false;
   els.dayTimeRange.value = String(minute);
   els.dayTimeRange.style.setProperty("--timeline-progress", `${(minute / 1425) * 100}%`);
   els.dayTimelineTime.textContent = formatHourCompact(minute);
-  els.dayTimelineDetail.textContent = [tide, water, wind, movement].join(" · ");
 }
 
 function renderRiggingCalculator(day) {

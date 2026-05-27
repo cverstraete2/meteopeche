@@ -29,7 +29,7 @@ try {
 
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
 <link rel="stylesheet" href="vendor/tabler/tabler-icons.min.css" />
-<link rel="stylesheet" href="styles.css?v=20260527-mobile-header-splash" />
+<link rel="stylesheet" href="styles.css?v=20260527-weather-topline" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon-v2.png" />
 </head>
@@ -531,6 +531,17 @@ try {
       aria-label="Prévisions 6 jours"></section>
 
     <section class="weather-top-tools" data-mobile-view="weather" aria-label="Sélecteur météo">
+      <div class="weather-subtabs" id="weatherSubtabs" role="tablist" aria-label="Sous-vues météo">
+        <button class="weather-subtab is-active" type="button" role="tab"
+          data-weather-tab="overview" aria-selected="true">Décision rapide</button>
+        <button class="weather-subtab" type="button" role="tab"
+          data-weather-tab="forces" aria-selected="false">Rosace</button>
+        <button class="weather-subtab" type="button" role="tab"
+          data-weather-tab="sun" aria-selected="false">Soleil</button>
+        <button class="weather-subtab" type="button" role="tab"
+          data-weather-tab="tides" aria-selected="false">Marées</button>
+      </div>
+
       <div class="day-timeline weather-timeline" id="dayTimeline">
         <div class="day-timeline-head">
           <span class="eyebrow">Timeline journée</span>
@@ -541,18 +552,6 @@ try {
         <div class="day-timeline-scale" aria-hidden="true">
           <span>00h</span><span>06h</span><span>12h</span><span>18h</span><span>24h</span>
         </div>
-        <div class="day-timeline-readout" id="dayTimelineDetail">--</div>
-      </div>
-
-      <div class="weather-subtabs" id="weatherSubtabs" role="tablist" aria-label="Sous-vues météo">
-        <button class="weather-subtab is-active" type="button" role="tab"
-          data-weather-tab="overview" aria-selected="true">Décision rapide</button>
-        <button class="weather-subtab" type="button" role="tab"
-          data-weather-tab="forces" aria-selected="false">Rosace</button>
-        <button class="weather-subtab" type="button" role="tab"
-          data-weather-tab="sun" aria-selected="false">Soleil</button>
-        <button class="weather-subtab" type="button" role="tab"
-          data-weather-tab="tides" aria-selected="false">Marées</button>
       </div>
     </section>
 
@@ -867,7 +866,7 @@ try {
 <script src="mobile-runtime.js" defer></script>
 <script src="vendor/leaflet/leaflet.js" defer></script>
 <script src="config.js" defer></script>
-<script src="app.js?v=20260527-mobile-header-splash" defer></script>
+<script src="app.js?v=20260527-weather-topline" defer></script>
 
 </body>
 </html>
