@@ -10,6 +10,8 @@ USER_AGENT = "MeteoCatch/1.0 https://meteopeche.pages.dev"
 OPEN_METEO_MARINE = "https://marine-api.open-meteo.com/v1/marine"
 NOMINATIM_REVERSE = "https://nominatim.openstreetmap.org/reverse"
 OVERPASS_API = "https://overpass-api.de/api/interpreter"
+MAX_MARINE_GRID_DISTANCE_METERS = 50000
+NEARBY_WATER_RADIUS_METERS = 5000
 
 FRESHWATER_KINDS = {"river", "stream", "canal", "lake", "reservoir", "pond", "freshwater"}
 MARINE_KINDS = {"sea", "ocean", "coast", "bay", "strait", "harbour", "marina"}
@@ -90,19 +92,14 @@ def reverse_osm(lat, lon):
 
 def nearby_water_feature(lat, lon):
     query = f"""
-    [out:json][timeout:5];
+    [out:json][timeout:8];
     (
-      node(around:2500,{lat:.5f},{lon:.5f})["waterway"~"^(river|stream|canal)$"];
-      way(around:2500,{lat:.5f},{lon:.5f})["waterway"~"^(river|stream|canal)$"];
-      relation(around:2500,{lat:.5f},{lon:.5f})["waterway"~"^(river|stream|canal)$"];
-      node(around:2500,{lat:.5f},{lon:.5f})["natural"~"^(water|bay|strait|coastline)$"];
-      way(around:2500,{lat:.5f},{lon:.5f})["natural"~"^(water|bay|strait|coastline)$"];
-      relation(around:2500,{lat:.5f},{lon:.5f})["natural"~"^(water|bay|strait|coastline)$"];
-      node(around:2500,{lat:.5f},{lon:.5f})["water"~"^(lake|reservoir|river|pond|lagoon)$"];
-      way(around:2500,{lat:.5f},{lon:.5f})["water"~"^(lake|reservoir|river|pond|lagoon)$"];
-      relation(around:2500,{lat:.5f},{lon:.5f})["water"~"^(lake|reservoir|river|pond|lagoon)$"];
+      nwr(around:{NEARBY_WATER_RADIUS_METERS},{lat:.5f},{lon:.5f})["waterway"~"^(river|stream|canal|riverbank)$"];
+      nwr(around:{NEARBY_WATER_RADIUS_METERS},{lat:.5f},{lon:.5f})["natural"~"^(water|bay|strait|coastline)$"];
+      nwr(around:{NEARBY_WATER_RADIUS_METERS},{lat:.5f},{lon:.5f})["water"~"^(lake|reservoir|river|pond|lagoon|canal|stream)$"];
+      nwr(around:{NEARBY_WATER_RADIUS_METERS},{lat:.5f},{lon:.5f})["landuse"="reservoir"];
     );
-    out tags center 16;
+    out tags center 30;
     """
     payload = fetch_json(f"{OVERPASS_API}?{urlencode({'data': query})}", timeout=7)
     elements = payload.get("elements") or []
@@ -128,7 +125,19 @@ def marine_available(lat, lon):
     })
     payload = fetch_json(f"{OPEN_METEO_MARINE}?{query}", timeout=4)
     times = payload.get("hourly", {}).get("time") or []
-    return {"ok": True, "available": bool(times)}
+    try:
+        marine_lat = float(payload.get("latitude", lat))
+        marine_lon = float(payload.get("longitude", lon))
+    except (TypeError, ValueError):
+        marine_lat = lat
+        marine_lon = lon
+    distance = round(haversine_meters(lat, lon, marine_lat, marine_lon))
+    return {
+        "ok": True,
+        "available": bool(times) and distance <= MAX_MARINE_GRID_DISTANCE_METERS,
+        "rawAvailable": bool(times),
+        "distanceMeters": distance,
+    }
 
 
 def feature_from_overpass(element, lat, lon):
@@ -176,7 +185,7 @@ def classify_osm_tags(tags):
     waterway = str(tags.get("waterway") or "").lower()
     seamark = str(tags.get("seamark:type") or "").lower()
 
-    if osm_class == "waterway" or waterway in {"river", "stream", "canal"} or osm_type in {"river", "stream", "canal"}:
+    if osm_class == "waterway" or waterway in {"river", "stream", "canal", "riverbank"} or osm_type in {"river", "stream", "canal"}:
         return "river" if (waterway or osm_type) != "canal" else "canal"
     if water in {"river", "stream", "canal"}:
         return "river"
