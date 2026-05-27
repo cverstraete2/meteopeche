@@ -3419,6 +3419,7 @@ body.is-map-fullscreen-active .mobile-tabbar {
 }
 
 .fish-filter-icon,
+.discovery-spot-marker,
 .favorite-star-marker,
 .known-fishing-marker,
 .pending-spot-marker {
@@ -3465,6 +3466,33 @@ body.is-map-fullscreen-active .mobile-tabbar {
   stroke: var(--amber);
 }
 
+.discovery-spot-marker svg {
+  width: 26px;
+  height: 34px;
+  fill: var(--accent);
+  stroke: var(--bg-card);
+  stroke-width: 2.2;
+  paint-order: stroke fill;
+}
+
+.discovery-spot-marker.is-nearby svg {
+  fill: var(--c-teal);
+}
+
+.discovery-spot-marker.is-search svg {
+  fill: var(--accent);
+}
+
+.discovery-spot-marker.is-active {
+  background: var(--accent);
+  box-shadow: 0 0 0 4px rgba(0, 88, 204, 0.22), var(--shadow-md);
+}
+
+.discovery-spot-marker.is-active svg {
+  fill: var(--text-inv);
+  stroke: var(--accent);
+}
+
 .map-markers > .favorite-star-marker {
   position: absolute;
   width: 34px;
@@ -3477,6 +3505,21 @@ body.is-map-fullscreen-active .mobile-tabbar {
   width: 40px;
   height: 40px;
   z-index: 58;
+}
+
+.map-markers > .discovery-spot-marker {
+  position: absolute;
+  width: 34px;
+  height: 42px;
+  transform: translate(-50%, -88%);
+  z-index: 55;
+  cursor: pointer;
+}
+
+.map-markers > .discovery-spot-marker.is-active {
+  width: 40px;
+  height: 48px;
+  z-index: 59;
 }
 
 .map-marker-label,

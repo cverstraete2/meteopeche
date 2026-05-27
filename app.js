@@ -4681,6 +4681,8 @@ function renderLeafletMarkers() {
     marker.addTo(state.leafletMarkers);
   });
 
+  renderLeafletDiscoveryMarkers(active);
+
   if (active.custom && !hasFavorite(active.id) && isValidNumber(active.lat) && isValidNumber(active.lon)) {
     L.circleMarker([active.lat, active.lon], {
       radius: 8,
@@ -4759,6 +4761,26 @@ function renderMapMarkers() {
     els.mapMarkers.append(marker);
   });
 
+  getMapDiscoveryResults().forEach((result) => {
+    if (!isInsideMapBounds(result.lat, result.lon)) return;
+    const point = latLonToMapPoint(result.lat, result.lon);
+    if (!isInsideMapViewport(point)) return;
+    const marker = document.createElement("button");
+    marker.type = "button";
+    marker.className = `discovery-spot-marker is-${result.source}`;
+    marker.classList.toggle("is-active", isDiscoveryResultActive(result, active));
+    marker.style.left = `${point.x * 100}%`;
+    marker.style.top = `${point.y * 100}%`;
+    marker.title = discoveryResultName(result);
+    marker.setAttribute("aria-label", `Sélectionner ${discoveryResultName(result)}`);
+    marker.innerHTML = pinIcon();
+    marker.addEventListener("click", (event) => {
+      event.stopPropagation();
+      selectDiscoveryMapResult(result);
+    });
+    els.mapMarkers.append(marker);
+  });
+
   if (active.custom && isInsideMapBounds(active.lat, active.lon)) {
     const point = latLonToMapPoint(active.lat, active.lon);
     const marker = document.createElement("span");
@@ -4800,6 +4822,44 @@ function renderMapMarkers() {
   }
 }
 
+function renderLeafletDiscoveryMarkers(active) {
+  if (!state.leafletMarkers || !window.L) return;
+
+  getMapDiscoveryResults().forEach((result) => {
+    const isActive = isDiscoveryResultActive(result, active);
+    const name = discoveryResultName(result);
+    const detail = discoveryResultDetail(result);
+    const marker = L.marker([result.lat, result.lon], {
+      icon: L.divIcon({
+        className: `discovery-spot-marker is-${result.source}${isActive ? " is-active" : ""}`,
+        html: pinIcon(),
+        iconSize: isActive ? [36, 46] : [30, 38],
+        iconAnchor: isActive ? [18, 42] : [15, 34],
+        tooltipAnchor: [0, -18],
+      }),
+      keyboard: true,
+      riseOnHover: true,
+      title: name,
+      zIndexOffset: isActive ? 1150 : result.source === "nearby" ? 760 : 720,
+    });
+
+    marker.bindTooltip(
+      `<strong>${escapeHtml(name)}</strong><small>${escapeHtml(detail)}</small>`,
+      {
+        direction: "top",
+        offset: [0, -16],
+        opacity: 0.96,
+        sticky: true,
+      },
+    );
+    marker.on("click", (event) => {
+      if (event.originalEvent) L.DomEvent.stop(event.originalEvent);
+      selectDiscoveryMapResult(result);
+    });
+    marker.addTo(state.leafletMarkers);
+  });
+}
+
 function getMapMarkerEntries() {
   if (!isSeaMode()) return [];
 
@@ -4829,6 +4889,61 @@ function getMapMarkerEntries() {
       },
     };
   });
+}
+
+function getMapDiscoveryResults() {
+  const results = [
+    ...state.spotSearchResults.map((result) => normalizeDiscoveryMapResult(result, "search")),
+    ...state.nearbySpotResults.map((result) => normalizeDiscoveryMapResult(result, "nearby")),
+  ].filter(Boolean);
+  const unique = new Map();
+
+  results.forEach((result) => {
+    const key = `${result.lat.toFixed(4)},${result.lon.toFixed(4)}`;
+    const existing = unique.get(key);
+    if (!existing || result.source === "nearby") {
+      unique.set(key, result);
+    }
+  });
+
+  return [...unique.values()].slice(0, 24);
+}
+
+function normalizeDiscoveryMapResult(result, source) {
+  if (!result || !isValidNumber(result.lat) || !isValidNumber(result.lon)) return null;
+  return {
+    ...result,
+    source,
+    lat: Number(result.lat),
+    lon: Number(result.lon),
+  };
+}
+
+function discoveryResultName(result) {
+  return result.source === "nearby"
+    ? localizeNearbySpotText(result.name)
+    : result.name;
+}
+
+function discoveryResultDetail(result) {
+  const fallback = formatCoordinates(result.lat, result.lon);
+  return result.source === "nearby"
+    ? localizeNearbySpotText(result.detail || fallback)
+    : result.detail || fallback;
+}
+
+function isDiscoveryResultActive(result, active) {
+  const distance = distanceMeters({ lat: result.lat, lon: result.lon }, active);
+  return coordinateFavoriteId(result.lat, result.lon) === active.id
+    || (isValidNumber(distance) && distance < 40);
+}
+
+function selectDiscoveryMapResult(result) {
+  if (result.source === "nearby") {
+    selectNearbySpotResult(result.id);
+    return;
+  }
+  selectSpotSearchResult(result.id);
 }
 
 function changeMapZoom(delta, options = {}) {
@@ -5340,6 +5455,7 @@ function bindEvents() {
     state.spotSearchResults = [];
     state.spotSearchError = "";
     renderSpotSearchResults();
+    renderMapMarkers();
   });
   els.spotSearchResults?.addEventListener("click", (event) => {
     const target = event.target;
@@ -5756,6 +5872,7 @@ async function searchSpotLocations() {
     state.spotSearchError = "Saisis au moins 2 caractères";
     state.spotSearchLoading = false;
     renderSpotSearchResults();
+    renderMapMarkers();
     return;
   }
 
@@ -5763,7 +5880,9 @@ async function searchSpotLocations() {
   state.spotSearchRequestId = requestId;
   state.spotSearchLoading = true;
   state.spotSearchError = "";
+  state.spotSearchResults = [];
   renderSpotSearchResults();
+  renderMapMarkers();
 
   try {
     const payload = await fetchJson(buildSpotSearchUrl(query), { timeoutMs: 9000 });
@@ -5778,6 +5897,7 @@ async function searchSpotLocations() {
     if (requestId === state.spotSearchRequestId) {
       state.spotSearchLoading = false;
       renderSpotSearchResults();
+      renderMapMarkers();
     }
   }
 }
@@ -5789,6 +5909,7 @@ async function loadNearbySpots() {
     state.nearbySpotError = "Coordonnées invalides";
     state.nearbySpotLoading = false;
     renderNearbySpotResults();
+    renderMapMarkers();
     return;
   }
 
@@ -5796,7 +5917,9 @@ async function loadNearbySpots() {
   state.nearbySpotRequestId = requestId;
   state.nearbySpotLoading = true;
   state.nearbySpotError = "";
+  state.nearbySpotResults = [];
   renderNearbySpotResults();
+  renderMapMarkers();
 
   try {
     const payload = await fetchJson(buildNearbySpotsUrl(active.lat, active.lon), { timeoutMs: 25000 });
@@ -5814,6 +5937,7 @@ async function loadNearbySpots() {
     if (requestId === state.nearbySpotRequestId) {
       state.nearbySpotLoading = false;
       renderNearbySpotResults();
+      renderMapMarkers();
     }
   }
 }
@@ -5944,6 +6068,8 @@ function selectSpotSearchResult(id) {
   }
   state.spotSearchResults = [];
   state.spotSearchError = "";
+  state.nearbySpotResults = [];
+  state.nearbySpotError = "";
   state.pendingSpot = null;
   if (result.waterMode) {
     setWaterMode(result.waterMode, { load: false });
@@ -5959,6 +6085,8 @@ function selectNearbySpotResult(id) {
 
   state.nearbySpotResults = [];
   state.nearbySpotError = "";
+  state.spotSearchResults = [];
+  state.spotSearchError = "";
   state.pendingSpot = null;
   if (result.waterMode) {
     setWaterMode(result.waterMode, { load: false });
