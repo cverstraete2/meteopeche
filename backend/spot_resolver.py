@@ -124,7 +124,10 @@ def marine_available(lat, lon):
         "cell_selection": "sea",
     })
     payload = fetch_json(f"{OPEN_METEO_MARINE}?{query}", timeout=4)
-    times = payload.get("hourly", {}).get("time") or []
+    hourly = payload.get("hourly", {})
+    times = hourly.get("time") or []
+    values = hourly.get("sea_surface_temperature") or []
+    has_data = bool(times) and any(value is not None for value in values)
     try:
         marine_lat = float(payload.get("latitude", lat))
         marine_lon = float(payload.get("longitude", lon))
@@ -134,8 +137,8 @@ def marine_available(lat, lon):
     distance = round(haversine_meters(lat, lon, marine_lat, marine_lon))
     return {
         "ok": True,
-        "available": bool(times) and distance <= MAX_MARINE_GRID_DISTANCE_METERS,
-        "rawAvailable": bool(times),
+        "available": has_data and distance <= MAX_MARINE_GRID_DISTANCE_METERS,
+        "rawAvailable": has_data,
         "distanceMeters": distance,
     }
 
