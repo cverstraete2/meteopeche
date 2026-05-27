@@ -357,7 +357,20 @@ def badges_for(kind, mode, confidence, marine):
 
 
 def spot_name(osm, nearby, kind, lat, lon):
-    for source in (nearby, osm):
+    nearby_kind = classify_osm_tags(nearby.get("tags", {}) if nearby else {})
+    if kind in MARINE_KINDS:
+        sources = [osm]
+        if nearby_kind in MARINE_KINDS:
+            sources.append(nearby)
+    elif kind in FRESHWATER_KINDS:
+        sources = []
+        if nearby_kind in FRESHWATER_KINDS:
+            sources.append(nearby)
+        sources.append(osm)
+    else:
+        sources = [nearby, osm]
+
+    for source in sources:
         name = preferred_name(source)
         if name:
             return name
