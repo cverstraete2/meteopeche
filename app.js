@@ -128,6 +128,19 @@ const I18N_TRANSLATIONS = {
   "Aucun spot proche trouvé": { en: "No nearby spot found", es: "No se encontró ningún spot cercano", de: "Kein Spot in der Nähe gefunden", pt: "Nenhum spot próximo encontrado" },
   "Exploration indisponible": { en: "Exploration unavailable", es: "Exploración no disponible", de: "Erkundung nicht verfügbar", pt: "Exploração indisponível" },
   "La recherche prend trop longtemps": { en: "Search is taking too long", es: "La búsqueda tarda demasiado", de: "Die Suche dauert zu lange", pt: "A pesquisa está a demorar demasiado" },
+  "Rivière proche": { en: "Nearby river", es: "Río cercano", de: "Fluss in der Nähe", pt: "Rio próximo" },
+  "Canal proche": { en: "Nearby canal", es: "Canal cercano", de: "Kanal in der Nähe", pt: "Canal próximo" },
+  "Lac proche": { en: "Nearby lake", es: "Lago cercano", de: "See in der Nähe", pt: "Lago próximo" },
+  "Réservoir proche": { en: "Nearby reservoir", es: "Embalse cercano", de: "Stausee in der Nähe", pt: "Reservatório próximo" },
+  "Plan d'eau proche": { en: "Nearby water body", es: "Masa de agua cercana", de: "Gewässer in der Nähe", pt: "Massa de água próxima" },
+  "Eau douce proche": { en: "Nearby freshwater", es: "Agua dulce cercana", de: "Süßwasser in der Nähe", pt: "Água doce próxima" },
+  "Zone marine proche": { en: "Nearby marine area", es: "Zona marina cercana", de: "Meeresgebiet in der Nähe", pt: "Zona marinha próxima" },
+  "Zone océanique proche": { en: "Nearby ocean area", es: "Zona oceánica cercana", de: "Ozeangebiet in der Nähe", pt: "Zona oceânica próxima" },
+  "Côte proche": { en: "Nearby coast", es: "Costa cercana", de: "Küste in der Nähe", pt: "Costa próxima" },
+  "Baie proche": { en: "Nearby bay", es: "Bahía cercana", de: "Bucht in der Nähe", pt: "Baía próxima" },
+  "Détroit proche": { en: "Nearby strait", es: "Estrecho cercano", de: "Meerenge in der Nähe", pt: "Estreito próximo" },
+  "Port proche": { en: "Nearby harbour", es: "Puerto cercano", de: "Hafen in der Nähe", pt: "Porto próximo" },
+  "Marina proche": { en: "Nearby marina", es: "Marina cercana", de: "Marina in der Nähe", pt: "Marina próxima" },
   "Latitude": { en: "Latitude", es: "Latitud", de: "Breitengrad", pt: "Latitude" },
   "Longitude": { en: "Longitude", es: "Longitud", de: "Längengrad", pt: "Longitude" },
   "Actualiser": { en: "Refresh", es: "Actualizar", de: "Aktualisieren", pt: "Atualizar" },
@@ -5902,16 +5915,23 @@ function renderNearbySpotResults() {
       ? t(waterModeConfig[result.waterMode]?.label ?? "Spot")
       : t("Spot mondial");
     const distance = isValidNumber(result.distanceMeters) ? ` · ${formatMapDistance(result.distanceMeters)}` : "";
+    const name = localizeNearbySpotText(result.name);
+    const detail = localizeNearbySpotText(result.detail || formatCoordinates(result.lat, result.lon));
     return `
       <button class="spot-search-result nearby-spot-result" type="button" data-nearby-spot-result="${escapeHtml(result.id)}">
         <span>
-          <strong>${escapeHtml(result.name)}</strong>
-          <small>${escapeHtml(result.detail || formatCoordinates(result.lat, result.lon))}</small>
+          <strong>${escapeHtml(name)}</strong>
+          <small>${escapeHtml(detail)}</small>
         </span>
         <em>${escapeHtml(`${modeLabel}${distance}`)}</em>
       </button>
     `;
   }).join("");
+}
+
+function localizeNearbySpotText(value) {
+  if (!value) return "";
+  return t(value);
 }
 
 function selectSpotSearchResult(id) {
