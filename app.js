@@ -1475,6 +1475,7 @@ const els = {
   nativeNotificationStatus: document.querySelector("#nativeNotificationStatus"),
   nativeOfflineStatus: document.querySelector("#nativeOfflineStatus"),
   nativeOnlineBadge: document.querySelector("#nativeOnlineBadge"),
+  forecastStatusDetail: document.querySelector("#forecastStatusDetail"),
   nativePrivacyStatus: document.querySelector("#nativePrivacyStatus"),
   nativeGpsButton: document.querySelector("#nativeGpsButton"),
   nativeNotificationButton: document.querySelector("#nativeNotificationButton"),
@@ -8724,12 +8725,42 @@ function isValidNumber(value) {
 }
 
 function setStatus(label, mode) {
-  els.statusPill.textContent = label;
-  els.statusPill.classList.toggle("is-loading", mode === "loading");
-  els.statusPill.classList.toggle("is-error", mode === "error");
-  els.statusPill.classList.toggle("is-warning", mode === "warning");
-  els.statusPill.classList.toggle("is-ready", mode === "ready");
-  els.statusPill.classList.toggle("is-offline", mode === "offline");
+  if (els.statusPill) {
+    els.statusPill.textContent = label;
+    els.statusPill.classList.toggle("is-loading", mode === "loading");
+    els.statusPill.classList.toggle("is-error", mode === "error");
+    els.statusPill.classList.toggle("is-warning", mode === "warning");
+    els.statusPill.classList.toggle("is-ready", mode === "ready");
+    els.statusPill.classList.toggle("is-offline", mode === "offline");
+  }
+  setText(els.forecastStatusDetail, forecastStatusDetail(label, mode));
+}
+
+function forecastStatusDetail(label, mode) {
+  if (mode === "offline") {
+    return "Connexion absente. Les écrans déjà consultés restent disponibles hors ligne.";
+  }
+  if (mode === "loading") {
+    return "Chargement météo, mer et données Copernicus pour le spot actif.";
+  }
+  if (mode === "error") {
+    return "Impossible de charger les conditions du spot. Vérifie la connexion ou les coordonnées.";
+  }
+  if (mode === "warning" && /copernicus/i.test(label)) {
+    return state.realDepthError
+      ? `Copernicus indisponible: ${state.realDepthError}`
+      : "Copernicus indisponible pour le courant en profondeur. Les prévisions météo et marine restent affichées.";
+  }
+  if (mode === "warning") {
+    return "Données partielles: certaines sources sont indisponibles pour ce spot.";
+  }
+  if (/copernicus/i.test(label)) {
+    return "Données Copernicus actives pour les courants en profondeur.";
+  }
+  if (label === "À jour" || mode === "ready") {
+    return "Données synchronisées pour le spot actif.";
+  }
+  return `État des données: ${label}`;
 }
 
 function saveSettings() {

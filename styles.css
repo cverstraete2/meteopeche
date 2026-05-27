@@ -2643,11 +2643,16 @@ body.is-map-fullscreen-active .mobile-tabbar {
 }
 
 .native-status-card .ghost-button,
-.native-status-card .native-badge {
+.native-status-card .native-badge,
+.native-status-card .status-pill {
   grid-column: 2;
   grid-row: 1 / span 2;
   align-self: center;
   white-space: nowrap;
+}
+
+.data-status-card small {
+  overflow-wrap: anywhere;
 }
 
 .native-onboarding-button {
@@ -3503,7 +3508,8 @@ body.is-map-fullscreen-active .mobile-tabbar {
   }
 
   .native-status-card .ghost-button,
-  .native-status-card .native-badge {
+  .native-status-card .native-badge,
+  .native-status-card .status-pill {
     grid-column: auto;
     grid-row: auto;
     justify-self: start;

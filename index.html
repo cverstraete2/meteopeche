@@ -29,7 +29,7 @@ try {
 
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
 <link rel="stylesheet" href="vendor/tabler/tabler-icons.min.css" />
-<link rel="stylesheet" href="styles.css?v=20260527-mobile-scale" />
+<link rel="stylesheet" href="styles.css?v=20260527-data-status-prefs" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon-v2.png" />
 </head>
@@ -118,7 +118,6 @@ try {
     </div>
     <div class="topbar-actions">
       <button class="ghost-button preferences-nav-button" type="button" data-mobile-tab="preferences">Préférences</button>
-      <div class="status-pill" id="statusPill">Prêt</div>
     </div>
   </header>
 
@@ -253,6 +252,11 @@ try {
               <strong>Offline</strong>
               <small id="nativeOfflineStatus">Cache en attente</small>
               <span class="native-badge" id="nativeOnlineBadge">En ligne</span>
+            </article>
+            <article class="native-status-card data-status-card">
+              <strong>Données</strong>
+              <small id="forecastStatusDetail">Sources météo et Copernicus en attente</small>
+              <span class="status-pill" id="statusPill">Prêt</span>
             </article>
             <article class="native-status-card">
               <strong>Privacy</strong>
@@ -835,7 +839,7 @@ try {
 <script src="mobile-runtime.js" defer></script>
 <script src="vendor/leaflet/leaflet.js" defer></script>
 <script src="config.js" defer></script>
-<script src="app.js?v=20260526-favorite-sheet" defer></script>
+<script src="app.js?v=20260527-data-status-prefs" defer></script>
 
 </body>
 </html>
