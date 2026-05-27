@@ -1,4 +1,4 @@
-const CACHE_NAME = "meteocatch-shell-20260527-global-spots-v1";
+const CACHE_NAME = "meteocatch-shell-20260527-river-data-v1";
 const APP_SHELL = [
   "./",
   "./index.html",

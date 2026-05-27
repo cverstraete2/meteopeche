@@ -2328,12 +2328,57 @@ body.is-map-fullscreen-active .mobile-tabbar {
 /* Water insights */
 .water-insights {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: var(--sp-2);
 }
 
 .water-insights:empty {
   display: none;
+}
+
+.water-insight-card {
+  flex: 1 1 0;
+  min-width: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: var(--sp-1);
+}
+
+.water-insight-card span {
+  font-family: var(--f-display);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.water-insight-card strong {
+  font-family: var(--f-data);
+  font-size: 1.3rem;
+  line-height: 1.1;
+  color: var(--text-1);
+}
+
+.water-insight-card small {
+  color: var(--text-3);
+}
+
+.water-insight-card.good {
+  border-color: rgba(22, 135, 95, 0.35);
+}
+
+.water-insight-card.maybe {
+  border-color: rgba(185, 115, 34, 0.35);
+}
+
+.water-insight-card.warn,
+.water-insight-card.bad {
+  border-color: rgba(200, 92, 69, 0.40);
 }
 
 /* Day timeline */

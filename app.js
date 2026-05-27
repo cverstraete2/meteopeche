@@ -6,6 +6,7 @@ const WEATHER_API_FALLBACKS = [
 const METNO_API = "https://api.met.no/weatherapi/locationforecast/2.0/compact";
 const MARINE_API = "https://marine-api.open-meteo.com/v1/marine";
 const SPOT_RESOLVE_API_PATH = "api/spot-resolve";
+const RIVER_FORECAST_API_PATH = "api/river-forecast";
 const BATHYMETRY_WMS = "https://ows.emodnet-bathymetry.eu/wms";
 const BATHYMETRY_REST = "https://rest.emodnet-bathymetry.eu/depth/point";
 const DEFAULT_API_BASE_URL = "https://meteopeche-copernicus-977572434171.europe-west1.run.app";
@@ -333,6 +334,16 @@ const I18N_TRANSLATIONS = {
   "Données partielles": { en: "Partial data", es: "Datos parciales", de: "Teilweise Daten", pt: "Dados parciais" },
   "Copernicus Marine prêt": { en: "Copernicus Marine ready", es: "Copernicus Marine listo", de: "Copernicus Marine bereit", pt: "Copernicus Marine pronto" },
   "GloFAS prêt": { en: "GloFAS ready", es: "GloFAS listo", de: "GloFAS bereit", pt: "GloFAS pronto" },
+  "GloFAS actif": { en: "GloFAS active", es: "GloFAS activo", de: "GloFAS aktiv", pt: "GloFAS ativo" },
+  "GloFAS indispo": { en: "GloFAS unavailable", es: "GloFAS no disponible", de: "GloFAS nicht verfügbar", pt: "GloFAS indisponível" },
+  "Débit rivière": { en: "River flow", es: "Caudal del río", de: "Flussabfluss", pt: "Caudal do rio" },
+  "Débit": { en: "Flow", es: "Caudal", de: "Abfluss", pt: "Caudal" },
+  "Tendance débit": { en: "Flow trend", es: "Tendencia del caudal", de: "Abflusstrend", pt: "Tendência do caudal" },
+  "Débit stable": { en: "Stable flow", es: "Caudal estable", de: "Stabiler Abfluss", pt: "Caudal estável" },
+  "Débit en hausse": { en: "Rising flow", es: "Caudal en subida", de: "Steigender Abfluss", pt: "Caudal a subir" },
+  "Débit en baisse": { en: "Falling flow", es: "Caudal en bajada", de: "Sinkender Abfluss", pt: "Caudal a descer" },
+  "Débit à surveiller": { en: "Flow to watch", es: "Caudal a vigilar", de: "Abfluss beobachten", pt: "Caudal a vigiar" },
+  "Source GloFAS via Open-Meteo": { en: "GloFAS source via Open-Meteo", es: "Fuente GloFAS vía Open-Meteo", de: "GloFAS-Quelle über Open-Meteo", pt: "Fonte GloFAS via Open-Meteo" },
   "Vérification manuelle": { en: "Manual check", es: "Comprobación manual", de: "Manuelle Prüfung", pt: "Verificação manual" },
   "Source mondiale": { en: "Global source", es: "Fuente mundial", de: "Weltweite Quelle", pt: "Fonte mundial" },
   "À jour": { en: "Up to date", es: "Actualizado", de: "Aktuell", pt: "Atualizado" },
@@ -349,10 +360,13 @@ const I18N_TRANSLATIONS = {
   "Profondeur Copernicus indisponible": { en: "Copernicus depth unavailable", es: "Profundidad Copernicus no disponible", de: "Copernicus-Tiefe nicht verfügbar", pt: "Profundidade Copernicus indisponível" },
   "Connexion absente. Les écrans déjà consultés restent disponibles hors ligne.": { en: "No connection. Previously viewed screens remain available offline.", es: "Sin conexión. Las pantallas ya consultadas siguen disponibles sin conexión.", de: "Keine Verbindung. Bereits geladene Ansichten bleiben offline verfügbar.", pt: "Sem ligação. Os ecrãs já consultados continuam disponíveis offline." },
   "Chargement météo, mer et données Copernicus pour le spot actif.": { en: "Loading weather, sea and Copernicus data for the active spot.", es: "Cargando meteorología, mar y datos Copernicus para el spot activo.", de: "Wetter-, Meeres- und Copernicus-Daten für den aktiven Spot werden geladen.", pt: "A carregar meteorologia, mar e dados Copernicus para o spot ativo." },
+  "Chargement météo, mer, Copernicus et GloFAS pour le spot actif.": { en: "Loading weather, sea, Copernicus and GloFAS for the active spot.", es: "Cargando meteorología, mar, Copernicus y GloFAS para el spot activo.", de: "Wetter, Meer, Copernicus und GloFAS für den aktiven Spot werden geladen.", pt: "A carregar meteorologia, mar, Copernicus e GloFAS para o spot ativo." },
   "Impossible de charger les conditions du spot. Vérifie la connexion ou les coordonnées.": { en: "Unable to load spot conditions. Check the connection or coordinates.", es: "No se pueden cargar las condiciones del spot. Comprueba la conexión o las coordenadas.", de: "Spotbedingungen konnten nicht geladen werden. Verbindung oder Koordinaten prüfen.", pt: "Não foi possível carregar as condições do spot. Verifica a ligação ou as coordenadas." },
   "Copernicus indisponible pour le courant en profondeur. Les prévisions météo et marine restent affichées.": { en: "Copernicus is unavailable for depth current. Weather and marine forecasts remain displayed.", es: "Copernicus no está disponible para la corriente en profundidad. Las previsiones meteorológicas y marinas siguen visibles.", de: "Copernicus ist für Tiefenströmung nicht verfügbar. Wetter- und Meeresvorhersagen bleiben sichtbar.", pt: "Copernicus está indisponível para a corrente em profundidade. As previsões meteorológicas e marinhas continuam visíveis." },
+  "GloFAS indisponible pour le débit rivière. Les prévisions météo restent affichées.": { en: "GloFAS is unavailable for river flow. Weather forecasts remain displayed.", es: "GloFAS no está disponible para el caudal del río. Las previsiones meteorológicas siguen visibles.", de: "GloFAS ist für den Flussabfluss nicht verfügbar. Wettervorhersagen bleiben sichtbar.", pt: "GloFAS está indisponível para o caudal do rio. As previsões meteorológicas continuam visíveis." },
   "Données partielles: certaines sources sont indisponibles pour ce spot.": { en: "Partial data: some sources are unavailable for this spot.", es: "Datos parciales: algunas fuentes no están disponibles para este spot.", de: "Teilweise Daten: Einige Quellen sind für diesen Spot nicht verfügbar.", pt: "Dados parciais: algumas fontes estão indisponíveis para este spot." },
   "Données Copernicus actives pour les courants en profondeur.": { en: "Copernicus data active for depth currents.", es: "Datos Copernicus activos para corrientes en profundidad.", de: "Copernicus-Daten für Tiefenströmungen aktiv.", pt: "Dados Copernicus ativos para correntes em profundidade." },
+  "Données GloFAS actives pour le débit rivière.": { en: "GloFAS data active for river flow.", es: "Datos GloFAS activos para el caudal del río.", de: "GloFAS-Daten für den Flussabfluss aktiv.", pt: "Dados GloFAS ativos para o caudal do rio." },
   "Données synchronisées pour le spot actif.": { en: "Data synced for the active spot.", es: "Datos sincronizados para el spot activo.", de: "Daten für den aktiven Spot synchronisiert.", pt: "Dados sincronizados para o spot ativo." },
   "État des données": { en: "Data status", es: "Estado de datos", de: "Datenstatus", pt: "Estado dos dados" },
   "hauteur relative au niveau moyen": { en: "relative height to mean level", es: "altura relativa al nivel medio", de: "relative Höhe zum Mittelstand", pt: "altura relativa ao nível médio" },
@@ -390,6 +404,7 @@ const I18N_PREFIXES = [
   { fr: "Rafales", en: "Gusts", es: "Rachas", de: "Böen", pt: "Rajadas" },
   { fr: "Houle", en: "Wave", es: "Oleaje", de: "Welle", pt: "Ondulação" },
   { fr: "Courant", en: "Current", es: "Corriente", de: "Strömung", pt: "Corrente" },
+  { fr: "Débit", en: "Flow", es: "Caudal", de: "Abfluss", pt: "Caudal" },
   { fr: "Pression", en: "Pressure", es: "Presión", de: "Druck", pt: "Pressão" },
   { fr: "Pluie", en: "Rain", es: "Lluvia", de: "Regen", pt: "Chuva" },
   { fr: "Nuages", en: "Clouds", es: "Nubes", de: "Wolken", pt: "Nuvens" },
@@ -437,6 +452,13 @@ const I18N_MESSAGES = {
     es: "A las {hour}, lluvia o turbidez alta: prioriza zonas tranquilas, entradas de agua y orillas protegidas.",
     de: "Um {hour} Uhr bei Regen oder hoher Trübung: ruhige Zonen, Zuläufe und geschützte Kanten bevorzugen.",
     pt: "Às {hour}, chuva ou turbidez elevada: privilegia zonas calmas, entradas de água e margens abrigadas.",
+  },
+  freshRiver: {
+    fr: "À {hour}, débit instable ou en hausse: garde les bordures, remous calmes et zones de repli.",
+    en: "At {hour}, unstable or rising flow: keep to edges, quiet eddies and fallback zones.",
+    es: "A las {hour}, caudal inestable o en subida: prioriza orillas, remansos tranquilos y zonas de refugio.",
+    de: "Um {hour} Uhr bei instabilem oder steigendem Abfluss: Kanten, ruhige Kehrwasser und Ausweichzonen bevorzugen.",
+    pt: "Às {hour}, caudal instável ou a subir: privilegia margens, remansos calmos e zonas de abrigo.",
   },
   freshGood: {
     fr: "À {hour}, météo et pression restent cohérentes pour tenter les postes marqués.",
@@ -1827,6 +1849,9 @@ const state = {
   depth: 15,
   realDepthAvailable: false,
   realDepthError: "",
+  riverForecast: null,
+  riverForecastAvailable: false,
+  riverForecastError: "",
   favorites: [],
   mapZoom: MAP_BASE_ZOOM,
   mapCenter: null,
@@ -5688,15 +5713,21 @@ async function loadForecast() {
   saveSettings();
 
   try {
+    state.riverForecast = null;
+    state.riverForecastAvailable = false;
+    state.riverForecastError = "";
     await resolveSpotContext(lat, lon);
-    const [weatherResult, marineResult] = await Promise.allSettled([
+    const [weatherResult, marineResult, riverResult] = await Promise.allSettled([
       loadWeatherPayload(lat, lon),
       loadMarinePayload(lat, lon),
+      loadRiverForecast(lat, lon),
     ]);
     const weather = weatherResult.status === "fulfilled" ? weatherResult.value : null;
     const marine = marineResult.status === "fulfilled" ? marineResult.value : null;
+    const river = riverResult.status === "fulfilled" ? riverResult.value : null;
     const weatherError = weatherResult.status === "rejected" ? weatherResult.reason : null;
     const marineError = marineResult.status === "rejected" ? marineResult.reason : null;
+    const riverError = riverResult.status === "rejected" ? riverResult.reason : null;
 
     if (!weather && (!isSeaMode() || !marine)) {
       throw new Error(formatForecastLoadError(weatherError, marineError));
@@ -5704,8 +5735,11 @@ async function loadForecast() {
 
     state.realDepthAvailable = false;
     state.realDepthError = "";
+    state.riverForecast = river;
+    state.riverForecastAvailable = !isSeaMode() && Boolean(river?.days?.length);
+    state.riverForecastError = riverError?.message || (!isSeaMode() && !river?.days?.length ? "GloFAS indispo" : "");
     state.hours = mergeHourlyData(weather ?? buildMarineOnlyWeatherPayload(marine), marine);
-    state.days = buildDailySummaries(state.hours);
+    state.days = applyRiverForecastToDays(buildDailySummaries(state.hours), river);
     state.selectedDate = state.days[0]?.date ?? "";
     state.timelineMinute = defaultTimelineMinute(getSelectedDay());
 
@@ -5714,10 +5748,10 @@ async function loadForecast() {
     }
 
     renderAll();
-    const preliminaryStatus = forecastStatusLabel({ weather, marine, weatherError, marineError, realDepthApplied: false });
+    const preliminaryStatus = forecastStatusLabel({ weather, marine, river, weatherError, marineError, riverError, realDepthApplied: false });
     setStatus(preliminaryStatus.label, preliminaryStatus.mode);
     const realDepthApplied = isSeaMode() ? await loadRealDepthCurrents(lat, lon) : false;
-    const status = forecastStatusLabel({ weather, marine, weatherError, marineError, realDepthApplied });
+    const status = forecastStatusLabel({ weather, marine, river, weatherError, marineError, riverError, realDepthApplied });
     setStatus(status.label, status.mode);
   } catch (error) {
     console.error(error);
@@ -5749,6 +5783,11 @@ async function loadWeatherPayload(lat, lon) {
 async function loadMarinePayload(lat, lon) {
   if (!isSeaMode()) return null;
   return fetchJson(buildMarineUrl(lat, lon));
+}
+
+async function loadRiverForecast(lat, lon) {
+  if (isSeaMode()) return null;
+  return normalizeRiverForecast(await fetchJson(buildRiverForecastUrl(lat, lon), { timeoutMs: 10000 }));
 }
 
 function buildWeatherUrl(lat, lon, endpoint = WEATHER_API) {
@@ -5785,6 +5824,40 @@ function buildMarineUrl(lat, lon) {
   url.searchParams.set("forecast_days", "7");
   url.searchParams.set("cell_selection", "sea");
   return url;
+}
+
+function buildRiverForecastUrl(lat, lon) {
+  const url = buildAppApiUrl(RIVER_FORECAST_API_PATH);
+  url.searchParams.set("latitude", lat.toFixed(4));
+  url.searchParams.set("longitude", lon.toFixed(4));
+  url.searchParams.set("forecast_days", "7");
+  return url;
+}
+
+function normalizeRiverForecast(payload) {
+  if (!payload?.ok || !Array.isArray(payload.days)) return null;
+
+  const days = payload.days
+    .map((day) => ({
+      date: typeof day.date === "string" ? day.date : "",
+      discharge: numberOrNull(day.discharge),
+      min: numberOrNull(day.min),
+      max: numberOrNull(day.max),
+      delta: numberOrNull(day.delta),
+      deltaPercent: numberOrNull(day.deltaPercent),
+      anomalyPercent: numberOrNull(day.anomalyPercent),
+      stress: numberOrNull(day.stress),
+    }))
+    .filter((day) => day.date && isValidNumber(day.discharge));
+
+  return days.length
+    ? {
+        provider: payload.provider || "Open-Meteo Flood API",
+        source: payload.source || "GloFAS",
+        unit: payload.unit || "m³/s",
+        days,
+      }
+    : null;
 }
 
 function buildMetNoWeatherUrl(lat, lon) {
@@ -5922,9 +5995,13 @@ function metersPerSecondToKnots(value) {
   return number == null ? null : number * METERS_PER_SECOND_TO_KNOTS;
 }
 
-function forecastStatusLabel({ weather, marine, weatherError, marineError, realDepthApplied }) {
+function forecastStatusLabel({ weather, marine, river, weatherError, marineError, riverError, realDepthApplied }) {
   if (!weather && marine) return { label: "Marine seule", mode: "warning" };
   if (weather && isSeaMode() && !marine) return { label: "Météo seule", mode: "warning" };
+  if (weather && !isSeaMode()) {
+    if (river?.days?.length) return { label: riverError ? "Partiel" : "GloFAS actif", mode: riverError ? "warning" : "ready" };
+    return { label: "GloFAS indispo", mode: "warning" };
+  }
   if (weatherError || marineError) return { label: "Partiel", mode: "warning" };
   if (realDepthApplied) return { label: "Copernicus", mode: "ready" };
   return { label: isSeaMode() ? "Copernicus indispo" : "À jour", mode: isSeaMode() ? "warning" : "ready" };
@@ -6162,10 +6239,38 @@ function buildDailySummaries(hours) {
       seaLevelMin: min(pluck(rows, "seaLevel")),
       seaLevelMax: max(pluck(rows, "seaLevel")),
       seaLevelRange: valueRange(pluck(rows, "seaLevel")),
+      riverFlow: null,
+      riverFlowMin: null,
+      riverFlowMax: null,
+      riverFlowTrend: null,
+      riverFlowTrendPercent: null,
+      riverFlowAnomaly: null,
+      riverFlowStress: null,
       tideEvents: tideEvents(rows),
       turbidity: turbidityEstimate(rows),
       score: Math.round(average(hourlyScores) ?? 0),
       bestWindow: bestWindow(rows),
+    };
+  });
+}
+
+function applyRiverForecastToDays(days, river) {
+  if (isSeaMode() || !river?.days?.length) return days;
+  const byDate = new Map(river.days.map((day) => [day.date, day]));
+
+  return days.map((day) => {
+    const riverDay = byDate.get(day.date);
+    if (!riverDay) return day;
+
+    return {
+      ...day,
+      riverFlow: riverDay.discharge,
+      riverFlowMin: riverDay.min,
+      riverFlowMax: riverDay.max,
+      riverFlowTrend: riverDay.delta,
+      riverFlowTrendPercent: riverDay.deltaPercent,
+      riverFlowAnomaly: riverDay.anomalyPercent,
+      riverFlowStress: riverDay.stress,
     };
   });
 }
@@ -6814,6 +6919,12 @@ function weatherGoNoGo(day, sample = timelineSample(day)) {
     else if (day.turbidity.score >= 45) warnings.push(`Eau ${day.turbidity.label.toLowerCase()}`);
   }
 
+  if (!isSeaMode() && isValidNumber(day.riverFlowStress)) {
+    const flowText = `Débit ${formatRiverFlow(day.riverFlow)}`;
+    if (day.riverFlowStress >= 75) blockers.push(flowText);
+    else if (day.riverFlowStress >= 50) warnings.push(flowText);
+  }
+
   if (blockers.length) {
     return {
       tone: "bad",
@@ -6849,6 +6960,7 @@ function dayConditionTone(day) {
     rain: max(pluck(day.rows ?? [], "precipitation")) ?? day.precipitationTotal,
     wave: day.waveMax ?? day.waveAvg,
     current: max(pluck(day.rows ?? [], "surfaceCurrent")) ?? day.surfaceCurrent,
+    riverStress: day.riverFlowStress,
   });
 }
 
@@ -6859,6 +6971,7 @@ function sampleConditionTone(day, sample = timelineSample(day)) {
     rain: sample.precipitation ?? day?.precipitationTotal,
     wave: sample.waveHeight ?? day?.waveAvg,
     current: sample.surfaceCurrent ?? day?.surfaceCurrent,
+    riverStress: day?.riverFlowStress,
   });
 }
 
@@ -6868,6 +6981,9 @@ function conditionToneFromValues(values) {
   const rain = values.rain;
 
   if (!isSeaMode()) {
+    if ((values.riverStress ?? 0) >= 75) return "bad";
+    if ((values.riverStress ?? 0) >= 50) return "warn";
+    if ((values.riverStress ?? 0) >= 30) return "maybe";
     if ((wind ?? 0) >= 24 || (gust ?? 0) >= 34 || (rain ?? 0) >= 5) return "bad";
     if ((wind ?? 0) >= 18 || (gust ?? 0) >= 28 || (rain ?? 0) >= 2) return "warn";
     if ((wind ?? 0) >= 12 || (gust ?? 0) >= 20 || (rain ?? 0) >= 0.4) return "maybe";
@@ -6954,12 +7070,21 @@ function conditionDecision(day, sample = timelineSample(day), goNoGo = weatherGo
 
   const heavyRain = (sample.precipitation ?? day.precipitationTotal ?? 0) >= 5 || day.turbidity?.score >= 62;
   const pressureDrop = (day.pressureTrend ?? 0) <= -3;
+  const riverRisk = isValidNumber(day.riverFlowStress) && day.riverFlowStress >= 50;
 
   if (heavyRain) {
     return {
       tone: "bad",
       title: t("Eau à surveiller"),
       detail: i18nMessage("freshRain", { hour }),
+    };
+  }
+
+  if (riverRisk) {
+    return {
+      tone: day.riverFlowStress >= 75 ? "bad" : "warn",
+      title: t("Débit à surveiller"),
+      detail: i18nMessage("freshRiver", { hour }),
     };
   }
 
@@ -7024,6 +7149,11 @@ function conditionFacts(day, sample = timelineSample(day), goNoGo = weatherGoNoG
       {
         label: "Air",
         value: formatTemperatureBrief(sample.airTemperature ?? day.airTemperature),
+      },
+      {
+        label: "Débit",
+        value: formatRiverFlow(day.riverFlow),
+        tone: riverFlowTone(day),
       },
       {
         label: "Pression",
@@ -7114,6 +7244,14 @@ function renderMetrics(day) {
       ]
     : [
         {
+          label: "Débit rivière",
+          shortLabel: "Débit",
+          value: formatRiverFlow(day.riverFlow),
+          detail: `${riverTrendLabel(day.riverFlowTrend)} · ${t("Source GloFAS via Open-Meteo")}`,
+          color: "current",
+          icon: currentIcon(),
+        },
+        {
           label: "Vent moyen",
           shortLabel: "Vent",
           value: `${formatNumber(windSpeed, 0)} kt`,
@@ -7173,7 +7311,30 @@ function renderMetrics(day) {
 function renderWaterInsights(day) {
   if (!els.waterInsights) return;
   els.waterInsights.innerHTML = "";
-  els.waterInsights.hidden = true;
+
+  if (isSeaMode() || !day) {
+    els.waterInsights.hidden = true;
+    return;
+  }
+
+  els.waterInsights.hidden = false;
+  const tone = riverFlowTone(day);
+  const minMax = isValidNumber(day.riverFlowMin) && isValidNumber(day.riverFlowMax)
+    ? `${formatRiverFlow(day.riverFlowMin)} - ${formatRiverFlow(day.riverFlowMax)}`
+    : "--";
+  const detail = state.riverForecastAvailable
+    ? `${riverTrendLabel(day.riverFlowTrend)} · ${t("Source GloFAS via Open-Meteo")}`
+    : state.riverForecastError
+      ? `${t("GloFAS indispo")} · ${state.riverForecastError}`
+      : t("GloFAS indispo");
+
+  els.waterInsights.innerHTML = `
+    <article class="water-insight-card ${tone}">
+      <span>${escapeHtml(t("Tendance débit"))}</span>
+      <strong>${escapeHtml(riverTrendPercentLabel(day))}</strong>
+      <small>${escapeHtml(`${detail} · ${minMax}`)}</small>
+    </article>
+  `;
 }
 
 function renderDayTimeline(day) {
@@ -7290,6 +7451,34 @@ function formatPressureTrend(value) {
   if (!isValidNumber(value)) return "tendance --";
   const sign = value > 0 ? "+" : "";
   return `tendance ${sign}${formatNumber(value, 1)} hPa`;
+}
+
+function formatRiverFlow(value) {
+  if (!isValidNumber(value)) return "--";
+  const digits = value >= 100 ? 0 : value >= 10 ? 1 : 2;
+  return `${formatNumber(value, digits)} m³/s`;
+}
+
+function riverFlowTone(day) {
+  const stress = day?.riverFlowStress;
+  if (!isValidNumber(stress)) return "";
+  if (stress >= 75) return "bad";
+  if (stress >= 50) return "warn";
+  if (stress >= 30) return "maybe";
+  return "good";
+}
+
+function riverTrendLabel(value) {
+  if (!isValidNumber(value) || Math.abs(value) < 0.01) return t("Débit stable");
+  return value > 0 ? t("Débit en hausse") : t("Débit en baisse");
+}
+
+function riverTrendPercentLabel(day) {
+  if (!isValidNumber(day?.riverFlowTrendPercent) || Math.abs(day.riverFlowTrendPercent) < 0.1) {
+    return t("Débit stable");
+  }
+  const sign = day.riverFlowTrendPercent > 0 ? "+" : "";
+  return `${sign}${formatNumber(day.riverFlowTrendPercent, 1)} %`;
 }
 
 function pressureFishingHint(value) {
@@ -9648,7 +9837,7 @@ function forecastStatusDetail(label, mode) {
     return t("Connexion absente. Les écrans déjà consultés restent disponibles hors ligne.");
   }
   if (mode === "loading") {
-    return t("Chargement météo, mer et données Copernicus pour le spot actif.");
+    return t("Chargement météo, mer, Copernicus et GloFAS pour le spot actif.");
   }
   if (mode === "error") {
     return t("Impossible de charger les conditions du spot. Vérifie la connexion ou les coordonnées.");
@@ -9658,11 +9847,19 @@ function forecastStatusDetail(label, mode) {
       ? `${t("Copernicus indisponible")}: ${state.realDepthError}`
       : t("Copernicus indisponible pour le courant en profondeur. Les prévisions météo et marine restent affichées.");
   }
+  if (mode === "warning" && /glofas/i.test(label)) {
+    return state.riverForecastError && state.riverForecastError !== "GloFAS indispo"
+      ? `${t("GloFAS indispo")}: ${state.riverForecastError}`
+      : t("GloFAS indisponible pour le débit rivière. Les prévisions météo restent affichées.");
+  }
   if (mode === "warning") {
     return t("Données partielles: certaines sources sont indisponibles pour ce spot.");
   }
   if (/copernicus/i.test(label)) {
     return t("Données Copernicus actives pour les courants en profondeur.");
+  }
+  if (/glofas/i.test(label)) {
+    return t("Données GloFAS actives pour le débit rivière.");
   }
   if (label === "À jour" || mode === "ready") {
     return t("Données synchronisées pour le spot actif.");

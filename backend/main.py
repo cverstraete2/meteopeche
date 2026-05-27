@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .copernicus_depth import get_depth_current
+from .river_forecast import get_river_forecast
 from .spot_resolver import resolve_spot
 
 
@@ -23,7 +24,9 @@ def allowed_origins():
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
-app = FastAPI(title="MeteoCatch Copernicus API", version="1.1.0")
+API_VERSION = "1.2.0"
+
+app = FastAPI(title="MeteoCatch Copernicus API", version=API_VERSION)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins(),
@@ -35,7 +38,7 @@ app.add_middleware(
 
 @app.get("/health")
 def health():
-    return {"ok": True, "service": "meteo-peche-copernicus"}
+    return {"ok": True, "service": "meteo-peche-copernicus", "version": API_VERSION}
 
 
 @app.get("/api/depth-current")
@@ -82,6 +85,30 @@ def spot_resolve(
         result = {
             "ok": False,
             "error": "Erreur inattendue pendant l'analyse mondiale du spot.",
+            "detail": str(error),
+            "errorType": error.__class__.__name__,
+        }
+
+    status_code = 200 if result.get("ok") else 503
+    return JSONResponse(result, status_code=status_code)
+
+
+@app.get("/api/river-forecast")
+def river_forecast(
+    latitude: float = Query(..., ge=-90, le=90),
+    longitude: float = Query(..., ge=-180, le=180),
+    forecast_days: int = Query(7, ge=1, le=16),
+):
+    try:
+        result = get_river_forecast({
+            "latitude": latitude,
+            "longitude": longitude,
+            "forecast_days": forecast_days,
+        })
+    except Exception as error:
+        result = {
+            "ok": False,
+            "error": "Erreur inattendue pendant le chargement GloFAS.",
             "detail": str(error),
             "errorType": error.__class__.__name__,
         }
