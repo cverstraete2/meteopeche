@@ -1,4 +1,4 @@
-const CACHE_NAME = "meteocatch-shell-20260526-favorite-sheet-v1";
+const CACHE_NAME = "meteocatch-shell-20260527-mobile-scale-v1";
 const APP_SHELL = [
   "./",
   "./index.html",
