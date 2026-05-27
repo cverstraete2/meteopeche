@@ -22,8 +22,406 @@ const WEATHER_SUBTABS = ["overview", "forces", "sun", "tides"];
 const ATMOSPHERE_CHARTS = ["cloud", "pressure"];
 const MARINE_OVERLAY_MODES = ["none", "surface", "depth", "wave"];
 const THEME_MODES = ["light", "dark"];
+const LANGUAGE_MODES = ["fr", "en", "es", "de", "pt"];
 const PHOTO_MAX_EDGE = 1280;
 const PHOTO_JPEG_QUALITY = 0.76;
+const LANGUAGE_OPTIONS = {
+  fr: { label: "Français", locale: "fr-FR" },
+  en: { label: "English", locale: "en-US" },
+  es: { label: "Español", locale: "es-ES" },
+  de: { label: "Deutsch", locale: "de-DE" },
+  pt: { label: "Português", locale: "pt-PT" },
+};
+const I18N_TRANSLATIONS = {
+  "Chargement des conditions": { en: "Loading conditions", es: "Cargando condiciones", de: "Bedingungen werden geladen", pt: "A carregar condições" },
+  "MeteoCatch mobile": { en: "MeteoCatch mobile", es: "MeteoCatch móvil", de: "MeteoCatch mobil", pt: "MeteoCatch móvel" },
+  "Fermer l'onboarding": { en: "Close onboarding", es: "Cerrar onboarding", de: "Onboarding schließen", pt: "Fechar onboarding" },
+  "Prépare tes sorties comme une vraie app de terrain": { en: "Plan your trips like a true field app", es: "Prepara tus salidas como una app de campo", de: "Plane deine Trips wie mit einer echten Outdoor-App", pt: "Prepara as tuas saídas como uma app de terreno" },
+  "Position précise pour choisir le spot, rappels locaux, journal photo et accès hors ligne aux écrans essentiels.": { en: "Precise location to choose a spot, local reminders, photo log and offline access to essential screens.", es: "Ubicación precisa para elegir el spot, recordatorios locales, diario con fotos y acceso sin conexión a las pantallas esenciales.", de: "Präziser Standort für Spotwahl, lokale Erinnerungen, Fototagebuch und Offline-Zugriff auf wichtige Ansichten.", pt: "Localização precisa para escolher o spot, lembretes locais, diário fotográfico e acesso offline aos ecrãs essenciais." },
+  "GPS précis": { en: "Precise GPS", es: "GPS preciso", de: "Präzises GPS", pt: "GPS preciso" },
+  "À configurer": { en: "To set up", es: "Por configurar", de: "Einzurichten", pt: "Por configurar" },
+  "Autoriser": { en: "Allow", es: "Permitir", de: "Erlauben", pt: "Permitir" },
+  "Autorisé": { en: "Allowed", es: "Permitido", de: "Erlaubt", pt: "Permitido" },
+  "Refusé": { en: "Denied", es: "Denegado", de: "Abgelehnt", pt: "Recusado" },
+  "Indisponible": { en: "Unavailable", es: "No disponible", de: "Nicht verfügbar", pt: "Indisponível" },
+  "Notifications": { en: "Notifications", es: "Notificaciones", de: "Benachrichtigungen", pt: "Notificações" },
+  "Activer": { en: "Enable", es: "Activar", de: "Aktivieren", pt: "Ativar" },
+  "Actives": { en: "Enabled", es: "Activas", de: "Aktiv", pt: "Ativas" },
+  "Journal photo": { en: "Photo log", es: "Diario fotográfico", de: "Fototagebuch", pt: "Diário fotográfico" },
+  "Photos stockées dans le journal local": { en: "Photos stored in the local log", es: "Fotos guardadas en el diario local", de: "Fotos werden im lokalen Tagebuch gespeichert", pt: "Fotos guardadas no diário local" },
+  "Prêt": { en: "Ready", es: "Listo", de: "Bereit", pt: "Pronto" },
+  "Mode offline": { en: "Offline mode", es: "Modo sin conexión", de: "Offline-Modus", pt: "Modo offline" },
+  "Préparation du cache": { en: "Preparing cache", es: "Preparando caché", de: "Cache wird vorbereitet", pt: "A preparar cache" },
+  "Écran principal disponible hors ligne": { en: "Main screen available offline", es: "Pantalla principal disponible sin conexión", de: "Hauptansicht offline verfügbar", pt: "Ecrã principal disponível offline" },
+  "Cache en préparation": { en: "Preparing cache", es: "Preparando caché", de: "Cache wird vorbereitet", pt: "A preparar cache" },
+  "Cache en attente": { en: "Cache pending", es: "Caché pendiente", de: "Cache ausstehend", pt: "Cache pendente" },
+  "En ligne": { en: "Online", es: "En línea", de: "Online", pt: "Online" },
+  "Offline": { en: "Offline", es: "Sin conexión", de: "Offline", pt: "Offline" },
+  "Confidentialité": { en: "Privacy", es: "Privacidad", de: "Datenschutz", pt: "Privacidade" },
+  "La position sert à charger les prévisions du spot. Le journal et les photos restent sur ton appareil, sauf si tu les exportes volontairement. Les services météo et Copernicus reçoivent uniquement les coordonnées nécessaires aux données.": { en: "Location is used to load spot forecasts. The log and photos stay on your device unless you choose to export them. Weather services and Copernicus receive only the coordinates needed for the data.", es: "La ubicación se usa para cargar las previsiones del spot. El diario y las fotos permanecen en tu dispositivo salvo que los exportes voluntariamente. Los servicios meteorológicos y Copernicus reciben solo las coordenadas necesarias.", de: "Der Standort wird genutzt, um Spot-Vorhersagen zu laden. Tagebuch und Fotos bleiben auf deinem Gerät, außer du exportierst sie bewusst. Wetterdienste und Copernicus erhalten nur die nötigen Koordinaten.", pt: "A localização serve para carregar previsões do spot. O diário e as fotos ficam no teu dispositivo, salvo exportação voluntária. Os serviços meteorológicos e Copernicus recebem apenas as coordenadas necessárias." },
+  "Continuer": { en: "Continue", es: "Continuar", de: "Weiter", pt: "Continuar" },
+  "Plus tard": { en: "Later", es: "Más tarde", de: "Später", pt: "Mais tarde" },
+  "Prévisions marines par spot": { en: "Marine forecasts by spot", es: "Previsiones marinas por spot", de: "Meeresvorhersagen nach Spot", pt: "Previsões marinhas por spot" },
+  "Préférences": { en: "Preferences", es: "Preferencias", de: "Einstellungen", pt: "Preferências" },
+  "Profil": { en: "Profile", es: "Perfil", de: "Profil", pt: "Perfil" },
+  "← Retour": { en: "← Back", es: "← Volver", de: "← Zurück", pt: "← Voltar" },
+  "Milieu": { en: "Environment", es: "Medio", de: "Gewässer", pt: "Ambiente" },
+  "Mer": { en: "Sea", es: "Mar", de: "Meer", pt: "Mar" },
+  "Eau douce": { en: "Freshwater", es: "Agua dulce", de: "Süßwasser", pt: "Água doce" },
+  "Thème": { en: "Theme", es: "Tema", de: "Design", pt: "Tema" },
+  "Clair": { en: "Light", es: "Claro", de: "Hell", pt: "Claro" },
+  "Sombre": { en: "Dark", es: "Oscuro", de: "Dunkel", pt: "Escuro" },
+  "Langue": { en: "Language", es: "Idioma", de: "Sprache", pt: "Idioma" },
+  "Niveau": { en: "Level", es: "Nivel", de: "Level", pt: "Nível" },
+  "Débutant": { en: "Beginner", es: "Principiante", de: "Anfänger", pt: "Iniciante" },
+  "Intermédiaire": { en: "Intermediate", es: "Intermedio", de: "Fortgeschritten", pt: "Intermédio" },
+  "Avancé": { en: "Advanced", es: "Avanzado", de: "Experte", pt: "Avançado" },
+  "Approche": { en: "Approach", es: "Enfoque", de: "Ansatz", pt: "Abordagem" },
+  "Bord": { en: "Shore", es: "Orilla", de: "Ufer", pt: "Margem" },
+  "Bateau": { en: "Boat", es: "Barco", de: "Boot", pt: "Barco" },
+  "Mixte": { en: "Mixed", es: "Mixto", de: "Gemischt", pt: "Misto" },
+  "Priorité": { en: "Priority", es: "Prioridad", de: "Priorität", pt: "Prioridade" },
+  "Créneau": { en: "Window", es: "Franja", de: "Zeitfenster", pt: "Janela" },
+  "Météo": { en: "Weather", es: "Tiempo", de: "Wetter", pt: "Tempo" },
+  "Spots": { en: "Spots", es: "Spots", de: "Spots", pt: "Spots" },
+  "Espèce cible": { en: "Target species", es: "Especie objetivo", de: "Zielfisch", pt: "Espécie alvo" },
+  "Profondeur cible": { en: "Target depth", es: "Profundidad objetivo", de: "Zieltiefe", pt: "Profundidade alvo" },
+  "App native & confidentialité": { en: "Native app & privacy", es: "App nativa y privacidad", de: "Native App & Datenschutz", pt: "App nativa e privacidade" },
+  "Données": { en: "Data", es: "Datos", de: "Daten", pt: "Dados" },
+  "Sources météo et Copernicus en attente": { en: "Weather and Copernicus sources pending", es: "Fuentes meteorológicas y Copernicus pendientes", de: "Wetter- und Copernicus-Quellen ausstehend", pt: "Fontes meteorológicas e Copernicus pendentes" },
+  "Privacy": { en: "Privacy", es: "Privacidad", de: "Datenschutz", pt: "Privacidade" },
+  "À valider": { en: "To accept", es: "Por validar", de: "Zu bestätigen", pt: "Por validar" },
+  "Validée": { en: "Accepted", es: "Validada", de: "Bestätigt", pt: "Validada" },
+  "Valider": { en: "Accept", es: "Validar", de: "Bestätigen", pt: "Validar" },
+  "Le GPS n'est utilisé que pour sélectionner un spot et charger les conditions. Les photos du journal restent dans le stockage local de l'appareil.": { en: "GPS is only used to select a spot and load conditions. Log photos stay in local device storage.", es: "El GPS solo se usa para seleccionar un spot y cargar las condiciones. Las fotos del diario permanecen en el almacenamiento local del dispositivo.", de: "GPS wird nur verwendet, um einen Spot zu wählen und Bedingungen zu laden. Fotos bleiben lokal auf dem Gerät.", pt: "O GPS é usado apenas para selecionar um spot e carregar condições. As fotos do diário ficam no armazenamento local do dispositivo." },
+  "Politique de confidentialité": { en: "Privacy policy", es: "Política de privacidad", de: "Datenschutzerklärung", pt: "Política de privacidade" },
+  "Revoir l'onboarding": { en: "Review onboarding", es: "Revisar onboarding", de: "Onboarding erneut ansehen", pt: "Rever onboarding" },
+  "Carte": { en: "Map", es: "Mapa", de: "Karte", pt: "Mapa" },
+  "Carte et favoris": { en: "Map and favorites", es: "Mapa y favoritos", de: "Karte und Favoriten", pt: "Mapa e favoritos" },
+  "Carte des spots": { en: "Spot map", es: "Mapa de spots", de: "Spotkarte", pt: "Mapa de spots" },
+  "Spots mer": { en: "Sea spots", es: "Spots de mar", de: "Meer-Spots", pt: "Spots de mar" },
+  "Spots eau douce": { en: "Freshwater spots", es: "Spots de agua dulce", de: "Süßwasser-Spots", pt: "Spots de água doce" },
+  "Carte de sélection des spots": { en: "Spot selection map", es: "Mapa de selección de spots", de: "Karte zur Spot-Auswahl", pt: "Mapa de seleção de spots" },
+  "Spot actif": { en: "Active spot", es: "Spot activo", de: "Aktiver Spot", pt: "Spot ativo" },
+  "Ajouter aux favoris": { en: "Add to favorites", es: "Añadir a favoritos", de: "Zu Favoriten hinzufügen", pt: "Adicionar aos favoritos" },
+  "Retirer des favoris": { en: "Remove from favorites", es: "Quitar de favoritos", de: "Aus Favoriten entfernen", pt: "Remover dos favoritos" },
+  "Favoris": { en: "Favorites", es: "Favoritos", de: "Favoriten", pt: "Favoritos" },
+  "Modifier": { en: "Edit", es: "Modificar", de: "Ändern", pt: "Editar" },
+  "Masquer": { en: "Hide", es: "Ocultar", de: "Ausblenden", pt: "Ocultar" },
+  "Ma position": { en: "My location", es: "Mi ubicación", de: "Mein Standort", pt: "A minha posição" },
+  "Utiliser ma position": { en: "Use my location", es: "Usar mi ubicación", de: "Meinen Standort verwenden", pt: "Usar a minha posição" },
+  "Spot": { en: "Spot", es: "Spot", de: "Spot", pt: "Spot" },
+  "Latitude": { en: "Latitude", es: "Latitud", de: "Breitengrad", pt: "Latitude" },
+  "Longitude": { en: "Longitude", es: "Longitud", de: "Längengrad", pt: "Longitude" },
+  "Actualiser": { en: "Refresh", es: "Actualizar", de: "Aktualisieren", pt: "Atualizar" },
+  "Fermer": { en: "Close", es: "Cerrar", de: "Schließen", pt: "Fechar" },
+  "Contrôles carte": { en: "Map controls", es: "Controles del mapa", de: "Kartensteuerung", pt: "Controlos do mapa" },
+  "Zoomer": { en: "Zoom in", es: "Acercar", de: "Hineinzoomen", pt: "Aproximar" },
+  "Dézoomer": { en: "Zoom out", es: "Alejar", de: "Herauszoomen", pt: "Afastar" },
+  "Couches": { en: "Layers", es: "Capas", de: "Ebenen", pt: "Camadas" },
+  "Carte nautique": { en: "Nautical chart", es: "Carta náutica", de: "Seekarte", pt: "Carta náutica" },
+  "Balises, marques et infos mer": { en: "Beacons, marks and sea info", es: "Balizas, marcas e info marina", de: "Baken, Seezeichen und Meeresinfos", pt: "Balizas, marcas e info marítima" },
+  "Littoral & baies": { en: "Coastline & bays", es: "Litoral y bahías", de: "Küste & Buchten", pt: "Litoral e baías" },
+  "Rivages, baies et noms marins": { en: "Shores, bays and sea names", es: "Costas, bahías y nombres marinos", de: "Ufer, Buchten und Meeresnamen", pt: "Margens, baías e nomes marítimos" },
+  "Coins pêche": { en: "Fishing spots", es: "Zonas de pesca", de: "Angelplätze", pt: "Locais de pesca" },
+  "Spots connus par poisson": { en: "Known spots by species", es: "Spots conocidos por pez", de: "Bekannte Spots nach Fischart", pt: "Spots conhecidos por peixe" },
+  "Profondeur fond": { en: "Bottom depth", es: "Profundidad del fondo", de: "Grundtiefe", pt: "Profundidade do fundo" },
+  "EMODnet France entière": { en: "EMODnet all France", es: "EMODnet toda Francia", de: "EMODnet ganz Frankreich", pt: "EMODnet França inteira" },
+  "Zones sensibles": { en: "Sensitive areas", es: "Zonas sensibles", de: "Sensible Zonen", pt: "Zonas sensíveis" },
+  "Réserves et vigilance réglementaire": { en: "Reserves and regulatory caution", es: "Reservas y vigilancia normativa", de: "Schutzgebiete und Regel-Hinweise", pt: "Reservas e atenção regulamentar" },
+  "Conditions marines": { en: "Marine conditions", es: "Condiciones marinas", de: "Meeresbedingungen", pt: "Condições marinhas" },
+  "Off": { en: "Off", es: "Off", de: "Aus", pt: "Off" },
+  "Surface": { en: "Surface", es: "Superficie", de: "Oberfläche", pt: "Superfície" },
+  "Profondeur": { en: "Depth", es: "Profundidad", de: "Tiefe", pt: "Profundidade" },
+  "Houle": { en: "Wave", es: "Oleaje", de: "Welle", pt: "Ondulação" },
+  "Poisson": { en: "Fish", es: "Pez", de: "Fisch", pt: "Peixe" },
+  "Tous": { en: "All", es: "Todos", de: "Alle", pt: "Todos" },
+  "Zone sensible": { en: "Sensitive area", es: "Zona sensible", de: "Sensible Zone", pt: "Zona sensível" },
+  "Sécurité": { en: "Safety", es: "Seguridad", de: "Sicherheit", pt: "Segurança" },
+  "Zones et dérive prêtes.": { en: "Zones and drift ready.", es: "Zonas y deriva listas.", de: "Zonen und Drift bereit.", pt: "Zonas e deriva prontas." },
+  "Point GPS": { en: "GPS point", es: "Punto GPS", de: "GPS-Punkt", pt: "Ponto GPS" },
+  "Nommer ce spot": { en: "Name this spot", es: "Nombrar este spot", de: "Diesen Spot benennen", pt: "Dar nome a este spot" },
+  "Nom": { en: "Name", es: "Nombre", de: "Name", pt: "Nome" },
+  "Annuler": { en: "Cancel", es: "Cancelar", de: "Abbrechen", pt: "Cancelar" },
+  "Ajouter favori": { en: "Add favorite", es: "Añadir favorito", de: "Favorit hinzufügen", pt: "Adicionar favorito" },
+  "Consulter": { en: "View", es: "Consultar", de: "Ansehen", pt: "Consultar" },
+  "Prévisions 6 jours": { en: "6-day forecast", es: "Previsión 6 días", de: "6-Tage-Vorhersage", pt: "Previsão 6 dias" },
+  "Prévision": { en: "Forecast", es: "Previsión", de: "Vorhersage", pt: "Previsão" },
+  "Prévisions indisponibles": { en: "Forecast unavailable", es: "Previsiones no disponibles", de: "Vorhersage nicht verfügbar", pt: "Previsões indisponíveis" },
+  "Réduire": { en: "Collapse", es: "Reducir", de: "Einklappen", pt: "Reduzir" },
+  "Agrandir": { en: "Expand", es: "Ampliar", de: "Erweitern", pt: "Aumentar" },
+  "Sélecteur météo": { en: "Weather selector", es: "Selector meteorológico", de: "Wetterauswahl", pt: "Seletor meteorológico" },
+  "Sous-vues météo": { en: "Weather subviews", es: "Subvistas meteorológicas", de: "Wetter-Unteransichten", pt: "Subvistas meteorológicas" },
+  "Décision rapide": { en: "Quick decision", es: "Decisión rápida", de: "Schnellentscheidung", pt: "Decisão rápida" },
+  "Rosace": { en: "Compass", es: "Rosa", de: "Kompassrose", pt: "Rosa dos ventos" },
+  "Soleil": { en: "Sun", es: "Sol", de: "Sonne", pt: "Sol" },
+  "Marées": { en: "Tides", es: "Mareas", de: "Gezeiten", pt: "Marés" },
+  "Timeline journée": { en: "Day timeline", es: "Timeline del día", de: "Tages-Timeline", pt: "Timeline do dia" },
+  "Sélectionner l'heure": { en: "Select time", es: "Seleccionar hora", de: "Uhrzeit wählen", pt: "Selecionar hora" },
+  "Activité": { en: "Activity", es: "Actividad", de: "Aktivität", pt: "Atividade" },
+  "Activité poisson": { en: "Fish activity", es: "Actividad del pez", de: "Fischaktivität", pt: "Atividade do peixe" },
+  "Activité des poissons": { en: "Fish activity", es: "Actividad de los peces", de: "Fischaktivität", pt: "Atividade dos peixes" },
+  "Espèce": { en: "Species", es: "Especie", de: "Art", pt: "Espécie" },
+  "Majeurs": { en: "Major", es: "Mayores", de: "Hauptphasen", pt: "Maiores" },
+  "Mineurs": { en: "Minor", es: "Menores", de: "Nebenphasen", pt: "Menores" },
+  "Hauteur d'eau": { en: "Water level", es: "Altura del agua", de: "Wasserstand", pt: "Altura da água" },
+  "Synthèse du jour": { en: "Daily summary", es: "Resumen del día", de: "Tagesübersicht", pt: "Síntese do dia" },
+  "Rosace et forces horaires": { en: "Compass and hourly forces", es: "Rosa y fuerzas horarias", de: "Kompassrose und Stundenkräfte", pt: "Rosa e forças horárias" },
+  "Directions moyennes": { en: "Average directions", es: "Direcciones medias", de: "Mittlere Richtungen", pt: "Direções médias" },
+  "Créneau calme": { en: "Calm window", es: "Franja tranquila", de: "Ruhiges Fenster", pt: "Janela calma" },
+  "Évolution horaire des forces": { en: "Hourly force evolution", es: "Evolución horaria de fuerzas", de: "Stündliche Kräfteentwicklung", pt: "Evolução horária das forças" },
+  "Heure par heure": { en: "Hour by hour", es: "Hora a hora", de: "Stunde für Stunde", pt: "Hora a hora" },
+  "Vent": { en: "Wind", es: "Viento", de: "Wind", pt: "Vento" },
+  "Nuages": { en: "Clouds", es: "Nubes", de: "Wolken", pt: "Nuvens" },
+  "Courant": { en: "Current", es: "Corriente", de: "Strömung", pt: "Corrente" },
+  "Ciel et baromètre": { en: "Sky and barometer", es: "Cielo y barómetro", de: "Himmel und Barometer", pt: "Céu e barómetro" },
+  "Atmosphère": { en: "Atmosphere", es: "Atmósfera", de: "Atmosphäre", pt: "Atmosfera" },
+  "Couverture nuageuse": { en: "Cloud cover", es: "Cobertura nubosa", de: "Bewölkung", pt: "Cobertura de nuvens" },
+  "Vue atmosphère": { en: "Atmosphere view", es: "Vista atmósfera", de: "Atmosphärenansicht", pt: "Vista da atmosfera" },
+  "Baromètre": { en: "Barometer", es: "Barómetro", de: "Barometer", pt: "Barómetro" },
+  "Outil terrain": { en: "Field tool", es: "Herramienta de campo", de: "Praxiswerkzeug", pt: "Ferramenta de terreno" },
+  "Lestage": { en: "Rigging", es: "Lastre", de: "Blei/Last", pt: "Lastro" },
+  "Conditions actuelles": { en: "Current conditions", es: "Condiciones actuales", de: "Aktuelle Bedingungen", pt: "Condições atuais" },
+  "Technique": { en: "Technique", es: "Técnica", de: "Technik", pt: "Técnica" },
+  "Profondeur m": { en: "Depth m", es: "Profundidad m", de: "Tiefe m", pt: "Profundidade m" },
+  "Courant kt": { en: "Current kt", es: "Corriente kt", de: "Strömung kt", pt: "Corrente kt" },
+  "Vent kt": { en: "Wind kt", es: "Viento kt", de: "Wind kt", pt: "Vento kt" },
+  "Plomb conseillé": { en: "Suggested weight", es: "Plomo recomendado", de: "Empfohlenes Gewicht", pt: "Chumbo recomendado" },
+  "Fourchette --": { en: "Range --", es: "Rango --", de: "Bereich --", pt: "Intervalo --" },
+  "Renseigne les conditions pour estimer un lestage de départ.": { en: "Enter conditions to estimate a starting rig weight.", es: "Introduce las condiciones para estimar un lastre inicial.", de: "Gib Bedingungen ein, um ein Startgewicht zu schätzen.", pt: "Indica as condições para estimar um lastro inicial." },
+  "Soleil & lune": { en: "Sun & moon", es: "Sol y luna", de: "Sonne & Mond", pt: "Sol e lua" },
+  "Soleil et lune": { en: "Sun and moon", es: "Sol y luna", de: "Sonne und Mond", pt: "Sol e lua" },
+  "Cycle lumineux": { en: "Light cycle", es: "Ciclo de luz", de: "Lichtzyklus", pt: "Ciclo de luz" },
+  "Journal": { en: "Log", es: "Diario", de: "Tagebuch", pt: "Diário" },
+  "Journal de prises": { en: "Catch log", es: "Diario de capturas", de: "Fangtagebuch", pt: "Diário de capturas" },
+  "Taille cm": { en: "Size cm", es: "Talla cm", de: "Länge cm", pt: "Tamanho cm" },
+  "Poids kg": { en: "Weight kg", es: "Peso kg", de: "Gewicht kg", pt: "Peso kg" },
+  "Notes": { en: "Notes", es: "Notas", de: "Notizen", pt: "Notas" },
+  "Leurre, poste, comportement...": { en: "Lure, spot, behavior...", es: "Señuelo, puesto, comportamiento...", de: "Köder, Stelle, Verhalten...", pt: "Amostra, posto, comportamento..." },
+  "Ajouter photo": { en: "Add photo", es: "Añadir foto", de: "Foto hinzufügen", pt: "Adicionar foto" },
+  "Ajouter prise": { en: "Add catch", es: "Añadir captura", de: "Fang hinzufügen", pt: "Adicionar captura" },
+  "Navigation principale": { en: "Main navigation", es: "Navegación principal", de: "Hauptnavigation", pt: "Navegação principal" },
+  "Prefs": { en: "Prefs", es: "Prefs", de: "Prefs", pt: "Prefs" },
+  "Aucun favori": { en: "No favorites", es: "Sin favoritos", de: "Keine Favoriten", pt: "Sem favoritos" },
+  "Coordonnées invalides": { en: "Invalid coordinates", es: "Coordenadas no válidas", de: "Ungültige Koordinaten", pt: "Coordenadas inválidas" },
+  "Stockage plein": { en: "Storage full", es: "Almacenamiento lleno", de: "Speicher voll", pt: "Armazenamento cheio" },
+  "Photo impossible": { en: "Photo unavailable", es: "Foto imposible", de: "Foto nicht möglich", pt: "Foto indisponível" },
+  "Photo ajoutée": { en: "Photo added", es: "Foto añadida", de: "Foto hinzugefügt", pt: "Foto adicionada" },
+  "Photo de prise": { en: "Catch photo", es: "Foto de captura", de: "Fangfoto", pt: "Foto da captura" },
+  "Retirer la photo": { en: "Remove photo", es: "Quitar foto", de: "Foto entfernen", pt: "Remover foto" },
+  "Supprimer cette prise": { en: "Delete this catch", es: "Eliminar esta captura", de: "Diesen Fang löschen", pt: "Eliminar esta captura" },
+  "Aucune prise enregistrée": { en: "No catches saved", es: "No hay capturas guardadas", de: "Keine Fänge gespeichert", pt: "Nenhuma captura guardada" },
+  "Ajoute une prise pour conserver le spot, la météo, la pression et la lune du moment.": { en: "Add a catch to save the spot, weather, pressure and moon for that moment.", es: "Añade una captura para guardar el spot, la meteorología, la presión y la luna del momento.", de: "Füge einen Fang hinzu, um Spot, Wetter, Druck und Mondphase zu speichern.", pt: "Adiciona uma captura para guardar o spot, meteorologia, pressão e lua do momento." },
+  "Thon": { en: "Tuna", es: "Atún", de: "Thunfisch", pt: "Atum" },
+  "Dorade": { en: "Sea bream", es: "Dorada", de: "Meerbrasse", pt: "Dourada" },
+  "Bar/Loup": { en: "Sea bass", es: "Lubina", de: "Wolfsbarsch", pt: "Robalo" },
+  "Sars": { en: "White seabream", es: "Sargo", de: "Geißbrassen", pt: "Sargos" },
+  "Roche": { en: "Rockfish", es: "Roca", de: "Felsfisch", pt: "Rocha" },
+  "Poissons de roche": { en: "Rockfish", es: "Peces de roca", de: "Felsfische", pt: "Peixes de rocha" },
+  "Maquereau": { en: "Mackerel", es: "Caballa", de: "Makrele", pt: "Cavala" },
+  "Maigre": { en: "Meagre", es: "Corvina", de: "Adlerfisch", pt: "Corvina" },
+  "Seiche": { en: "Cuttlefish", es: "Sepia", de: "Tintenfisch", pt: "Choco" },
+  "Brochet": { en: "Pike", es: "Lucio", de: "Hecht", pt: "Lúcio" },
+  "Sandre": { en: "Zander", es: "Lucioperca", de: "Zander", pt: "Lucioperca" },
+  "Perche": { en: "Perch", es: "Perca", de: "Barsch", pt: "Perca" },
+  "Black-bass": { en: "Black bass", es: "Black bass", de: "Black Bass", pt: "Black bass" },
+  "Carpe": { en: "Carp", es: "Carpa", de: "Karpfen", pt: "Carpa" },
+  "Silure": { en: "Catfish", es: "Siluro", de: "Wels", pt: "Siluro" },
+  "Truite": { en: "Trout", es: "Trucha", de: "Forelle", pt: "Truta" },
+  "Bord / pêche calée": { en: "Shore / static rig", es: "Orilla / pesca fondeada", de: "Ufer / Grundmontage", pt: "Margem / pesca fundeada" },
+  "Bateau / dérive": { en: "Boat / drift", es: "Barco / deriva", de: "Boot / Drift", pt: "Barco / deriva" },
+  "Verticale profonde": { en: "Deep vertical", es: "Vertical profunda", de: "Tiefe Vertikale", pt: "Vertical profunda" },
+  "Rivière / plombée": { en: "River / weighted rig", es: "Río / plomeado", de: "Fluss / Blei", pt: "Rio / chumbada" },
+  "Lac / posé": { en: "Lake / static", es: "Lago / posado", de: "See / Ansitz", pt: "Lago / ao fundo" },
+  "Carpe / tenue": { en: "Carp / hold", es: "Carpa / sujeción", de: "Karpfen / Halt", pt: "Carpa / fixação" },
+  "Très bonne activité": { en: "Very good activity", es: "Actividad muy buena", de: "Sehr gute Aktivität", pt: "Atividade muito boa" },
+  "Bonne activité": { en: "Good activity", es: "Buena actividad", de: "Gute Aktivität", pt: "Boa atividade" },
+  "Activité moyenne": { en: "Average activity", es: "Actividad media", de: "Mittlere Aktivität", pt: "Atividade média" },
+  "Faible activité": { en: "Low activity", es: "Actividad baja", de: "Geringe Aktivität", pt: "Atividade baixa" },
+  "Très faible activité": { en: "Very low activity", es: "Actividad muy baja", de: "Sehr geringe Aktivität", pt: "Atividade muito baixa" },
+  "Courant favorable": { en: "Favorable current", es: "Corriente favorable", de: "Günstige Strömung", pt: "Corrente favorável" },
+  "Courant peu idéal": { en: "Current not ideal", es: "Corriente poco ideal", de: "Strömung wenig ideal", pt: "Corrente pouco ideal" },
+  "Pression favorable": { en: "Favorable pressure", es: "Presión favorable", de: "Günstiger Druck", pt: "Pressão favorável" },
+  "Pression peu idéale": { en: "Pressure not ideal", es: "Presión poco ideal", de: "Druck wenig ideal", pt: "Pressão pouco ideal" },
+  "Lumière favorable": { en: "Favorable light", es: "Luz favorable", de: "Günstiges Licht", pt: "Luz favorável" },
+  "Fenêtre solunar": { en: "Solunar window", es: "Ventana solunar", de: "Solunarfenster", pt: "Janela solunar" },
+  "Mer moins adaptée": { en: "Sea less suitable", es: "Mar menos adecuado", de: "See weniger geeignet", pt: "Mar menos adequado" },
+  "Houle correcte": { en: "Wave OK", es: "Oleaje correcto", de: "Welle passt", pt: "Ondulação correta" },
+  "Pluie récente pénalisante": { en: "Recent rain is limiting", es: "Lluvia reciente penalizante", de: "Jüngster Regen bremst", pt: "Chuva recente penalizante" },
+  "Vent/météo pénalisants": { en: "Wind/weather limiting", es: "Viento/tiempo penalizantes", de: "Wind/Wetter bremsend", pt: "Vento/meteorologia penalizantes" },
+  "Données indisponibles.": { en: "Data unavailable.", es: "Datos no disponibles.", de: "Daten nicht verfügbar.", pt: "Dados indisponíveis." },
+  "GO": { en: "GO", es: "GO", de: "GO", pt: "GO" },
+  "NO GO": { en: "NO GO", es: "NO GO", de: "NO GO", pt: "NO GO" },
+  "À surveiller": { en: "Watch", es: "Vigilar", de: "Beobachten", pt: "A vigiar" },
+  "Maybe": { en: "Maybe", es: "Quizá", de: "Vielleicht", pt: "Talvez" },
+  "Météo stable": { en: "Stable weather", es: "Tiempo estable", de: "Stabiles Wetter", pt: "Meteorologia estável" },
+  "Sortie prudente": { en: "Cautious outing", es: "Salida con prudencia", de: "Vorsichtige Ausfahrt", pt: "Saída prudente" },
+  "Créneau intéressant": { en: "Interesting window", es: "Franja interesante", de: "Interessantes Fenster", pt: "Janela interessante" },
+  "Conditions à affiner": { en: "Conditions to refine", es: "Condiciones por afinar", de: "Bedingungen prüfen", pt: "Condições a afinar" },
+  "Conditions correctes": { en: "Fair conditions", es: "Condiciones correctas", de: "Ordentliche Bedingungen", pt: "Condições corretas" },
+  "Eau à surveiller": { en: "Watch the water", es: "Vigilar el agua", de: "Wasser beobachten", pt: "Vigiar a água" },
+  "Fenêtre exploitable": { en: "Usable window", es: "Ventana aprovechable", de: "Nutzbares Fenster", pt: "Janela aproveitável" },
+  "Conditions stables": { en: "Stable conditions", es: "Condiciones estables", de: "Stabile Bedingungen", pt: "Condições estáveis" },
+  "Air": { en: "Air", es: "Aire", de: "Luft", pt: "Ar" },
+  "Eau": { en: "Water", es: "Agua", de: "Wasser", pt: "Água" },
+  "SST": { en: "SST", es: "SST", de: "SST", pt: "SST" },
+  "Front thermique": { en: "Thermal front", es: "Frente térmico", de: "Thermische Front", pt: "Frente térmica" },
+  "Marqué": { en: "Strong", es: "Marcado", de: "Ausgeprägt", pt: "Marcado" },
+  "Présent": { en: "Present", es: "Presente", de: "Vorhanden", pt: "Presente" },
+  "Faible": { en: "Weak", es: "Débil", de: "Schwach", pt: "Fraco" },
+  "Fort": { en: "Strong", es: "Fuerte", de: "Stark", pt: "Forte" },
+  "Modéré": { en: "Moderate", es: "Moderado", de: "Mäßig", pt: "Moderado" },
+  "Très faible": { en: "Very weak", es: "Muy débil", de: "Sehr schwach", pt: "Muito fraco" },
+  "Marnage": { en: "Tidal range", es: "Rango de marea", de: "Tidenhub", pt: "Amplitude de maré" },
+  "Repère": { en: "Reference", es: "Referencia", de: "Referenz", pt: "Referência" },
+  "Pleine mer": { en: "High tide", es: "Pleamar", de: "Hochwasser", pt: "Preia-mar" },
+  "Basse mer": { en: "Low tide", es: "Bajamar", de: "Niedrigwasser", pt: "Baixa-mar" },
+  "Prochaine": { en: "Next", es: "Próxima", de: "Nächste", pt: "Próxima" },
+  "Haute": { en: "High", es: "Alta", de: "Hoch", pt: "Alta" },
+  "Basse": { en: "Low", es: "Baja", de: "Niedrig", pt: "Baixa" },
+  "Lune": { en: "Moon", es: "Luna", de: "Mond", pt: "Lua" },
+  "Lever soleil": { en: "Sunrise", es: "Amanecer", de: "Sonnenaufgang", pt: "Nascer do sol" },
+  "Coucher soleil": { en: "Sunset", es: "Atardecer", de: "Sonnenuntergang", pt: "Pôr do sol" },
+  "Durée jour": { en: "Day length", es: "Duración del día", de: "Tageslänge", pt: "Duração do dia" },
+  "Majeur 1": { en: "Major 1", es: "Mayor 1", de: "Hauptphase 1", pt: "Maior 1" },
+  "Majeur 2": { en: "Major 2", es: "Mayor 2", de: "Hauptphase 2", pt: "Maior 2" },
+  "Mineur 1": { en: "Minor 1", es: "Menor 1", de: "Nebenphase 1", pt: "Menor 1" },
+  "Mineur 2": { en: "Minor 2", es: "Menor 2", de: "Nebenphase 2", pt: "Menor 2" },
+  "Neige": { en: "Snow", es: "Nieve", de: "Schnee", pt: "Neve" },
+  "Pluie": { en: "Rain", es: "Lluvia", de: "Regen", pt: "Chuva" },
+  "Nuageux": { en: "Cloudy", es: "Nublado", de: "Bewölkt", pt: "Nublado" },
+  "Ensoleillé": { en: "Sunny", es: "Soleado", de: "Sonnig", pt: "Solarengo" },
+  "Courant surface": { en: "Surface current", es: "Corriente superficial", de: "Oberflächenströmung", pt: "Corrente de superfície" },
+  "Courant profondeur": { en: "Depth current", es: "Corriente profunda", de: "Tiefenströmung", pt: "Corrente em profundidade" },
+  "Houle totale": { en: "Total wave", es: "Oleaje total", de: "Gesamtwelle", pt: "Ondulação total" },
+  "Houle de fond": { en: "Swell", es: "Mar de fondo", de: "Dünung", pt: "Ondulação de fundo" },
+  "Houle fond": { en: "Swell", es: "Mar de fondo", de: "Dünung", pt: "Ondulação de fundo" },
+  "Vent moyen": { en: "Average wind", es: "Viento medio", de: "Mittlerer Wind", pt: "Vento médio" },
+  "Rafales": { en: "Gusts", es: "Rachas", de: "Böen", pt: "Rajadas" },
+  "Pression": { en: "Pressure", es: "Presión", de: "Druck", pt: "Pressão" },
+  "Marine seule": { en: "Marine only", es: "Solo marina", de: "Nur Marine", pt: "Só marinha" },
+  "Météo seule": { en: "Weather only", es: "Solo meteorología", de: "Nur Wetter", pt: "Só meteorologia" },
+  "Partiel": { en: "Partial", es: "Parcial", de: "Teilweise", pt: "Parcial" },
+  "Copernicus": { en: "Copernicus", es: "Copernicus", de: "Copernicus", pt: "Copernicus" },
+  "Copernicus indispo": { en: "Copernicus unavailable", es: "Copernicus no disponible", de: "Copernicus nicht verfügbar", pt: "Copernicus indisponível" },
+  "À jour": { en: "Up to date", es: "Actualizado", de: "Aktuell", pt: "Atualizado" },
+  "Données indisponibles": { en: "Data unavailable", es: "Datos no disponibles", de: "Daten nicht verfügbar", pt: "Dados indisponíveis" },
+  "Prévisions marines": { en: "Marine forecasts", es: "Previsiones marinas", de: "Meeresvorhersagen", pt: "Previsões marinhas" },
+  "Prévisions eau douce": { en: "Freshwater forecasts", es: "Previsiones de agua dulce", de: "Süßwasser-Vorhersagen", pt: "Previsões de água doce" },
+  "Cible": { en: "Target", es: "Objetivo", de: "Ziel", pt: "Alvo" },
+  "Mode sombre": { en: "Dark mode", es: "Modo oscuro", de: "Dunkelmodus", pt: "Modo escuro" },
+  "Mode clair": { en: "Light mode", es: "Modo claro", de: "Hellmodus", pt: "Modo claro" },
+  "Forces heure par heure": { en: "Hourly forces", es: "Fuerzas hora a hora", de: "Stündliche Kräfte", pt: "Forças hora a hora" },
+  "Forces indisponibles": { en: "Forces unavailable", es: "Fuerzas no disponibles", de: "Kräfte nicht verfügbar", pt: "Forças indisponíveis" },
+  "Atmosphère indisponible": { en: "Atmosphere unavailable", es: "Atmósfera no disponible", de: "Atmosphäre nicht verfügbar", pt: "Atmosfera indisponível" },
+  "Fond": { en: "Bottom", es: "Fondo", de: "Grund", pt: "Fundo" },
+  "Profondeur Copernicus indisponible": { en: "Copernicus depth unavailable", es: "Profundidad Copernicus no disponible", de: "Copernicus-Tiefe nicht verfügbar", pt: "Profundidade Copernicus indisponível" },
+  "Connexion absente. Les écrans déjà consultés restent disponibles hors ligne.": { en: "No connection. Previously viewed screens remain available offline.", es: "Sin conexión. Las pantallas ya consultadas siguen disponibles sin conexión.", de: "Keine Verbindung. Bereits geladene Ansichten bleiben offline verfügbar.", pt: "Sem ligação. Os ecrãs já consultados continuam disponíveis offline." },
+  "Chargement météo, mer et données Copernicus pour le spot actif.": { en: "Loading weather, sea and Copernicus data for the active spot.", es: "Cargando meteorología, mar y datos Copernicus para el spot activo.", de: "Wetter-, Meeres- und Copernicus-Daten für den aktiven Spot werden geladen.", pt: "A carregar meteorologia, mar e dados Copernicus para o spot ativo." },
+  "Impossible de charger les conditions du spot. Vérifie la connexion ou les coordonnées.": { en: "Unable to load spot conditions. Check the connection or coordinates.", es: "No se pueden cargar las condiciones del spot. Comprueba la conexión o las coordenadas.", de: "Spotbedingungen konnten nicht geladen werden. Verbindung oder Koordinaten prüfen.", pt: "Não foi possível carregar as condições do spot. Verifica a ligação ou as coordenadas." },
+  "Copernicus indisponible pour le courant en profondeur. Les prévisions météo et marine restent affichées.": { en: "Copernicus is unavailable for depth current. Weather and marine forecasts remain displayed.", es: "Copernicus no está disponible para la corriente en profundidad. Las previsiones meteorológicas y marinas siguen visibles.", de: "Copernicus ist für Tiefenströmung nicht verfügbar. Wetter- und Meeresvorhersagen bleiben sichtbar.", pt: "Copernicus está indisponível para a corrente em profundidade. As previsões meteorológicas e marinhas continuam visíveis." },
+  "Données partielles: certaines sources sont indisponibles pour ce spot.": { en: "Partial data: some sources are unavailable for this spot.", es: "Datos parciales: algunas fuentes no están disponibles para este spot.", de: "Teilweise Daten: Einige Quellen sind für diesen Spot nicht verfügbar.", pt: "Dados parciais: algumas fontes estão indisponíveis para este spot." },
+  "Données Copernicus actives pour les courants en profondeur.": { en: "Copernicus data active for depth currents.", es: "Datos Copernicus activos para corrientes en profundidad.", de: "Copernicus-Daten für Tiefenströmungen aktiv.", pt: "Dados Copernicus ativos para correntes em profundidade." },
+  "Données synchronisées pour le spot actif.": { en: "Data synced for the active spot.", es: "Datos sincronizados para el spot activo.", de: "Daten für den aktiven Spot synchronisiert.", pt: "Dados sincronizados para o spot ativo." },
+  "État des données": { en: "Data status", es: "Estado de datos", de: "Datenstatus", pt: "Estado dos dados" },
+  "hauteur relative au niveau moyen": { en: "relative height to mean level", es: "altura relativa al nivel medio", de: "relative Höhe zum Mittelstand", pt: "altura relativa ao nível médio" },
+  "trajectoires estimées": { en: "estimated paths", es: "trayectorias estimadas", de: "geschätzte Verläufe", pt: "trajetórias estimadas" },
+  "Moyenne": { en: "Medium", es: "Media", de: "Mittel", pt: "Média" },
+  "estimation": { en: "estimate", es: "estimación", de: "Schätzung", pt: "estimativa" },
+  "Eau OK": { en: "Water OK", es: "Agua OK", de: "Wasser OK", pt: "Água OK" },
+  "Température OK": { en: "Temperature OK", es: "Temperatura OK", de: "Temperatur OK", pt: "Temperatura OK" },
+  "Hors zone sensible connue autour de ce spot.": { en: "Outside known sensitive areas around this spot.", es: "Fuera de zonas sensibles conocidas alrededor de este spot.", de: "Außerhalb bekannter sensibler Zonen um diesen Spot.", pt: "Fora de zonas sensíveis conhecidas à volta deste spot." },
+  "Zones marines masquées en eau douce.": { en: "Marine areas hidden in freshwater mode.", es: "Zonas marinas ocultas en agua dulce.", de: "Meereszonen im Süßwasser-Modus ausgeblendet.", pt: "Zonas marinhas ocultas em água doce." },
+  "Zone proche": { en: "Nearby area", es: "Zona cercana", de: "Nahe Zone", pt: "Zona próxima" },
+  "de": { en: "from", es: "de", de: "von", pt: "de" },
+  "Vérifier avant pêche.": { en: "Check before fishing.", es: "Comprobar antes de pescar.", de: "Vor dem Angeln prüfen.", pt: "Verificar antes de pescar." },
+  "Nouvelle lune": { en: "New moon", es: "Luna nueva", de: "Neumond", pt: "Lua nova" },
+  "Premier croissant": { en: "Waxing crescent", es: "Luna creciente", de: "Zunehmende Sichel", pt: "Crescente inicial" },
+  "Premier quartier": { en: "First quarter", es: "Cuarto creciente", de: "Erstes Viertel", pt: "Quarto crescente" },
+  "Lune gibbeuse croissante": { en: "Waxing gibbous moon", es: "Luna gibosa creciente", de: "Zunehmender Mond", pt: "Lua gibosa crescente" },
+  "Pleine lune": { en: "Full moon", es: "Luna llena", de: "Vollmond", pt: "Lua cheia" },
+  "Lune gibbeuse décroissante": { en: "Waning gibbous moon", es: "Luna gibosa menguante", de: "Abnehmender Mond", pt: "Lua gibosa minguante" },
+  "Dernier quartier": { en: "Last quarter", es: "Cuarto menguante", de: "Letztes Viertel", pt: "Quarto minguante" },
+  "Dernier croissant": { en: "Waning crescent", es: "Luna menguante", de: "Abnehmende Sichel", pt: "Crescente final" },
+  "nouvelle": { en: "new", es: "nueva", de: "neu", pt: "nova" },
+  "croissante": { en: "waxing", es: "creciente", de: "zunehmend", pt: "crescente" },
+  "1er quartier": { en: "first quarter", es: "cuarto creciente", de: "erstes Viertel", pt: "quarto crescente" },
+  "gibbeuse +": { en: "waxing gibbous", es: "gibosa creciente", de: "zunehmend gewölbt", pt: "gibosa crescente" },
+  "pleine": { en: "full", es: "llena", de: "voll", pt: "cheia" },
+  "gibbeuse -": { en: "waning gibbous", es: "gibosa menguante", de: "abnehmend gewölbt", pt: "gibosa minguante" },
+  "dernier quartier": { en: "last quarter", es: "cuarto menguante", de: "letztes Viertel", pt: "quarto minguante" },
+  "décroissante": { en: "waning", es: "menguante", de: "abnehmend", pt: "minguante" },
+};
+const I18N_PREFIXES = [
+  { fr: "Air", en: "Air", es: "Aire", de: "Luft", pt: "Ar" },
+  { fr: "Eau", en: "Water", es: "Agua", de: "Wasser", pt: "Água" },
+  { fr: "Vent", en: "Wind", es: "Viento", de: "Wind", pt: "Vento" },
+  { fr: "Rafales", en: "Gusts", es: "Rachas", de: "Böen", pt: "Rajadas" },
+  { fr: "Houle", en: "Wave", es: "Oleaje", de: "Welle", pt: "Ondulação" },
+  { fr: "Courant", en: "Current", es: "Corriente", de: "Strömung", pt: "Corrente" },
+  { fr: "Pression", en: "Pressure", es: "Presión", de: "Druck", pt: "Pressão" },
+  { fr: "Pluie", en: "Rain", es: "Lluvia", de: "Regen", pt: "Chuva" },
+  { fr: "Nuages", en: "Clouds", es: "Nubes", de: "Wolken", pt: "Nuvens" },
+  { fr: "Créneau", en: "Window", es: "Franja", de: "Zeitfenster", pt: "Janela" },
+  { fr: "Cible", en: "Target", es: "Objetivo", de: "Ziel", pt: "Alvo" },
+  { fr: "Mode sombre", en: "Dark mode", es: "Modo oscuro", de: "Dunkelmodus", pt: "Modo escuro" },
+  { fr: "Mode clair", en: "Light mode", es: "Modo claro", de: "Hellmodus", pt: "Modo claro" },
+  { fr: "Fourchette", en: "Range", es: "Rango", de: "Bereich", pt: "Intervalo" },
+  { fr: "Copernicus indisponible", en: "Copernicus unavailable", es: "Copernicus no disponible", de: "Copernicus nicht verfügbar", pt: "Copernicus indisponível" },
+  { fr: "Météo défavorable", en: "Bad weather", es: "Tiempo desfavorable", de: "Ungünstiges Wetter", pt: "Meteorologia desfavorável" },
+  { fr: "Sortie possible avec prudence", en: "Possible outing with caution", es: "Salida posible con prudencia", de: "Ausfahrt mit Vorsicht möglich", pt: "Saída possível com prudência" },
+];
+const I18N_MESSAGES = {
+  seaRough: {
+    fr: "À {hour}, mer ou rafales à surveiller. Garde une zone abritée et vérifie l'exposition du spot.",
+    en: "At {hour}, sea state or gusts need watching. Keep to a sheltered area and check the spot exposure.",
+    es: "A las {hour}, vigila el mar o las rachas. Quédate en una zona protegida y comprueba la exposición del spot.",
+    de: "Um {hour} Uhr sind Seegang oder Böen im Blick zu behalten. Bleib in einem geschützten Bereich und prüfe die Spot-Exposition.",
+    pt: "Às {hour}, mar ou rajadas exigem atenção. Fica numa zona abrigada e verifica a exposição do spot.",
+  },
+  seaClean: {
+    fr: "À {hour}, vent, houle et courant restent dans une fenêtre exploitable.",
+    en: "At {hour}, wind, wave and current stay inside a usable window.",
+    es: "A las {hour}, viento, oleaje y corriente se mantienen en una ventana aprovechable.",
+    de: "Um {hour} Uhr bleiben Wind, Welle und Strömung in einem nutzbaren Fenster.",
+    pt: "Às {hour}, vento, ondulação e corrente ficam numa janela aproveitável.",
+  },
+  seaWarn: {
+    fr: "À {hour}, la sortie reste possible mais dépend de l'abri, de la dérive et de la tenue au fond.",
+    en: "At {hour}, the outing is still possible but depends on shelter, drift and bottom hold.",
+    es: "A las {hour}, la salida sigue siendo posible, pero depende del abrigo, la deriva y el agarre al fondo.",
+    de: "Um {hour} Uhr ist die Ausfahrt möglich, hängt aber von Schutz, Drift und Grundhalt ab.",
+    pt: "Às {hour}, a saída continua possível, mas depende do abrigo, da deriva e da fixação no fundo.",
+  },
+  seaFair: {
+    fr: "À {hour}, les signaux sont exploitables sans marge énorme. Vérifie le courant et la houle sur place.",
+    en: "At {hour}, signals are usable without much margin. Check current and wave on site.",
+    es: "A las {hour}, las señales son aprovechables sin mucho margen. Comprueba corriente y oleaje en el lugar.",
+    de: "Um {hour} Uhr sind die Signale nutzbar, aber ohne große Reserve. Prüfe Strömung und Welle vor Ort.",
+    pt: "Às {hour}, os sinais são aproveitáveis sem grande margem. Confirma corrente e ondulação no local.",
+  },
+  freshRain: {
+    fr: "À {hour}, pluie ou turbidité élevée: privilégie zones calmes, arrivées d'eau et bordures abritées.",
+    en: "At {hour}, rain or high turbidity: favor quiet zones, inflows and sheltered edges.",
+    es: "A las {hour}, lluvia o turbidez alta: prioriza zonas tranquilas, entradas de agua y orillas protegidas.",
+    de: "Um {hour} Uhr bei Regen oder hoher Trübung: ruhige Zonen, Zuläufe und geschützte Kanten bevorzugen.",
+    pt: "Às {hour}, chuva ou turbidez elevada: privilegia zonas calmas, entradas de água e margens abrigadas.",
+  },
+  freshGood: {
+    fr: "À {hour}, météo et pression restent cohérentes pour tenter les postes marqués.",
+    en: "At {hour}, weather and pressure stay consistent enough to try marked spots.",
+    es: "A las {hour}, tiempo y presión siguen coherentes para probar puestos marcados.",
+    de: "Um {hour} Uhr bleiben Wetter und Druck stimmig genug für markante Stellen.",
+    pt: "Às {hour}, meteorologia e pressão continuam coerentes para tentar postos marcados.",
+  },
+  freshStable: {
+    fr: "À {hour}, sortie possible sans signal fort. Cherche les changements de profondeur et les zones d'ombre.",
+    en: "At {hour}, the outing is possible without a strong signal. Look for depth changes and shaded zones.",
+    es: "A las {hour}, salida posible sin señal fuerte. Busca cambios de profundidad y zonas de sombra.",
+    de: "Um {hour} Uhr ist Angeln möglich, aber ohne starkes Signal. Suche Tiefenwechsel und Schattenzonen.",
+    pt: "Às {hour}, saída possível sem sinal forte. Procura mudanças de profundidade e zonas de sombra.",
+  },
+};
 const waterModeConfig = {
   [WATER_MODES.SEA]: {
     label: "Mer",
@@ -1416,6 +1814,7 @@ const state = {
   fishFilterOpen: false,
   activityFish: "loup",
   theme: "light",
+  language: defaultLanguage(),
   profile: { ...DEFAULT_PROFILE },
   forecastExpanded: false,
   riggingDirty: false,
@@ -1466,6 +1865,7 @@ const els = {
   depthOutput: document.querySelector("#depthOutput"),
   dayTabs: document.querySelector("#dayTabs"),
   preferencePanel: document.querySelector(".preferences-panel"),
+  languageSelect: document.querySelector("#languageSelect"),
   themeButtons: [...document.querySelectorAll("[data-theme-value]")],
   profileButtons: [...document.querySelectorAll("[data-profile-control] [data-profile-value]")],
   preferenceSpecies: document.querySelector("#preferenceSpecies"),
@@ -1629,9 +2029,172 @@ function themeColor(name) {
   return cssVariable(`--chart-${name}`, colors[name] ?? name);
 }
 
+let i18nReverseMap = null;
+let i18nObserver = null;
+let i18nApplying = false;
+let i18nScheduled = false;
+
+function defaultLanguage() {
+  const browserLanguage = String(navigator.languages?.[0] || navigator.language || "fr").toLowerCase().split("-")[0];
+  return LANGUAGE_MODES.includes(browserLanguage) ? browserLanguage : "fr";
+}
+
+function normalizeLanguage(language) {
+  const value = String(language ?? "").toLowerCase().split("-")[0];
+  return LANGUAGE_MODES.includes(value) ? value : defaultLanguage();
+}
+
+function currentLanguage() {
+  return normalizeLanguage(state.language);
+}
+
+function currentLocale() {
+  return LANGUAGE_OPTIONS[currentLanguage()]?.locale ?? "fr-FR";
+}
+
+function buildI18nReverseMap() {
+  if (i18nReverseMap) return i18nReverseMap;
+  i18nReverseMap = new Map();
+  Object.entries(I18N_TRANSLATIONS).forEach(([source, translations]) => {
+    i18nReverseMap.set(source, source);
+    Object.values(translations).forEach((translation) => {
+      if (translation) i18nReverseMap.set(translation, source);
+    });
+  });
+  return i18nReverseMap;
+}
+
+function i18nSourceForText(text) {
+  return buildI18nReverseMap().get(String(text ?? ""));
+}
+
+function t(source) {
+  const text = String(source ?? "");
+  const normalized = i18nSourceForText(text) ?? text;
+  if (currentLanguage() === "fr") return normalized;
+  return I18N_TRANSLATIONS[normalized]?.[currentLanguage()] ?? normalized;
+}
+
+function i18nMessage(key, values = {}) {
+  const messages = I18N_MESSAGES[key] ?? {};
+  const template = messages[currentLanguage()] ?? messages.fr ?? "";
+  return template.replace(/\{(\w+)\}/g, (_, name) => values[name] ?? "");
+}
+
+function prefixMatchForText(text) {
+  for (const prefix of I18N_PREFIXES) {
+    for (const language of LANGUAGE_MODES) {
+      const translatedPrefix = prefix[language] ?? prefix.fr;
+      if (text === translatedPrefix) {
+        return { prefix, rest: "" };
+      }
+      if (text.startsWith(`${translatedPrefix} `)) {
+        return { prefix, rest: text.slice(translatedPrefix.length) };
+      }
+      if (text.startsWith(`${translatedPrefix}:`)) {
+        return { prefix, rest: text.slice(translatedPrefix.length) };
+      }
+    }
+  }
+  return null;
+}
+
+function translateCoreText(text) {
+  const source = i18nSourceForText(text);
+  if (source) return t(source);
+
+  if (text.includes(" · ")) {
+    return text.split(" · ").map(translateCoreText).join(" · ");
+  }
+
+  const prefixMatch = prefixMatchForText(text);
+  if (prefixMatch) {
+    return `${prefixMatch.prefix[currentLanguage()] ?? prefixMatch.prefix.fr}${prefixMatch.rest}`;
+  }
+
+  return text;
+}
+
+function translateText(text) {
+  const value = String(text ?? "");
+  const start = value.match(/^\s*/)?.[0] ?? "";
+  const end = value.match(/\s*$/)?.[0] ?? "";
+  const core = value.trim();
+  if (!core) return value;
+  return `${start}${translateCoreText(core)}${end}`;
+}
+
+function shouldTranslateElement(element) {
+  if (!element) return false;
+  return !["SCRIPT", "STYLE", "TEXTAREA", "CANVAS"].includes(element.nodeName);
+}
+
+function translateAttributes(element) {
+  if (!shouldTranslateElement(element)) return;
+  ["aria-label", "placeholder", "title", "alt"].forEach((attribute) => {
+    if (!element.hasAttribute(attribute)) return;
+    const value = element.getAttribute(attribute);
+    const translated = translateText(value);
+    if (translated !== value) element.setAttribute(attribute, translated);
+  });
+}
+
+function applyTranslations(root = document.body) {
+  if (!root) return;
+  i18nApplying = true;
+  try {
+    document.documentElement.lang = currentLanguage();
+    const rootElement = root.nodeType === Node.ELEMENT_NODE ? root : root.parentElement;
+    translateAttributes(rootElement);
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, {
+      acceptNode(node) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          return shouldTranslateElement(node.parentElement) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+        }
+        return shouldTranslateElement(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      },
+    });
+
+    let node = walker.currentNode;
+    while (node) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const translated = translateText(node.nodeValue);
+        if (translated !== node.nodeValue) node.nodeValue = translated;
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        translateAttributes(node);
+      }
+      node = walker.nextNode();
+    }
+  } finally {
+    i18nApplying = false;
+  }
+}
+
+function scheduleApplyTranslations() {
+  if (i18nApplying || i18nScheduled) return;
+  i18nScheduled = true;
+  window.requestAnimationFrame(() => {
+    i18nScheduled = false;
+    applyTranslations(document.body);
+  });
+}
+
+function setupI18nObserver() {
+  if (i18nObserver || !document.body) return;
+  i18nObserver = new MutationObserver(scheduleApplyTranslations);
+  i18nObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ["aria-label", "placeholder", "title", "alt"],
+  });
+}
+
 function init() {
   populateSpots();
   restoreState();
+  setupI18nObserver();
   applyTheme();
   initNativeAppShell();
   state.favorites = readFavorites();
@@ -1649,6 +2212,7 @@ function init() {
   renderPreferenceControls();
   renderNativeStatus();
   renderCatchPhotoPreview();
+  applyTranslations(document.body);
   maybeShowOnboarding();
   loadForecast();
   scheduleHideAppSplash(650);
@@ -1800,7 +2364,7 @@ function getAllFishFilters() {
 }
 
 function getFishLabel(id) {
-  return getAllFishFilters().find((filter) => filter.id === id)?.label ?? id;
+  return t(getAllFishFilters().find((filter) => filter.id === id)?.label ?? id);
 }
 
 function populateActivityFish() {
@@ -1812,7 +2376,7 @@ function populateActivityFish() {
     .forEach((filter) => {
       const option = document.createElement("option");
       option.value = filter.id;
-      option.textContent = filter.label;
+      option.textContent = t(filter.label);
       els.activityFish.append(option);
     });
 
@@ -1830,7 +2394,7 @@ function populateCatchSpecies() {
     .forEach((filter) => {
       const option = document.createElement("option");
       option.value = filter.id;
-      option.textContent = filter.label;
+      option.textContent = t(filter.label);
       els.catchSpecies.append(option);
     });
 
@@ -1847,7 +2411,7 @@ function populatePreferenceSpecies() {
     .forEach((filter) => {
       const option = document.createElement("option");
       option.value = filter.id;
-      option.textContent = filter.label;
+      option.textContent = t(filter.label);
       els.preferenceSpecies.append(option);
     });
 
@@ -1863,7 +2427,7 @@ function populateRiggingTechniques() {
   profiles.forEach((profile) => {
     const option = document.createElement("option");
     option.value = profile.id;
-    option.textContent = profile.label;
+    option.textContent = t(profile.label);
     els.riggingTechnique.append(option);
   });
   els.riggingTechnique.value = profiles.some((profile) => profile.id === previous)
@@ -1895,6 +2459,8 @@ function restoreState() {
   state.activeFishFilters = normalizeFishFilters(saved.fishFilters);
   state.activityFish = normalizeActivityFish(saved.activityFish);
   state.theme = normalizeTheme(saved.theme);
+  state.language = normalizeLanguage(saved.language);
+  document.documentElement.lang = state.language;
   state.profile = normalizeProfile(saved.profile);
   state.onboardingCompleted = Boolean(saved.onboardingCompleted);
   state.privacyAccepted = Boolean(saved.privacyAccepted);
@@ -2209,13 +2775,13 @@ function permissionLabel(value) {
 }
 
 function renderNativeStatus() {
-  const gpsLabel = permissionLabel(state.native.gpsPermission);
+  const gpsLabel = t(permissionLabel(state.native.gpsPermission));
   const notificationLabel = state.notificationsEnabled
-    ? "Actives"
-    : permissionLabel(state.native.notificationPermission);
-  const offlineLabel = state.native.offlineReady ? "Écran principal disponible hors ligne" : "Cache en préparation";
-  const privacyLabel = state.privacyAccepted ? "Validée" : "À valider";
-  const onlineLabel = state.native.online ? "En ligne" : "Offline";
+    ? t("Actives")
+    : t(permissionLabel(state.native.notificationPermission));
+  const offlineLabel = state.native.offlineReady ? t("Écran principal disponible hors ligne") : t("Cache en préparation");
+  const privacyLabel = state.privacyAccepted ? t("Validée") : t("À valider");
+  const onlineLabel = state.native.online ? t("En ligne") : t("Offline");
 
   setText(els.nativeGpsStatus, gpsLabel);
   setText(els.onboardingGpsStatus, gpsLabel);
@@ -2231,11 +2797,11 @@ function renderNativeStatus() {
     badge.classList.toggle("is-offline", !state.native.online);
   });
 
-  togglePermissionButton(els.nativeGpsButton, state.native.gpsPermission === "granted", "Autorisé", "Autoriser");
-  togglePermissionButton(els.onboardingGpsButton, state.native.gpsPermission === "granted", "Autorisé", "Autoriser");
-  togglePermissionButton(els.nativeNotificationButton, state.notificationsEnabled, "Actives", "Activer");
-  togglePermissionButton(els.onboardingNotificationButton, state.notificationsEnabled, "Actives", "Activer");
-  togglePermissionButton(els.nativePrivacyButton, state.privacyAccepted, "Validée", "Valider");
+  togglePermissionButton(els.nativeGpsButton, state.native.gpsPermission === "granted", t("Autorisé"), t("Autoriser"));
+  togglePermissionButton(els.onboardingGpsButton, state.native.gpsPermission === "granted", t("Autorisé"), t("Autoriser"));
+  togglePermissionButton(els.nativeNotificationButton, state.notificationsEnabled, t("Actives"), t("Activer"));
+  togglePermissionButton(els.onboardingNotificationButton, state.notificationsEnabled, t("Actives"), t("Activer"));
+  togglePermissionButton(els.nativePrivacyButton, state.privacyAccepted, t("Validée"), t("Valider"));
 }
 
 function togglePermissionButton(button, done, doneLabel, todoLabel) {
@@ -2287,7 +2853,7 @@ function applyWaterModeUI() {
   });
 
   if (els.mapTitle) {
-    els.mapTitle.textContent = config.mapTitle;
+    els.mapTitle.textContent = t(config.mapTitle);
   }
 
   if (els.marineOverlayControl) {
@@ -2604,7 +3170,7 @@ function updateSpotPanel() {
 
   if (els.spotPanelButton) {
     els.spotPanelButton.setAttribute("aria-expanded", String(state.spotPanelOpen));
-    els.spotPanelButton.textContent = state.spotPanelOpen ? "Masquer" : "Modifier";
+    els.spotPanelButton.textContent = state.spotPanelOpen ? t("Masquer") : t("Modifier");
   }
 
   if (els.spotForm) {
@@ -3065,19 +3631,19 @@ function renderSafetyStatus() {
   const active = getActiveSpot();
   const regulationStatus = isSeaMode() ? evaluateRegulationStatus(active.lat, active.lon) : null;
   const anchorText = anchorWatchSummary();
-  let title = "Sécurité";
+  let title = t("Sécurité");
   let detail = isSeaMode()
-    ? "Hors zone sensible connue autour de ce spot."
-    : "Zones marines masquées en eau douce.";
+    ? t("Hors zone sensible connue autour de ce spot.")
+    : t("Zones marines masquées en eau douce.");
   let mode = "ready";
 
   if (regulationStatus?.inside) {
-    title = "Zone sensible";
+    title = t("Zone sensible");
     detail = `${regulationStatus.zone.name}. ${regulationStatus.zone.rule}`;
     mode = regulationStatus.zone.level === "danger" ? "alert" : "warn";
   } else if (regulationStatus?.near) {
-    title = "Zone proche";
-    detail = `${formatScaleDistance(regulationStatus.distance)} de ${regulationStatus.zone.name}. Vérifier avant pêche.`;
+    title = t("Zone proche");
+    detail = `${formatScaleDistance(regulationStatus.distance)} ${t("de")} ${regulationStatus.zone.name}. ${t("Vérifier avant pêche.")}`;
     mode = "warn";
   }
 
@@ -3665,7 +4231,7 @@ function renderFishFilterControls() {
 
   const filters = getFishFilters();
   const active = getActiveFishFilter();
-  const activeLabel = filters.find((filter) => filter.id === active)?.label ?? "Tous";
+  const activeLabel = t(filters.find((filter) => filter.id === active)?.label ?? "Tous");
   els.fishFilterLabel.textContent = activeLabel;
   els.fishFilterButton.classList.toggle("is-open", state.fishFilterOpen);
   els.fishFilterButton.setAttribute("aria-expanded", String(state.fishFilterOpen));
@@ -3681,7 +4247,7 @@ function renderFishFilterControls() {
     button.setAttribute("aria-pressed", String(active === filter.id));
     button.innerHTML = `
       <span class="fish-filter-icon">${fishSpotIcon(filter.id)}</span>
-      <strong>${escapeHtml(filter.label)}</strong>
+      <strong>${escapeHtml(t(filter.label))}</strong>
       <span>${filter.id === "all" ? "Tous les coins" : `${countKnownFishingSpotsForFilter(filter.id)} coins`}</span>
     `;
     button.addEventListener("click", (event) => {
@@ -4592,6 +5158,9 @@ function bindEvents() {
     renderNativeStatus();
   });
   els.nativeOnboardingButton?.addEventListener("click", () => showOnboarding({ force: true }));
+  els.languageSelect?.addEventListener("change", () => {
+    setLanguagePreference(els.languageSelect.value);
+  });
 
   els.spotPanelButton.addEventListener("click", () => setSpotPanelOpen(!state.spotPanelOpen));
   els.spotPanelClose.addEventListener("click", () => setSpotPanelOpen(false));
@@ -5459,6 +6028,7 @@ function renderAll() {
   renderAstro(selected);
   renderCatchJournal();
   renderMarineOverlay();
+  applyTranslations(document.body);
 }
 
 function updateSpotMeta() {
@@ -5466,7 +6036,7 @@ function updateSpotMeta() {
   const lon = Number(els.longitude.value);
   const name = getActiveSpot().name;
   const coords = formatCoordinates(lat, lon);
-  els.spotMeta.textContent = `${waterModeConfig[state.waterMode].metaPrefix} · ${name} · ${coords}`;
+  els.spotMeta.textContent = `${t(waterModeConfig[state.waterMode].metaPrefix)} · ${name} · ${coords}`;
   if (els.spotSummaryName) els.spotSummaryName.textContent = name;
   if (els.spotSummaryCoords) els.spotSummaryCoords.textContent = coords;
 }
@@ -5490,6 +6060,10 @@ function renderPreferenceControls(day = getSelectedDay()) {
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-pressed", String(active));
   });
+
+  if (els.languageSelect) {
+    els.languageSelect.value = currentLanguage();
+  }
 
   if (els.preferenceSpecies) {
     if (!els.preferenceSpecies.options.length) populatePreferenceSpecies();
@@ -5518,11 +6092,11 @@ function renderPreferenceControls(day = getSelectedDay()) {
 
 function preferenceSummaryChips(day, profile, species) {
   return [
-    waterModeConfig[state.waterMode]?.label,
-    `Cible ${getFishLabel(species)}`,
+    t(waterModeConfig[state.waterMode]?.label),
+    `${t("Cible")} ${getFishLabel(species)}`,
     profileOptionLabel("approach", profile.approach),
     profileOptionLabel("experience", profile.experience),
-    state.theme === "dark" ? "Mode sombre" : "Mode clair",
+    state.theme === "dark" ? t("Mode sombre") : t("Mode clair"),
     isSeaMode() ? `${state.depth} m` : null,
     preferenceFocusChip(day, profile.priority),
   ].filter(Boolean);
@@ -5530,18 +6104,36 @@ function preferenceSummaryChips(day, profile, species) {
 
 function preferenceFocusChip(day, priority) {
   if (priority === "weather") {
-    return day ? `Vent ${formatNumber(day.windAvg, 0)} kt` : profileOptionLabel("priority", priority);
+    return day ? `${t("Vent")} ${formatNumber(day.windAvg, 0)} kt` : profileOptionLabel("priority", priority);
   }
 
   if (priority === "spots") {
     return `${countKnownFishingSpotsForFilter(state.activityFish)} coins`;
   }
 
-  return day?.bestWindow?.label ? `Créneau ${day.bestWindow.label}` : profileOptionLabel("priority", priority);
+  return day?.bestWindow?.label ? `${t("Créneau")} ${day.bestWindow.label}` : profileOptionLabel("priority", priority);
 }
 
 function profileOptionLabel(control, value) {
-  return profileOptions[control]?.find((option) => option.id === value)?.label ?? value;
+  return t(profileOptions[control]?.find((option) => option.id === value)?.label ?? value);
+}
+
+function setLanguagePreference(language) {
+  const nextLanguage = normalizeLanguage(language);
+  if (state.language === nextLanguage) return;
+  state.language = nextLanguage;
+  document.documentElement.lang = nextLanguage;
+  if (els.languageSelect) els.languageSelect.value = nextLanguage;
+  saveSettings();
+  populateActivityFish();
+  populateCatchSpecies();
+  populatePreferenceSpecies();
+  populateRiggingTechniques();
+  applyWaterModeUI();
+  applyMobileNavigationUI();
+  renderAll();
+  renderNativeStatus();
+  applyTranslations(document.body);
 }
 
 function setProfilePreference(control, value) {
@@ -5710,9 +6302,9 @@ function renderActivity(day) {
   els.activityScore.textContent = String(averageScore);
   els.activityRing.style.setProperty("--activity-score", averageScore);
   els.activityLabel.textContent = activityLabel(averageScore);
-  els.activityContext.textContent = `${fishActivityProfiles[fish].label} · ${formatHourCompact(selectedTimelineMinute())} · ${activityLabel(timelineScore).toLowerCase()}`;
-  els.activityMajor.textContent = `${windows.major.map((window) => window.label).join(" · ")} · estimation`;
-  els.activityMinor.textContent = `${windows.minor.map((window) => window.label).join(" · ")} · estimation`;
+  els.activityContext.textContent = `${t(fishActivityProfiles[fish].label)} · ${formatHourCompact(selectedTimelineMinute())} · ${activityLabel(timelineScore).toLowerCase()}`;
+  els.activityMajor.textContent = `${windows.major.map((window) => window.label).join(" · ")} · ${t("estimation")}`;
+  els.activityMinor.textContent = `${windows.minor.map((window) => window.label).join(" · ")} · ${t("estimation")}`;
   renderActivityReasons(highlightedRow ?? rows[0], fish);
   drawActivityChart(day, rows, highlighted);
 }
@@ -5722,7 +6314,7 @@ function renderActivityReasons(row, fish) {
   activityReasons(row, fish).forEach((reason) => {
     const item = document.createElement("span");
     item.className = `activity-reason ${reason.type ?? ""}`.trim();
-    item.textContent = reason.label;
+    item.textContent = t(reason.label);
     els.activityReasons.append(item);
   });
 }
@@ -5806,7 +6398,9 @@ function activityReasons(row, fish) {
   }
 
   if (parts.weather <= 42) reasons.push({ label: "Vent/météo pénalisants", type: "bad" });
-  if (parts.temperature >= 72) reasons.push({ label: isSeaMode() ? `Eau OK ${profile.label}` : `Température OK ${profile.label}` });
+  if (parts.temperature >= 72) {
+    reasons.push({ label: `${t(isSeaMode() ? "Eau OK" : "Température OK")} ${t(profile.label)}` });
+  }
 
   return reasons.slice(0, 4);
 }
@@ -5849,9 +6443,9 @@ function drawActivityChart(day, rows, highlightedIndex) {
   ctx.fill();
 
   const zones = [
-    { label: "Haute", value: 75 },
-    { label: "Moyenne", value: 50 },
-    { label: "Faible", value: 25 },
+    { label: t("Haute"), value: 75 },
+    { label: t("Moyenne"), value: 50 },
+    { label: t("Faible"), value: 25 },
   ];
 
   ctx.strokeStyle = theme.line;
@@ -5927,15 +6521,15 @@ function drawActivityChart(day, rows, highlightedIndex) {
   ctx.fillStyle = theme.ink;
   ctx.font = "800 12px Inter, system-ui, sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText(`${fishActivityProfiles[normalizeActivityFish(state.activityFish)].label} · ${day.shortLabel}`, padding.left, padding.top - 10);
+  ctx.fillText(`${t(fishActivityProfiles[normalizeActivityFish(state.activityFish)].label)} · ${formatShortDay(day.date)}`, padding.left, padding.top - 10);
 }
 
 function activityLabel(score) {
-  if (score >= 78) return "Très bonne activité";
-  if (score >= 62) return "Bonne activité";
-  if (score >= 42) return "Activité moyenne";
-  if (score >= 24) return "Faible activité";
-  return "Très faible activité";
+  if (score >= 78) return t("Très bonne activité");
+  if (score >= 62) return t("Bonne activité");
+  if (score >= 42) return t("Activité moyenne");
+  if (score >= 24) return t("Faible activité");
+  return t("Très faible activité");
 }
 
 function renderConditionBrief(day) {
@@ -6080,12 +6674,12 @@ function conditionToneFromValues(values) {
 }
 
 function conditionToneLabel(tone) {
-  return {
+  return t({
     good: "GO",
     maybe: "Maybe",
     warn: "À surveiller",
     bad: "NO GO",
-  }[tone] ?? "Maybe";
+  }[tone] ?? "Maybe");
 }
 
 function conditionToneCanvasFill(tone) {
@@ -6111,31 +6705,31 @@ function conditionDecision(day, sample = timelineSample(day), goNoGo = weatherGo
     if (roughSea) {
       return {
         tone: "bad",
-        title: "Sortie prudente",
-        detail: `À ${hour}, mer ou rafales à surveiller. Garde une zone abritée et vérifie l'exposition du spot.`,
+        title: t("Sortie prudente"),
+        detail: i18nMessage("seaRough", { hour }),
       };
     }
 
     if (cleanWindow) {
       return {
         tone: "good",
-        title: "Créneau intéressant",
-        detail: `À ${hour}, vent, houle et courant restent dans une fenêtre exploitable.`,
+        title: t("Créneau intéressant"),
+        detail: i18nMessage("seaClean", { hour }),
       };
     }
 
     if (goNoGo.tone === "warn") {
       return {
         tone: "warn",
-        title: "Conditions à affiner",
-        detail: `À ${hour}, la sortie reste possible mais dépend de l'abri, de la dérive et de la tenue au fond.`,
+        title: t("Conditions à affiner"),
+        detail: i18nMessage("seaWarn", { hour }),
       };
     }
 
     return {
       tone: "warn",
-      title: "Conditions correctes",
-      detail: `À ${hour}, les signaux sont exploitables sans marge énorme. Vérifie le courant et la houle sur place.`,
+      title: t("Conditions correctes"),
+      detail: i18nMessage("seaFair", { hour }),
     };
   }
 
@@ -6145,23 +6739,23 @@ function conditionDecision(day, sample = timelineSample(day), goNoGo = weatherGo
   if (heavyRain) {
     return {
       tone: "bad",
-      title: "Eau à surveiller",
-      detail: `À ${hour}, pluie ou turbidité élevée: privilégie zones calmes, arrivées d'eau et bordures abritées.`,
+      title: t("Eau à surveiller"),
+      detail: i18nMessage("freshRain", { hour }),
     };
   }
 
   if (goNoGo.tone === "good" || pressureDrop) {
     return {
       tone: "good",
-      title: "Fenêtre exploitable",
-      detail: `À ${hour}, météo et pression restent cohérentes pour tenter les postes marqués.`,
+      title: t("Fenêtre exploitable"),
+      detail: i18nMessage("freshGood", { hour }),
     };
   }
 
   return {
     tone: "warn",
-    title: "Conditions stables",
-    detail: `À ${hour}, sortie possible sans signal fort. Cherche les changements de profondeur et les zones d'ombre.`,
+    title: t("Conditions stables"),
+    detail: i18nMessage("freshStable", { hour }),
   };
 }
 
@@ -6532,7 +7126,7 @@ function renderTides(day) {
   if (!els.tideCanvas || !els.tideSummaryGrid) return;
 
   if (els.tideLocation) {
-    els.tideLocation.textContent = `${getActiveSpot().name} · ${day?.shortLabel ?? "--"}`;
+    els.tideLocation.textContent = `${getActiveSpot().name} · ${day ? formatShortDay(day.date) : "--"}`;
   }
 
   const rows = tideRows(day);
@@ -6782,14 +7376,14 @@ function drawTideChart(day, rows, extrema, focusRow) {
   ctx.fillStyle = theme.ink;
   ctx.font = "800 12px Inter, system-ui, sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText(`${day.shortLabel} · hauteur relative au niveau moyen`, padding.left, padding.top - 12);
+  ctx.fillText(`${formatShortDay(day.date)} · ${t("hauteur relative au niveau moyen")}`, padding.left, padding.top - 12);
 }
 
 function renderAstro(day) {
   if (!els.astroCanvas || !els.moonCard || !els.astroSummaryGrid || !els.solunarWindowGrid) return;
 
   if (els.astroLocation) {
-    els.astroLocation.textContent = `${getActiveSpot().name} · ${day?.shortLabel ?? "--"}`;
+    els.astroLocation.textContent = `${getActiveSpot().name} · ${day ? formatShortDay(day.date) : "--"}`;
   }
 
   if (!day) {
@@ -6954,7 +7548,7 @@ function drawAstroChart(day, astro) {
   ctx.font = "800 12px Inter, system-ui, sans-serif";
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
-  ctx.fillText(`${day.shortLabel} · trajectoires estimées`, padding.left, padding.top - 12);
+  ctx.fillText(`${formatShortDay(day.date)} · ${t("trajectoires estimées")}`, padding.left, padding.top - 12);
 }
 
 function drawVisibilityArc(ctx, options) {
@@ -7122,14 +7716,14 @@ function formatDurationMinutes(value) {
 
 function moonPhaseFullLabel(phase) {
   const value = ((phase % 1) + 1) % 1;
-  if (value < 0.04 || value >= 0.96) return "Nouvelle lune";
-  if (value < 0.22) return "Premier croissant";
-  if (value < 0.29) return "Premier quartier";
-  if (value < 0.46) return "Lune gibbeuse croissante";
-  if (value < 0.54) return "Pleine lune";
-  if (value < 0.72) return "Lune gibbeuse décroissante";
-  if (value < 0.79) return "Dernier quartier";
-  return "Dernier croissant";
+  if (value < 0.04 || value >= 0.96) return t("Nouvelle lune");
+  if (value < 0.22) return t("Premier croissant");
+  if (value < 0.29) return t("Premier quartier");
+  if (value < 0.46) return t("Lune gibbeuse croissante");
+  if (value < 0.54) return t("Pleine lune");
+  if (value < 0.72) return t("Lune gibbeuse décroissante");
+  if (value < 0.79) return t("Dernier quartier");
+  return t("Dernier croissant");
 }
 
 function depthSeriesLabel(day) {
@@ -7137,7 +7731,7 @@ function depthSeriesLabel(day) {
     return `${formatNumber(day.actualDepth ?? state.depth, 0)} m Copernicus`;
   }
 
-  return "Profondeur Copernicus indisponible";
+  return t("Profondeur Copernicus indisponible");
 }
 
 function drawCompass() {
@@ -7287,7 +7881,7 @@ function drawCompassStatusBadge(ctx, width, day) {
   const waterTemperature = sample.seaTemperature ?? dailyWaterTemperature(day);
   const lines = [
     {
-      text: `${day.shortLabel} · ${formatHourCompact(minute)}`,
+      text: `${formatShortDay(day.date)} · ${formatHourCompact(minute)}`,
       font: "900 12px Inter, system-ui, sans-serif",
       color: theme.ink,
     },
@@ -7379,28 +7973,28 @@ function renderChart() {
   if (!day) return;
 
   if (state.activeWeatherSubtab === "forces") {
-    els.chartTitle.textContent = "Forces heure par heure";
+    els.chartTitle.textContent = t("Forces heure par heure");
     renderLegend(isSeaMode()
       ? [
-          { label: "Courant surface", color: themeColor("current") },
-          { label: "Courant profondeur", color: themeColor("depth") },
-          { label: "Houle", color: themeColor("wave") },
-          { label: "Houle de fond", color: themeColor("swell") },
-          { label: "Vent", color: themeColor("wind") },
-          { label: "Rafales", color: themeColor("gust") },
+          { label: t("Courant surface"), color: themeColor("current") },
+          { label: t("Courant profondeur"), color: themeColor("depth") },
+          { label: t("Houle"), color: themeColor("wave") },
+          { label: t("Houle de fond"), color: themeColor("swell") },
+          { label: t("Vent"), color: themeColor("wind") },
+          { label: t("Rafales"), color: themeColor("gust") },
         ]
       : [
-          { label: "Vent", color: themeColor("wind") },
-          { label: "Rafales", color: themeColor("gust") },
-          { label: "Pluie", color: themeColor("rain") },
+          { label: t("Vent"), color: themeColor("wind") },
+          { label: t("Rafales"), color: themeColor("gust") },
+          { label: t("Pluie"), color: themeColor("rain") },
         ]);
     drawForcesHourlyChart(ctx, day, width, height, theme);
     return;
   }
 
   const config = chartConfig(day);
-  els.chartTitle.textContent = config.title;
-  renderLegend(config.series);
+  els.chartTitle.textContent = t(config.title);
+  renderLegend(config.series.map((serie) => ({ ...serie, label: t(serie.label) })));
 
   const values = config.series.flatMap((serie) => serie.values).filter(isValidNumber);
   const minValue = isValidNumber(config.minValue) ? config.minValue : 0;
@@ -7482,13 +8076,13 @@ function renderAtmosphereChart() {
   ctx.clearRect(0, 0, width, height);
 
   if (!day) {
-    drawEmptyPanelCanvas(canvas, "Atmosphère indisponible");
+    drawEmptyPanelCanvas(canvas, t("Atmosphère indisponible"));
     return;
   }
 
   const config = atmosphereChartConfig(day);
-  els.atmosphereChartTitle.textContent = config.title;
-  renderLegend(config.series, els.atmosphereChartLegend);
+  els.atmosphereChartTitle.textContent = t(config.title);
+  renderLegend(config.series.map((serie) => ({ ...serie, label: t(serie.label) })), els.atmosphereChartLegend);
 
   const padding = { top: 28, right: 22, bottom: 38, left: 54 };
   const chartWidth = width - padding.left - padding.right;
@@ -7496,7 +8090,7 @@ function renderAtmosphereChart() {
   const values = config.series.flatMap((serie) => serie.values).filter(isValidNumber);
 
   if (!values.length) {
-    drawEmptyPanelCanvas(canvas, `${config.title} indisponible`);
+    drawEmptyPanelCanvas(canvas, `${t(config.title)} ${t("Indisponible").toLowerCase()}`);
     return;
   }
 
@@ -7566,23 +8160,23 @@ function renderAtmosphereChart() {
 function drawForcesHourlyChart(ctx, day, width, height, theme) {
   const rows = day.rows ?? [];
   if (!rows.length) {
-    drawEmptyPanelCanvas(els.chartCanvas, "Forces indisponibles");
+    drawEmptyPanelCanvas(els.chartCanvas, t("Forces indisponibles"));
     return;
   }
 
   const metrics = isSeaMode()
     ? [
-        { label: "Courant", key: "surfaceCurrent", directionKey: "currentDirection", unit: "kt", digits: 1, type: "current", color: themeColor("current") },
-        { label: "Fond", key: "depthCurrent", directionKey: "depthDirection", unit: "kt", digits: 1, type: "depth", color: themeColor("depth") },
-        { label: "Houle", key: "waveHeight", directionKey: "waveDirection", unit: "m", digits: 1, type: "wave", color: themeColor("wave"), reverse: true },
-        { label: "Houle fond", key: "swellHeight", directionKey: "swellDirection", unit: "m", digits: 1, type: "swell", color: themeColor("swell"), reverse: true },
-        { label: "Vent", key: "windSpeed", directionKey: "windDirection", unit: "kt", digits: 0, type: "wind", color: themeColor("wind"), reverse: true },
-        { label: "Rafales", key: "windGust", directionKey: "windDirection", unit: "kt", digits: 0, type: "gust", color: themeColor("gust"), reverse: true },
+        { label: t("Courant"), key: "surfaceCurrent", directionKey: "currentDirection", unit: "kt", digits: 1, type: "current", color: themeColor("current") },
+        { label: t("Fond"), key: "depthCurrent", directionKey: "depthDirection", unit: "kt", digits: 1, type: "depth", color: themeColor("depth") },
+        { label: t("Houle"), key: "waveHeight", directionKey: "waveDirection", unit: "m", digits: 1, type: "wave", color: themeColor("wave"), reverse: true },
+        { label: t("Houle fond"), key: "swellHeight", directionKey: "swellDirection", unit: "m", digits: 1, type: "swell", color: themeColor("swell"), reverse: true },
+        { label: t("Vent"), key: "windSpeed", directionKey: "windDirection", unit: "kt", digits: 0, type: "wind", color: themeColor("wind"), reverse: true },
+        { label: t("Rafales"), key: "windGust", directionKey: "windDirection", unit: "kt", digits: 0, type: "gust", color: themeColor("gust"), reverse: true },
       ]
     : [
-        { label: "Vent", key: "windSpeed", directionKey: "windDirection", unit: "kt", digits: 0, type: "wind", color: themeColor("wind"), reverse: true },
-        { label: "Rafales", key: "windGust", directionKey: "windDirection", unit: "kt", digits: 0, type: "wind", color: themeColor("gust"), reverse: true },
-        { label: "Pluie", key: "precipitation", directionKey: null, unit: "mm", digits: 1, type: "rain", color: themeColor("rain") },
+        { label: t("Vent"), key: "windSpeed", directionKey: "windDirection", unit: "kt", digits: 0, type: "wind", color: themeColor("wind"), reverse: true },
+        { label: t("Rafales"), key: "windGust", directionKey: "windDirection", unit: "kt", digits: 0, type: "wind", color: themeColor("gust"), reverse: true },
+        { label: t("Pluie"), key: "precipitation", directionKey: null, unit: "mm", digits: 1, type: "rain", color: themeColor("rain") },
       ];
 
   const padding = { top: 34, right: 16, bottom: 18, left: 78 };
@@ -7601,7 +8195,7 @@ function drawForcesHourlyChart(ctx, day, width, height, theme) {
   ctx.font = "900 13px Inter, system-ui, sans-serif";
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
-  ctx.fillText(`${day.shortLabel} · ${formatHourCompact(selectedTimelineMinute())}`, padding.left, 17);
+  ctx.fillText(`${formatShortDay(day.date)} · ${formatHourCompact(selectedTimelineMinute())}`, padding.left, 17);
 
   ctx.font = "800 11px Inter, system-ui, sans-serif";
   ctx.fillStyle = theme.muted;
@@ -7826,14 +8420,14 @@ function formatTemperatureBrief(value) {
 }
 
 function formatWeekday3(date) {
-  return new Intl.DateTimeFormat("fr-FR", { weekday: "short" })
+  return new Intl.DateTimeFormat(currentLocale(), { weekday: "short" })
     .format(new Date(`${date}T12:00:00`))
     .replace(".", "")
     .slice(0, 3);
 }
 
 function formatShortDateNoWeekday(date) {
-  return new Intl.DateTimeFormat("fr-FR", {
+  return new Intl.DateTimeFormat(currentLocale(), {
     day: "2-digit",
     month: "short",
   }).format(new Date(`${date}T12:00:00`));
@@ -8034,7 +8628,7 @@ function catchWeatherTags(entry) {
 function formatCatchDate(value) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "--";
-  return new Intl.DateTimeFormat("fr-FR", {
+  return new Intl.DateTimeFormat(currentLocale(), {
     day: "2-digit",
     month: "short",
     hour: "2-digit",
@@ -8044,14 +8638,14 @@ function formatCatchDate(value) {
 
 function moonPhaseLabel(phase) {
   const value = ((phase % 1) + 1) % 1;
-  if (value < 0.04 || value >= 0.96) return "nouvelle";
-  if (value < 0.22) return "croissante";
-  if (value < 0.29) return "1er quartier";
-  if (value < 0.46) return "gibbeuse +";
-  if (value < 0.54) return "pleine";
-  if (value < 0.72) return "gibbeuse -";
-  if (value < 0.79) return "dernier quartier";
-  return "décroissante";
+  if (value < 0.04 || value >= 0.96) return t("nouvelle");
+  if (value < 0.22) return t("croissante");
+  if (value < 0.29) return t("1er quartier");
+  if (value < 0.46) return t("gibbeuse +");
+  if (value < 0.54) return t("pleine");
+  if (value < 0.72) return t("gibbeuse -");
+  if (value < 0.79) return t("dernier quartier");
+  return t("décroissante");
 }
 
 async function locateUser() {
@@ -8766,7 +9360,7 @@ function niceMax(value) {
 }
 
 function formatDayLabel(date) {
-  return new Intl.DateTimeFormat("fr-FR", {
+  return new Intl.DateTimeFormat(currentLocale(), {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -8774,7 +9368,7 @@ function formatDayLabel(date) {
 }
 
 function formatShortDay(date) {
-  return new Intl.DateTimeFormat("fr-FR", {
+  return new Intl.DateTimeFormat(currentLocale(), {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -8783,7 +9377,7 @@ function formatShortDay(date) {
 
 function formatNumber(value, digits = 0) {
   if (!isValidNumber(value)) return "--";
-  return new Intl.NumberFormat("fr-FR", {
+  return new Intl.NumberFormat(currentLocale(), {
     maximumFractionDigits: digits,
     minimumFractionDigits: digits,
   }).format(value);
@@ -8820,7 +9414,7 @@ function isValidNumber(value) {
 
 function setStatus(label, mode) {
   if (els.statusPill) {
-    els.statusPill.textContent = label;
+    els.statusPill.textContent = t(label);
     els.statusPill.classList.toggle("is-loading", mode === "loading");
     els.statusPill.classList.toggle("is-error", mode === "error");
     els.statusPill.classList.toggle("is-warning", mode === "warning");
@@ -8832,29 +9426,29 @@ function setStatus(label, mode) {
 
 function forecastStatusDetail(label, mode) {
   if (mode === "offline") {
-    return "Connexion absente. Les écrans déjà consultés restent disponibles hors ligne.";
+    return t("Connexion absente. Les écrans déjà consultés restent disponibles hors ligne.");
   }
   if (mode === "loading") {
-    return "Chargement météo, mer et données Copernicus pour le spot actif.";
+    return t("Chargement météo, mer et données Copernicus pour le spot actif.");
   }
   if (mode === "error") {
-    return "Impossible de charger les conditions du spot. Vérifie la connexion ou les coordonnées.";
+    return t("Impossible de charger les conditions du spot. Vérifie la connexion ou les coordonnées.");
   }
   if (mode === "warning" && /copernicus/i.test(label)) {
     return state.realDepthError
-      ? `Copernicus indisponible: ${state.realDepthError}`
-      : "Copernicus indisponible pour le courant en profondeur. Les prévisions météo et marine restent affichées.";
+      ? `${t("Copernicus indisponible")}: ${state.realDepthError}`
+      : t("Copernicus indisponible pour le courant en profondeur. Les prévisions météo et marine restent affichées.");
   }
   if (mode === "warning") {
-    return "Données partielles: certaines sources sont indisponibles pour ce spot.";
+    return t("Données partielles: certaines sources sont indisponibles pour ce spot.");
   }
   if (/copernicus/i.test(label)) {
-    return "Données Copernicus actives pour les courants en profondeur.";
+    return t("Données Copernicus actives pour les courants en profondeur.");
   }
   if (label === "À jour" || mode === "ready") {
-    return "Données synchronisées pour le spot actif.";
+    return t("Données synchronisées pour le spot actif.");
   }
-  return `État des données: ${label}`;
+  return `${t("État des données")}: ${t(label)}`;
 }
 
 function saveSettings() {
@@ -8879,6 +9473,7 @@ function saveSettings() {
     fishFilters: [...state.activeFishFilters],
     activityFish: state.activityFish,
     theme: normalizeTheme(state.theme),
+    language: normalizeLanguage(state.language),
     profile: normalizeProfile(state.profile),
     onboardingCompleted: Boolean(state.onboardingCompleted),
     privacyAccepted: Boolean(state.privacyAccepted),
@@ -9062,6 +9657,7 @@ function normalizeSettings(settings) {
     fishFilters: Array.isArray(settings.fishFilters) ? settings.fishFilters : ["all"],
     activityFish: typeof settings.activityFish === "string" ? settings.activityFish : "",
     theme: normalizeTheme(settings.theme),
+    language: normalizeLanguage(settings.language),
     profile: normalizeProfile(settings.profile),
     onboardingCompleted: Boolean(settings.onboardingCompleted),
     privacyAccepted: Boolean(settings.privacyAccepted),

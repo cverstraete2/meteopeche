@@ -15,10 +15,18 @@
 <script>
 try {
   const store = JSON.parse(localStorage.getItem("meteo-peche-store-v1") || "{}");
+  const supportedLanguages = ["fr", "en", "es", "de", "pt"];
+  const savedLanguage = String(store?.settings?.language || "").toLowerCase().split("-")[0];
+  const browserLanguage = String(navigator.languages?.[0] || navigator.language || "fr").toLowerCase().split("-")[0];
   document.documentElement.dataset.theme = store?.settings?.theme === "dark" ? "dark" : "light";
+  document.documentElement.lang = supportedLanguages.includes(savedLanguage)
+    ? savedLanguage
+    : (supportedLanguages.includes(browserLanguage) ? browserLanguage : "fr");
 } catch {
+  const browserLanguage = String(navigator.languages?.[0] || navigator.language || "fr").toLowerCase().split("-")[0];
   document.documentElement.dataset.theme =
     window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  document.documentElement.lang = ["fr", "en", "es", "de", "pt"].includes(browserLanguage) ? browserLanguage : "fr";
 }
 </script>
 
@@ -29,7 +37,7 @@ try {
 
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
 <link rel="stylesheet" href="vendor/tabler/tabler-icons.min.css" />
-<link rel="stylesheet" href="styles.css?v=20260527-weather-topline" />
+<link rel="stylesheet" href="styles.css?v=20260527-i18n" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon-v2.png" />
 </head>
@@ -166,6 +174,17 @@ try {
             <button class="segment" type="button" data-theme-value="dark">Sombre</button>
           </div>
         </div>
+
+        <label class="field preference-language" for="languageSelect">
+          <span>Langue</span>
+          <select id="languageSelect" name="languageSelect">
+            <option value="fr">Français</option>
+            <option value="en">English</option>
+            <option value="es">Español</option>
+            <option value="de">Deutsch</option>
+            <option value="pt">Português</option>
+          </select>
+        </label>
 
         <div class="preference-control">
           <span>Niveau</span>
@@ -866,7 +885,7 @@ try {
 <script src="mobile-runtime.js" defer></script>
 <script src="vendor/leaflet/leaflet.js" defer></script>
 <script src="config.js" defer></script>
-<script src="app.js?v=20260527-weather-topline" defer></script>
+<script src="app.js?v=20260527-i18n" defer></script>
 
 </body>
 </html>

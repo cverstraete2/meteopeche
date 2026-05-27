@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Fira+Code:wght@400;500&family=Montserrat:wght@800;900&display=swap" />
-<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="styles.css?v=20260527-i18n" />
 </head>
 <body class="legal-page">
   <main class="legal-shell">
@@ -48,5 +48,141 @@
       <p>Pour une demande liée à vos données ou à la publication store, contactez l'éditeur de l'application depuis la fiche App Store ou Google Play.</p>
     </section>
   </main>
+  <script>
+  (() => {
+    const supportedLanguages = ["fr", "en", "es", "de", "pt"];
+    const translations = {
+      "Politique de confidentialité - MeteoCatch": {
+        en: "Privacy Policy - MeteoCatch",
+        es: "Política de privacidad - MeteoCatch",
+        de: "Datenschutzerklärung - MeteoCatch",
+        pt: "Política de privacidade - MeteoCatch",
+      },
+      "Retour à l'application": {
+        en: "Back to the app",
+        es: "Volver a la aplicación",
+        de: "Zurück zur App",
+        pt: "Voltar à aplicação",
+      },
+      "Confidentialité": {
+        en: "Privacy",
+        es: "Privacidad",
+        de: "Datenschutz",
+        pt: "Privacidade",
+      },
+      "Politique de confidentialité MeteoCatch": {
+        en: "MeteoCatch Privacy Policy",
+        es: "Política de privacidad de MeteoCatch",
+        de: "MeteoCatch Datenschutzerklärung",
+        pt: "Política de privacidade da MeteoCatch",
+      },
+      "Dernière mise à jour: 26 mai 2026": {
+        en: "Last updated: May 26, 2026",
+        es: "Última actualización: 26 de mayo de 2026",
+        de: "Zuletzt aktualisiert: 26. Mai 2026",
+        pt: "Última atualização: 26 de maio de 2026",
+      },
+      "Données utilisées": {
+        en: "Data used",
+        es: "Datos utilizados",
+        de: "Verwendete Daten",
+        pt: "Dados utilizados",
+      },
+      "MeteoCatch utilise votre position uniquement pour sélectionner un spot, afficher la carte et charger les conditions météo, marines et de pêche autour de vous.": {
+        en: "MeteoCatch uses your location only to select a spot, display the map and load weather, marine and fishing conditions around you.",
+        es: "MeteoCatch usa tu ubicación únicamente para seleccionar un spot, mostrar el mapa y cargar condiciones meteorológicas, marinas y de pesca cerca de ti.",
+        de: "MeteoCatch nutzt deinen Standort nur, um einen Spot auszuwählen, die Karte anzuzeigen und Wetter-, Meeres- und Angelbedingungen in deiner Nähe zu laden.",
+        pt: "A MeteoCatch usa a tua localização apenas para selecionar um spot, mostrar o mapa e carregar condições meteorológicas, marinhas e de pesca à tua volta.",
+      },
+      "Les photos, notes et prises ajoutées dans le journal restent stockées localement sur votre appareil, sauf action volontaire de votre part dans une future fonction de partage ou de synchronisation.": {
+        en: "Photos, notes and catches added to the log remain stored locally on your device unless you voluntarily share or sync them in a future feature.",
+        es: "Las fotos, notas y capturas añadidas al diario permanecen almacenadas localmente en tu dispositivo salvo que las compartas o sincronices voluntariamente en una función futura.",
+        de: "Fotos, Notizen und Fänge im Tagebuch bleiben lokal auf deinem Gerät gespeichert, außer du teilst oder synchronisierst sie künftig bewusst.",
+        pt: "As fotos, notas e capturas adicionadas ao diário ficam guardadas localmente no teu dispositivo, salvo partilha ou sincronização voluntária numa funcionalidade futura.",
+      },
+      "Sources météo et marines": {
+        en: "Weather and marine sources",
+        es: "Fuentes meteorológicas y marinas",
+        de: "Wetter- und Meeresquellen",
+        pt: "Fontes meteorológicas e marinhas",
+      },
+      "L'application interroge des services météo et marins pour obtenir les prévisions, les marées, le vent, la houle, les courants et les données Copernicus quand elles sont disponibles. Ces requêtes peuvent inclure les coordonnées du spot sélectionné et l'heure demandée.": {
+        en: "The app queries weather and marine services to obtain forecasts, tides, wind, waves, currents and Copernicus data when available. These requests may include the selected spot coordinates and requested time.",
+        es: "La aplicación consulta servicios meteorológicos y marinos para obtener previsiones, mareas, viento, oleaje, corrientes y datos Copernicus cuando están disponibles. Estas solicitudes pueden incluir las coordenadas del spot seleccionado y la hora solicitada.",
+        de: "Die App fragt Wetter- und Meeresdienste ab, um Vorhersagen, Gezeiten, Wind, Wellen, Strömungen und Copernicus-Daten zu erhalten, wenn sie verfügbar sind. Diese Anfragen können Koordinaten des ausgewählten Spots und die gewünschte Uhrzeit enthalten.",
+        pt: "A app consulta serviços meteorológicos e marinhos para obter previsões, marés, vento, ondulação, correntes e dados Copernicus quando disponíveis. Estes pedidos podem incluir as coordenadas do spot selecionado e a hora pedida.",
+      },
+      "Permissions natives": {
+        en: "Native permissions",
+        es: "Permisos nativos",
+        de: "Native Berechtigungen",
+        pt: "Permissões nativas",
+      },
+      "La permission GPS sert à trouver votre position et à proposer des conditions proches. La caméra et la photothèque servent uniquement au journal photo. Les notifications servent aux rappels météo, sécurité et créneaux de sortie.": {
+        en: "GPS permission is used to find your position and suggest nearby conditions. Camera and photo library access are used only for the photo log. Notifications are used for weather, safety and outing-window reminders.",
+        es: "El permiso GPS se usa para encontrar tu posición y proponer condiciones cercanas. La cámara y la fototeca se usan solo para el diario fotográfico. Las notificaciones se usan para recordatorios de tiempo, seguridad y franjas de salida.",
+        de: "Die GPS-Berechtigung dient dazu, deinen Standort zu finden und nahe Bedingungen vorzuschlagen. Kamera und Fotomediathek werden nur für das Fototagebuch verwendet. Benachrichtigungen dienen Wetter-, Sicherheits- und Zeitfenster-Erinnerungen.",
+        pt: "A permissão GPS serve para encontrar a tua posição e sugerir condições próximas. A câmara e a fototeca servem apenas para o diário fotográfico. As notificações servem para lembretes de meteorologia, segurança e janelas de saída.",
+      },
+      "Stockage local et hors ligne": {
+        en: "Local and offline storage",
+        es: "Almacenamiento local y sin conexión",
+        de: "Lokaler und Offline-Speicher",
+        pt: "Armazenamento local e offline",
+      },
+      "MeteoCatch enregistre vos préférences, spots favoris, journal et certains fichiers nécessaires au mode hors ligne dans le stockage local de l'application ou du navigateur.": {
+        en: "MeteoCatch stores your preferences, favorite spots, log and some files needed for offline mode in the app or browser local storage.",
+        es: "MeteoCatch guarda tus preferencias, spots favoritos, diario y algunos archivos necesarios para el modo sin conexión en el almacenamiento local de la app o del navegador.",
+        de: "MeteoCatch speichert deine Einstellungen, Lieblingsspots, das Tagebuch und einige für den Offline-Modus nötige Dateien im lokalen Speicher der App oder des Browsers.",
+        pt: "A MeteoCatch guarda as tuas preferências, spots favoritos, diário e alguns ficheiros necessários ao modo offline no armazenamento local da app ou do navegador.",
+      },
+      "Contact": {
+        en: "Contact",
+        es: "Contacto",
+        de: "Kontakt",
+        pt: "Contacto",
+      },
+      "Pour une demande liée à vos données ou à la publication store, contactez l'éditeur de l'application depuis la fiche App Store ou Google Play.": {
+        en: "For requests related to your data or store publication, contact the app publisher from the App Store or Google Play listing.",
+        es: "Para una solicitud relacionada con tus datos o la publicación en tiendas, contacta con el editor de la app desde la ficha de App Store o Google Play.",
+        de: "Für Anfragen zu deinen Daten oder zur Store-Veröffentlichung kontaktiere den Herausgeber über den App Store- oder Google Play-Eintrag.",
+        pt: "Para pedidos relacionados com os teus dados ou com a publicação nas lojas, contacta o editor da app a partir da página da App Store ou Google Play.",
+      },
+    };
+    const languageFromStore = () => {
+      try {
+        return JSON.parse(localStorage.getItem("meteo-peche-store-v1") || "{}")?.settings?.language;
+      } catch {
+        return "";
+      }
+    };
+    const normalizeLanguage = (value) => {
+      const language = String(value || "").toLowerCase().split("-")[0];
+      if (supportedLanguages.includes(language)) return language;
+      const browserLanguage = String(navigator.languages?.[0] || navigator.language || "fr").toLowerCase().split("-")[0];
+      return supportedLanguages.includes(browserLanguage) ? browserLanguage : "fr";
+    };
+    const language = normalizeLanguage(languageFromStore());
+    document.documentElement.lang = language;
+    document.title = translations[document.title]?.[language] || document.title;
+    if (language === "fr") return;
+
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        return node.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      },
+    });
+    let node = walker.nextNode();
+    while (node) {
+      const value = node.nodeValue;
+      const leading = value.match(/^\s*/)?.[0] || "";
+      const trailing = value.match(/\s*$/)?.[0] || "";
+      const core = value.trim();
+      const translated = translations[core]?.[language];
+      if (translated) node.nodeValue = `${leading}${translated}${trailing}`;
+      node = walker.nextNode();
+    }
+  })();
+  </script>
 </body>
 </html>
