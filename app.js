@@ -1371,6 +1371,7 @@ const state = {
   mapPointers: new Map(),
   mapLayerOpen: false,
   mapFullscreen: false,
+  favoritesOpen: false,
   spotPanelOpen: false,
   mapClickStart: null,
   suppressNextMapClick: false,
@@ -1549,6 +1550,11 @@ const els = {
   mapLayerSheet: document.querySelector("#mapLayerSheet"),
   mapLayerClose: document.querySelector("#mapLayerClose"),
   mapLayerBackdrop: document.querySelector("#mapLayerBackdrop"),
+  mapOverlayActions: document.querySelector(".map-overlay-actions"),
+  mapSensitiveButton: document.querySelector("#mapSensitiveButton"),
+  mapFavoritesButton: document.querySelector("#mapFavoritesButton"),
+  mapFavoritesOverlay: document.querySelector("#mapFavoritesOverlay"),
+  mapFavoritesClose: document.querySelector("#mapFavoritesClose"),
   mapNauticalToggle: document.querySelector("#mapNauticalToggle"),
   mapCoastalToggle: document.querySelector("#mapCoastalToggle"),
   mapBathymetryToggle: document.querySelector("#mapBathymetryToggle"),
@@ -1710,8 +1716,19 @@ function initMapEngine() {
   updateNauticalOverlay();
   updateCoastalOverlay();
 
-  L.DomEvent.disableClickPropagation(els.spotNameSheet);
-  L.DomEvent.disableScrollPropagation(els.spotNameSheet);
+  [
+    els.spotControls,
+    els.spotNameSheet,
+    els.mapLayerSheet,
+    els.mapLayerBackdrop,
+    els.fishFilterControl,
+    els.mapOverlayActions,
+    els.safetyBanner,
+    els.mapFavoritesOverlay,
+  ].filter(Boolean).forEach((element) => {
+    L.DomEvent.disableClickPropagation(element);
+    L.DomEvent.disableScrollPropagation(element);
+  });
 
   state.knownFishingLayer = L.layerGroup();
   updateKnownFishingOverlay();
@@ -2244,6 +2261,10 @@ function applyWaterModeUI() {
     els.marineOverlayControl.hidden = !isSeaMode();
   }
 
+  if (els.mapSensitiveButton) {
+    els.mapSensitiveButton.hidden = !isSeaMode();
+  }
+
   if (els.mapRegulationToggle) {
     els.mapRegulationToggle.hidden = !isSeaMode();
   }
@@ -2484,6 +2505,24 @@ function setMapLayerOpen(open) {
   updateMapLayerPanel();
 }
 
+function setFavoritesOverlayOpen(open) {
+  state.favoritesOpen = Boolean(open);
+  updateFavoritesOverlay();
+}
+
+function updateFavoritesOverlay() {
+  if (els.mapFavoritesButton) {
+    els.mapFavoritesButton.classList.toggle("is-active", state.favoritesOpen);
+    els.mapFavoritesButton.setAttribute("aria-expanded", String(state.favoritesOpen));
+  }
+
+  if (els.mapFavoritesOverlay) {
+    els.mapFavoritesOverlay.classList.toggle("is-open", state.favoritesOpen);
+    els.mapFavoritesOverlay.setAttribute("aria-hidden", String(!state.favoritesOpen));
+    els.mapFavoritesOverlay.inert = !state.favoritesOpen;
+  }
+}
+
 function setMapFullscreen(open) {
   state.mapFullscreen = Boolean(open);
   els.mapPanel?.classList.toggle("is-map-fullscreen", state.mapFullscreen);
@@ -2572,7 +2611,7 @@ function selectMapPoint(event) {
     return;
   }
 
-  if (event.target.closest(".map-marker, .map-control")) return;
+  if (isMapOverlayTarget(event.target)) return;
 
   if (clickStart && Math.hypot(event.clientX - clickStart.x, event.clientY - clickStart.y) > 6) {
     return;
@@ -2795,6 +2834,12 @@ function updateRegulationOverlay() {
   if (els.mapRegulationToggle) {
     els.mapRegulationToggle.classList.toggle("is-active", enabled);
     els.mapRegulationToggle.setAttribute("aria-pressed", String(enabled));
+  }
+
+  if (els.mapSensitiveButton) {
+    els.mapSensitiveButton.classList.toggle("is-active", enabled);
+    els.mapSensitiveButton.setAttribute("aria-pressed", String(enabled));
+    els.mapSensitiveButton.hidden = !isSeaMode();
   }
 
   if (!state.leafletMap || !state.regulationLayer) return;
@@ -4122,7 +4167,7 @@ function getZoomCenter(zoom, anchor, anchorPoint, active) {
 }
 
 function startMapDrag(event) {
-  if (event.target.closest(".map-marker, .map-control")) return;
+  if (isMapOverlayTarget(event.target)) return;
   if (event.pointerType !== "touch" && event.button !== 0) return;
 
   if (event.cancelable) event.preventDefault();
@@ -4202,7 +4247,7 @@ function endMapDrag(event) {
 }
 
 function zoomMapFromWheel(event) {
-  if (event.target.closest(".map-control")) return;
+  if (isMapOverlayTarget(event.target)) return;
 
   event.preventDefault();
   changeMapZoom(event.deltaY < 0 ? 1 : -1, { anchorPoint: mapEventPoint(event) });
@@ -4264,13 +4309,19 @@ function pointerMidpoint([a, b]) {
 }
 
 function rememberMapClickStart(event) {
-  if (event.target.closest(".map-marker, .map-control")) return;
+  if (isMapOverlayTarget(event.target)) return;
   state.mapClickStart = { x: event.clientX, y: event.clientY };
 }
 
 function preventMapTouchScroll(event) {
-  if (event.target.closest(".map-control")) return;
+  if (isMapOverlayTarget(event.target)) return;
   if (event.cancelable) event.preventDefault();
+}
+
+function isMapOverlayTarget(target) {
+  return Boolean(target?.closest?.(
+    ".map-marker, .map-control, .controls-band, .fish-filter-control, .map-overlay-actions, .map-sensitive-card, .map-favorites-overlay, .spot-name-sheet"
+  ));
 }
 
 function toggleFavorite() {
@@ -4309,6 +4360,7 @@ function upsertFavorite(favorite) {
 }
 
 function renderFavorites() {
+  if (!els.favoritesList) return;
   els.favoritesList.innerHTML = "";
 
   if (!state.favorites.length) {
@@ -4316,6 +4368,7 @@ function renderFavorites() {
     empty.className = "favorites-empty";
     empty.textContent = "Aucun favori";
     els.favoritesList.append(empty);
+    updateFavoritesOverlay();
     return;
   }
 
@@ -4409,6 +4462,7 @@ function renderFavorites() {
     row.append(select, rename, remove);
     els.favoritesList.append(row);
   });
+  updateFavoritesOverlay();
 }
 
 function renameFavorite(id, name) {
@@ -4422,6 +4476,7 @@ function renameFavorite(id, name) {
 }
 
 function selectFavorite(favorite) {
+  setFavoritesOverlayOpen(false);
   const favoriteMode = normalizeWaterMode(favorite.waterMode ?? state.waterMode);
   if (favoriteMode !== state.waterMode) {
     state.waterMode = favoriteMode;
@@ -4444,6 +4499,7 @@ function selectFavorite(favorite) {
 function updateFavoriteButton() {
   const active = getActiveSpot();
   const favorite = hasFavorite(active.id);
+  if (!els.favoriteBtn) return;
   els.favoriteBtn.classList.toggle("is-active", favorite);
   els.favoriteBtn.setAttribute("aria-pressed", String(favorite));
   els.favoriteBtn.title = favorite ? "Retirer des favoris" : "Ajouter aux favoris";
@@ -4506,6 +4562,18 @@ function bindEvents() {
 
   els.spotPanelButton.addEventListener("click", () => setSpotPanelOpen(!state.spotPanelOpen));
   els.spotPanelClose.addEventListener("click", () => setSpotPanelOpen(false));
+  els.mapFavoritesButton?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setFavoritesOverlayOpen(!state.favoritesOpen);
+  });
+  els.mapFavoritesClose?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setFavoritesOverlayOpen(false);
+  });
+  els.mapSensitiveButton?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toggleRegulationOverlay();
+  });
 
   els.marineOverlayButtons.forEach((button) => {
     button.addEventListener("click", (event) => {
@@ -4592,7 +4660,8 @@ function bindEvents() {
   });
   els.mapFullscreenButton?.addEventListener("click", (event) => {
     event.stopPropagation();
-    setMapFullscreen(!state.mapFullscreen);
+    const active = getActiveSpot();
+    centerMapOn(active.lat, active.lon);
   });
   els.mapLayersButton.addEventListener("click", (event) => {
     event.stopPropagation();

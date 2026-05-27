@@ -1,4 +1,4 @@
-const CACHE_NAME = "meteocatch-shell-20260527-data-status-prefs-v1";
+const CACHE_NAME = "meteocatch-shell-20260527-map-fullscreen-overlay-v1";
 const APP_SHELL = [
   "./",
   "./index.html",
