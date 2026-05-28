@@ -3419,6 +3419,8 @@ body.is-map-fullscreen-active .mobile-tabbar {
 }
 
 .fish-filter-icon,
+.map-progressive-marker,
+.map-db-pin-marker,
 .discovery-spot-marker,
 .favorite-star-marker,
 .known-fishing-marker,
@@ -3438,6 +3440,7 @@ body.is-map-fullscreen-active .mobile-tabbar {
 }
 
 .fish-filter-icon svg,
+.map-db-pin-marker svg,
 .known-fishing-marker svg {
   width: 24px;
   height: 24px;
@@ -3445,6 +3448,92 @@ body.is-map-fullscreen-active .mobile-tabbar {
   stroke: var(--bg-card);
   stroke-width: 1.8;
   paint-order: stroke fill;
+}
+
+.map-progressive-marker {
+  position: relative;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.map-progressive-marker.is-hidden {
+  pointer-events: none !important;
+}
+
+.map-progressive-marker.is-zoom-5 {
+  box-shadow: 0 10px 24px rgba(4, 17, 34, 0.24), 0 0 0 4px rgba(0, 88, 204, 0.16);
+}
+
+.map-progressive-marker.is-zoom-8 {
+  box-shadow: 0 8px 18px rgba(4, 17, 34, 0.2);
+}
+
+.map-db-pin-marker svg {
+  width: 28px;
+  height: 36px;
+  fill: var(--accent);
+  stroke: var(--bg-card);
+  stroke-width: 2.2;
+}
+
+.map-db-pin-marker.is-freshwater svg {
+  fill: var(--c-teal);
+}
+
+.map-db-pin-marker.is-known svg {
+  width: 24px;
+  height: 24px;
+  fill: var(--accent);
+}
+
+.map-db-pin-marker.is-active {
+  background: var(--accent);
+  box-shadow: 0 0 0 4px rgba(0, 88, 204, 0.22), var(--shadow-md);
+}
+
+.map-db-pin-marker.is-active svg {
+  fill: var(--text-inv);
+  stroke: var(--accent);
+}
+
+.map-pin-label {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 4px);
+  max-width: 150px;
+  transform: translateX(-50%) translateY(-4px);
+  border-radius: var(--r-pill);
+  background: var(--surface-raised);
+  color: var(--text-1);
+  box-shadow: var(--shadow-sm);
+  opacity: 0;
+  overflow: hidden;
+  padding: 3px 8px;
+  pointer-events: none;
+  text-overflow: ellipsis;
+  transition: opacity 160ms ease, transform 160ms ease;
+  white-space: nowrap;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.map-progressive-marker:hover .map-pin-label,
+.map-progressive-marker:focus-visible .map-pin-label {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.map-pin-tooltip strong,
+.map-pin-tooltip small {
+  display: block;
+}
+
+.map-pin-tooltip small {
+  margin-top: 2px;
+  color: var(--text-2);
+  font-size: 0.7rem;
 }
 
 .favorite-star-marker svg {

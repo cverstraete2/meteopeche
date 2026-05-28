@@ -1,10 +1,11 @@
-const CACHE_NAME = "meteocatch-shell-20260528-map-discovery-v1";
+const CACHE_NAME = "meteocatch-shell-20260528-progressive-pins-v1";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./privacy.html",
   "./styles.css",
   "./app.js",
+  "./spots-db.js",
   "./mobile-runtime.js",
   "./config.js",
   "./manifest.webmanifest",

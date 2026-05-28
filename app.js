@@ -27,6 +27,7 @@ const ATMOSPHERE_CHARTS = ["cloud", "pressure"];
 const MARINE_OVERLAY_MODES = ["none", "surface", "depth", "wave"];
 const THEME_MODES = ["light", "dark"];
 const LANGUAGE_MODES = ["fr", "en", "es", "de", "pt"];
+const PIN_ZOOM_LEVELS = [5, 8, 11, 14];
 const PHOTO_MAX_EDGE = 1280;
 const PHOTO_JPEG_QUALITY = 0.76;
 const LANGUAGE_OPTIONS = {
@@ -1903,6 +1904,9 @@ const state = {
   suppressNextMapClick: false,
   mapTilePruneTimer: null,
   leafletMap: null,
+  leafletPinLayer: null,
+  leafletPinMarkers: new Map(),
+  leafletPinFadeTimers: new Map(),
   leafletMarkers: null,
   nauticalLayer: null,
   nauticalEnabled: true,
@@ -2454,9 +2458,11 @@ function initMapEngine() {
 
   state.marineOverlayLayer = L.layerGroup().addTo(state.leafletMap);
   state.anchorLayer = L.layerGroup().addTo(state.leafletMap);
+  state.leafletPinLayer = L.layerGroup().addTo(state.leafletMap);
   state.leafletMarkers = L.layerGroup().addTo(state.leafletMap);
   state.leafletMap.on("click", selectLeafletMapPoint);
   state.leafletMap.on("moveend zoomend", syncLeafletState);
+  state.leafletMap.on("zoomend", updateLeafletPinVisibility);
 }
 
 function populateSpots() {
@@ -4460,42 +4466,7 @@ function formatFishTargets(fish = []) {
 }
 
 function renderKnownFishingMarkers() {
-  if (!state.knownFishingLayer) return;
-
-  state.knownFishingLayer.clearLayers();
-  if (!state.knownFishingEnabled) return;
-
-  getVisibleKnownFishingSpots().forEach((spot) => {
-    const markerFish = markerFishForSpot(spot);
-    const marker = L.marker([spot.lat, spot.lon], {
-      icon: L.divIcon({
-        className: `known-fishing-marker fish-${markerFish}`,
-        html: fishSpotIcon(markerFish),
-        iconSize: [34, 34],
-        iconAnchor: [17, 17],
-        tooltipAnchor: [0, -16],
-      }),
-      keyboard: true,
-      title: spot.name,
-      zIndexOffset: 240,
-    });
-
-    marker.bindTooltip(escapeHtml(spot.name), {
-      direction: "top",
-      offset: [0, -14],
-      opacity: 0.96,
-      sticky: true,
-    });
-    marker.bindPopup(`
-      <strong>${escapeHtml(spot.name)}</strong>
-      <span>${escapeHtml(spot.area)}</span>
-      <small>${escapeHtml(formatFishTargets(spot.fish))}</small>
-      <small>${escapeHtml(spot.note)}</small>
-      <em>${escapeHtml(spot.caution)}</em>
-    `);
-    marker.on("click", () => selectKnownFishingSpot(spot));
-    marker.addTo(state.knownFishingLayer);
-  });
+  renderLeafletPins();
 }
 
 function selectKnownFishingSpot(spot) {
@@ -4615,75 +4586,426 @@ function syncLeafletMapView() {
   }
 }
 
-function renderLeafletMarkers() {
-  if (!state.leafletMarkers) return;
+function filterPinsByZoom(zoomLevel) {
+  return getMapPinCatalog().filter((pin) => isPinVisibleAtZoom(pin, zoomLevel));
+}
 
-  state.leafletMarkers.clearLayers();
-  const active = getActiveSpot();
-  const activeId = active.id;
+function getMapPinCatalog() {
+  const pins = [];
 
-  if (isSeaMode()) {
-    spots.forEach((spot, index) => {
-      if (spot.custom || !spot.group?.startsWith("Méditerranée")) return;
+  getSpotsDb().forEach((spot) => {
+    const pin = normalizeMapPin({
+      id: `db:${spot.id}`,
+      source: "db",
+      name: spot.name,
+      area: spot.area ?? "",
+      lat: spot.lat,
+      lon: spot.lng ?? spot.lon,
+      zoomLevel: spot.zoomLevel,
+      type: spot.type,
+      species: spot.species,
+      note: spot.note ?? "",
+    });
+    if (pin) pins.push(pin);
+  });
 
-      const id = spotFavoriteId(spot);
-      const marker = L.circleMarker([spot.lat, spot.lon], {
-        radius: id === activeId ? 7 : 5,
-        color: "#fff",
-        weight: id === activeId ? 3 : 2,
-        fillColor: id === activeId ? colors.gust : hasFavorite(id) ? colors.wind : colors.current,
-        fillOpacity: 0.95,
-        bubblingMouseEvents: false,
+  spots.forEach((spot, index) => {
+    if (spot.custom) return;
+    const pin = normalizeMapPin({
+      id: `preset:${spotFavoriteId(spot)}`,
+      source: "preset",
+      name: spot.name,
+      area: spot.group ?? "",
+      lat: spot.lat,
+      lon: spot.lon,
+      zoomLevel: spot.group?.includes("raccourcis") ? 5 : 11,
+      type: spot.group?.startsWith("Méditerranée") || spot.group?.startsWith("Atlantique") ? WATER_MODES.SEA : state.waterMode,
+      species: [],
+      presetIndex: index,
+    });
+    if (pin) pins.push(pin);
+  });
+
+  if (state.knownFishingEnabled) {
+    getVisibleKnownFishingSpots().forEach((spot) => {
+      const pin = normalizeMapPin({
+        id: `known:${spot.name}`,
+        source: "known",
+        name: spot.name,
+        area: spot.area ?? "",
+        lat: spot.lat,
+        lon: spot.lon,
+        zoomLevel: 14,
+        type: isSeaMode() ? WATER_MODES.SEA : WATER_MODES.FRESHWATER,
+        species: spot.fish,
+        note: spot.note,
+        caution: spot.caution,
       });
-
-      marker.bindTooltip(spot.name, {
-        direction: "top",
-        offset: [0, -8],
-        opacity: 0.96,
-        sticky: true,
-      });
-      marker.on("click", (event) => {
-        if (event.originalEvent) L.DomEvent.stop(event.originalEvent);
-        selectSpot(index, { load: true });
-      });
-      marker.addTo(state.leafletMarkers);
+      if (pin) pins.push(pin);
     });
   }
 
-  state.favorites.forEach((favorite) => {
-    if (!isValidNumber(favorite.lat) || !isValidNumber(favorite.lon)) return;
-    const isActiveFavorite = favorite.id === activeId;
-
-    const marker = L.marker([favorite.lat, favorite.lon], {
-      icon: L.divIcon({
-        className: `favorite-star-marker${isActiveFavorite ? " is-active" : ""}`,
-        html: starIcon(),
-        iconSize: isActiveFavorite ? [38, 38] : [32, 32],
-        iconAnchor: isActiveFavorite ? [19, 19] : [16, 16],
-        tooltipAnchor: [0, -14],
-      }),
-      keyboard: true,
-      riseOnHover: true,
-      title: favorite.name,
-      zIndexOffset: isActiveFavorite ? 1200 : 900,
+  getMapDiscoveryResults().forEach((result) => {
+    const pin = normalizeMapPin({
+      id: `${result.source}:${result.id}`,
+      source: result.source,
+      name: discoveryResultName(result),
+      area: discoveryResultDetail(result),
+      lat: result.lat,
+      lon: result.lon,
+      zoomLevel: 14,
+      type: result.waterMode ?? state.waterMode,
+      species: [],
+      discoveryId: result.id,
     });
-
-    marker.bindTooltip(escapeHtml(favorite.name), {
-      direction: "top",
-      offset: [0, -12],
-      opacity: 0.96,
-      sticky: true,
-    });
-    marker.on("click", (event) => {
-      if (event.originalEvent) L.DomEvent.stop(event.originalEvent);
-      selectFavorite(favorite);
-    });
-    marker.addTo(state.leafletMarkers);
+    if (pin) pins.push(pin);
   });
 
-  renderLeafletDiscoveryMarkers(active);
+  state.favorites.forEach((favorite) => {
+    const pin = normalizeMapPin({
+      id: `favorite:${favorite.id}`,
+      source: "favorite",
+      name: favorite.name,
+      area: favorite.group ?? "Favori",
+      lat: favorite.lat,
+      lon: favorite.lon,
+      zoomLevel: 11,
+      type: favorite.waterMode ?? state.waterMode,
+      species: [],
+      favoriteId: favorite.id,
+    });
+    if (pin) pins.push(pin);
+  });
 
-  if (active.custom && !hasFavorite(active.id) && isValidNumber(active.lat) && isValidNumber(active.lon)) {
+  return dedupeMapPins(pins);
+}
+
+function getSpotsDb() {
+  return Array.isArray(window.spotsDB) ? window.spotsDB : [];
+}
+
+function normalizeMapPin(pin) {
+  if (!pin || !isValidNumber(pin.lat) || !isValidNumber(pin.lon) || !pin.name) return null;
+
+  return {
+    ...pin,
+    id: String(pin.id),
+    name: String(pin.name),
+    area: typeof pin.area === "string" ? pin.area : "",
+    lat: Number(pin.lat),
+    lon: Number(pin.lon),
+    zoomLevel: normalizePinZoomLevel(pin.zoomLevel),
+    type: normalizePinType(pin.type),
+    species: Array.isArray(pin.species) ? pin.species.filter(Boolean) : [],
+  };
+}
+
+function normalizePinZoomLevel(value) {
+  const zoom = Number(value);
+  const defaultZoom = PIN_ZOOM_LEVELS[PIN_ZOOM_LEVELS.length - 1];
+  if (!isValidNumber(zoom)) return defaultZoom;
+  return PIN_ZOOM_LEVELS.find((level) => zoom <= level) ?? defaultZoom;
+}
+
+function normalizePinType(type) {
+  return type === WATER_MODES.FRESHWATER ? WATER_MODES.FRESHWATER : WATER_MODES.SEA;
+}
+
+function dedupeMapPins(pins) {
+  const priority = { favorite: 6, search: 5, nearby: 5, db: 4, preset: 3, known: 2 };
+  const unique = new Map();
+
+  pins.forEach((pin) => {
+    const key = `${pin.lat.toFixed(3)},${pin.lon.toFixed(3)}`;
+    const existing = unique.get(key);
+    const currentPriority = priority[pin.source] ?? 1;
+    const existingPriority = priority[existing?.source] ?? 0;
+
+    if (!existing || currentPriority > existingPriority) {
+      unique.set(key, pin);
+      return;
+    }
+
+    if (currentPriority === existingPriority && pin.zoomLevel < existing.zoomLevel) {
+      unique.set(key, pin);
+    } else if (pin.zoomLevel < existing.zoomLevel) {
+      unique.set(key, { ...existing, zoomLevel: pin.zoomLevel });
+    }
+  });
+
+  return [...unique.values()];
+}
+
+function pinZoomThreshold(zoomLevel) {
+  const zoom = Number(zoomLevel);
+  if (zoom >= 14) return 14;
+  if (zoom >= 11) return 11;
+  if (zoom >= 8) return 8;
+  return 5;
+}
+
+function isPinVisibleAtZoom(pin, zoomLevel) {
+  return pin.zoomLevel <= pinZoomThreshold(zoomLevel);
+}
+
+function renderLeafletPins() {
+  if (!state.leafletMap || !state.leafletPinLayer || !window.L) return;
+
+  const pins = getMapPinCatalog();
+  const nextIds = new Set(pins.map((pin) => pin.id));
+
+  pins.forEach((pin) => {
+    const existing = state.leafletPinMarkers.get(pin.id);
+    if (existing) {
+      existing.__pinData = pin;
+      existing.setLatLng([pin.lat, pin.lon]);
+      syncLeafletPinIcon(existing, pin);
+      syncLeafletPinTooltip(existing, pin);
+      updateLeafletPinElement(existing, pin);
+      return;
+    }
+
+    const marker = L.marker([pin.lat, pin.lon], {
+      icon: createLeafletPinIcon(pin),
+      keyboard: true,
+      opacity: 0,
+      riseOnHover: true,
+      title: pin.name,
+      zIndexOffset: pinZIndex(pin),
+    });
+    marker.__pinData = pin;
+    marker.__iconSignature = leafletPinIconSignature(pin);
+    marker.on("click", (event) => {
+      if (event.originalEvent) L.DomEvent.stop(event.originalEvent);
+      selectMapPin(marker.__pinData);
+    });
+    syncLeafletPinTooltip(marker, pin);
+    marker.addTo(state.leafletPinLayer);
+    state.leafletPinMarkers.set(pin.id, marker);
+
+    window.requestAnimationFrame(() => {
+      updateLeafletPinElement(marker, pin);
+      updateLeafletPinVisibilityForMarker(marker, pin);
+    });
+  });
+
+  state.leafletPinMarkers.forEach((marker, id) => {
+    if (nextIds.has(id)) return;
+    marker.setOpacity(0);
+    window.clearTimeout(state.leafletPinFadeTimers.get(id));
+    const timer = window.setTimeout(() => {
+      state.leafletPinLayer?.removeLayer(marker);
+      state.leafletPinMarkers.delete(id);
+      state.leafletPinFadeTimers.delete(id);
+    }, 180);
+    state.leafletPinFadeTimers.set(id, timer);
+  });
+
+  updateLeafletPinVisibility();
+}
+
+function updateLeafletPinVisibility() {
+  if (!state.leafletMap || !state.leafletPinMarkers) return;
+
+  state.mapZoom = state.leafletMap.getZoom();
+  const visibleIds = new Set(filterPinsByZoom(state.mapZoom).map((pin) => pin.id));
+  state.leafletPinMarkers.forEach((marker, id) => {
+    updateLeafletPinVisibilityForMarker(marker, marker.__pinData, visibleIds.has(id));
+  });
+}
+
+function updateLeafletPinVisibilityForMarker(marker, pin, forceVisible = null) {
+  if (!marker || !pin) return;
+
+  const visible = forceVisible ?? isPinVisibleAtZoom(pin, state.mapZoom);
+  marker.setOpacity(visible ? 1 : 0);
+  const element = marker.getElement();
+  if (!element) return;
+  element.classList.toggle("is-visible", visible);
+  element.classList.toggle("is-hidden", !visible);
+  element.dataset.zoomLevel = String(pin.zoomLevel);
+  element.dataset.pinSource = pin.source;
+  element.dataset.pinType = pin.type;
+}
+
+function syncLeafletPinIcon(marker, pin) {
+  const signature = leafletPinIconSignature(pin);
+  if (marker.__iconSignature === signature) return;
+  marker.setIcon(createLeafletPinIcon(pin));
+  marker.__iconSignature = signature;
+  window.requestAnimationFrame(() => updateLeafletPinElement(marker, pin));
+}
+
+function syncLeafletPinTooltip(marker, pin) {
+  const html = leafletPinTooltipHtml(pin);
+  if (marker.getTooltip()) {
+    marker.setTooltipContent(html);
+    return;
+  }
+
+  marker.bindTooltip(html, {
+    className: "map-pin-tooltip",
+    direction: "top",
+    offset: [0, -16],
+    opacity: 0.96,
+    sticky: true,
+  });
+}
+
+function updateLeafletPinElement(marker, pin) {
+  const element = marker.getElement();
+  if (!element) return;
+
+  element.dataset.zoomLevel = String(pin.zoomLevel);
+  element.dataset.pinSource = pin.source;
+  element.dataset.pinType = pin.type;
+  element.classList.toggle("is-active", isMapPinActive(pin));
+  element.classList.toggle("is-detail-pin", pin.zoomLevel >= 14);
+}
+
+function createLeafletPinIcon(pin) {
+  const size = leafletPinSize(pin);
+  const anchor = pin.source === "favorite"
+    ? [size[0] / 2, size[1] / 2]
+    : [size[0] / 2, Math.max(30, size[1] - 4)];
+
+  return L.divIcon({
+    className: leafletPinClassName(pin),
+    html: leafletPinHtml(pin),
+    iconSize: size,
+    iconAnchor: anchor,
+    tooltipAnchor: [0, -Math.round(size[1] / 2)],
+  });
+}
+
+function leafletPinClassName(pin) {
+  const classes = [
+    "map-progressive-marker",
+    `is-${pin.source}`,
+    `is-${pin.type}`,
+    `is-zoom-${pin.zoomLevel}`,
+  ];
+
+  if (pin.source === "favorite") classes.push("favorite-star-marker");
+  else if (pin.source === "nearby" || pin.source === "search") classes.push("discovery-spot-marker");
+  else classes.push("map-db-pin-marker");
+  if (isMapPinActive(pin)) classes.push("is-active");
+  if (pin.zoomLevel >= 14) classes.push("is-detail-pin");
+
+  return classes.join(" ");
+}
+
+function leafletPinHtml(pin) {
+  const icon = pin.source === "favorite"
+    ? starIcon()
+    : pin.source === "known"
+      ? fishSpotIcon(markerFishForSpot({ fish: pin.species }))
+      : pinIcon();
+  const label = pin.zoomLevel >= 14 ? `<span class="map-pin-label">${escapeHtml(pin.name)}</span>` : "";
+  return `${icon}${label}`;
+}
+
+function leafletPinIconSignature(pin) {
+  return `${pin.source}:${pin.type}:${pin.zoomLevel}:${isMapPinActive(pin)}:${markerFishForSpot({ fish: pin.species })}`;
+}
+
+function leafletPinSize(pin) {
+  if (pin.source === "favorite") {
+    if (isMapPinActive(pin)) return [40, 40];
+    return pin.zoomLevel <= 5 ? [40, 40] : [34, 34];
+  }
+
+  if (pin.zoomLevel <= 5) return [46, 56];
+  if (pin.zoomLevel <= 8) return [40, 50];
+  if (pin.zoomLevel <= 11) return [34, 42];
+  return [30, 38];
+}
+
+function pinZIndex(pin) {
+  if (isMapPinActive(pin)) return 1300;
+  if (pin.source === "favorite") return 1100;
+  if (pin.zoomLevel <= 5) return 650;
+  if (pin.zoomLevel <= 8) return 560;
+  if (pin.zoomLevel <= 11) return 480;
+  return 390;
+}
+
+function leafletPinTooltipHtml(pin) {
+  const detail = [
+    pin.area,
+    pin.type === WATER_MODES.FRESHWATER ? t("Eau douce") : t("Mer"),
+    pin.species.length ? formatFishTargets(pin.species).replace("Cibles: ", "") : "",
+  ].filter(Boolean).join(" · ");
+
+  return `
+    <strong>${escapeHtml(pin.name)}</strong>
+    ${detail ? `<small>${escapeHtml(detail)}</small>` : ""}
+  `;
+}
+
+function isMapPinActive(pin) {
+  const active = getActiveSpot();
+  if (pin.source === "favorite" && pin.favoriteId === active.id) return true;
+  if (pin.source === "preset" && spotFavoriteId({ name: pin.name }) === active.id) return true;
+
+  const distance = distanceMeters({ lat: pin.lat, lon: pin.lon }, active);
+  return isValidNumber(distance) && distance < 40;
+}
+
+function hasCatalogPinForActive(active) {
+  return getMapPinCatalog().some((pin) => {
+    const distance = distanceMeters({ lat: pin.lat, lon: pin.lon }, active);
+    return isValidNumber(distance) && distance < 40;
+  });
+}
+
+function selectMapPin(pin) {
+  if (!pin) return;
+
+  if (pin.source === "favorite") {
+    const favorite = state.favorites.find((item) => item.id === pin.favoriteId);
+    if (favorite) selectFavorite(favorite);
+    return;
+  }
+
+  if (pin.source === "preset" && Number.isInteger(pin.presetIndex)) {
+    selectSpot(pin.presetIndex, { load: true });
+    return;
+  }
+
+  if (pin.source === "nearby" || pin.source === "search") {
+    selectDiscoveryMapResult({
+      id: pin.discoveryId,
+      source: pin.source,
+      lat: pin.lat,
+      lon: pin.lon,
+      waterMode: pin.type,
+    });
+    return;
+  }
+
+  state.pendingSpot = null;
+  setWaterMode(pin.type, { load: false });
+  state.spotResolution = provisionalSpotResolutionFromSearchResult({
+    name: pin.name,
+    detail: pin.area,
+    lat: pin.lat,
+    lon: pin.lon,
+    waterMode: pin.type,
+    waterKind: pin.type,
+  });
+  setCustomSpot(pin.lat, pin.lon, { load: true, name: pin.name });
+  setSpotPanelOpen(false);
+}
+
+function renderLeafletMarkers() {
+  if (!state.leafletMarkers) return;
+
+  renderLeafletPins();
+  state.leafletMarkers.clearLayers();
+  const active = getActiveSpot();
+
+  if (active.custom && !hasFavorite(active.id) && !hasCatalogPinForActive(active) && isValidNumber(active.lat) && isValidNumber(active.lon)) {
     L.circleMarker([active.lat, active.lon], {
       radius: 8,
       color: "#fff",

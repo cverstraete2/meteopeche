@@ -5,7 +5,7 @@ import { join } from "node:path";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const dist = join(root, "dist");
 const localVendor = join(root, "vendor");
-const files = ["index.html", "privacy.html", "styles.css", "app.js", "mobile-runtime.js", "config.js", "manifest.webmanifest", "sw.js", "_headers"];
+const files = ["index.html", "privacy.html", "styles.css", "app.js", "spots-db.js", "mobile-runtime.js", "config.js", "manifest.webmanifest", "sw.js", "_headers"];
 const defaultApiBaseUrl = "https://meteopeche-copernicus-977572434171.europe-west1.run.app";
 
 await rm(dist, { force: true, recursive: true });
