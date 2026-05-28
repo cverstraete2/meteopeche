@@ -1,4 +1,4 @@
-const CACHE_NAME = "meteocatch-shell-20260528-progressive-pins-v1";
+const CACHE_NAME = "meteocatch-shell-20260528-overpass-spots-v1";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -6,6 +6,7 @@ const APP_SHELL = [
   "./styles.css",
   "./app.js",
   "./spots-db.js",
+  "./overpass-spots.js",
   "./mobile-runtime.js",
   "./config.js",
   "./manifest.webmanifest",

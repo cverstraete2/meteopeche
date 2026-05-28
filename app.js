@@ -28,6 +28,13 @@ const MARINE_OVERLAY_MODES = ["none", "surface", "depth", "wave"];
 const THEME_MODES = ["light", "dark"];
 const LANGUAGE_MODES = ["fr", "en", "es", "de", "pt"];
 const PIN_ZOOM_LEVELS = [5, 8, 11, 14];
+const OVERPASS_MIN_ZOOM = 10;
+const OVERPASS_SPOT_ZOOM_LEVEL = 13;
+const OVERPASS_MIN_FETCH_INTERVAL_MS = 2000;
+const OVERPASS_RETRY_DELAY_MS = 30000;
+const OVERPASS_BOUNDS_MOVE_RATIO = 0.3;
+const OVERPASS_CACHE_LIMIT = 2000;
+const OVERPASS_CACHE_TRIM = 200;
 const PHOTO_MAX_EDGE = 1280;
 const PHOTO_JPEG_QUALITY = 0.76;
 const LANGUAGE_OPTIONS = {
@@ -49,6 +56,7 @@ const I18N_TRANSLATIONS = {
   "Autorisé": { en: "Allowed", es: "Permitido", de: "Erlaubt", pt: "Permitido" },
   "Refusé": { en: "Denied", es: "Denegado", de: "Abgelehnt", pt: "Recusado" },
   "Indisponible": { en: "Unavailable", es: "No disponible", de: "Nicht verfügbar", pt: "Indisponível" },
+  "Spots OSM indisponibles — réessai dans 30s": { en: "OSM spots unavailable — retrying in 30s", es: "Spots OSM no disponibles — reintento en 30s", de: "OSM-Spots nicht verfügbar — neuer Versuch in 30s", pt: "Spots OSM indisponíveis — nova tentativa em 30s" },
   "Notifications": { en: "Notifications", es: "Notificaciones", de: "Benachrichtigungen", pt: "Notificações" },
   "Activer": { en: "Enable", es: "Activar", de: "Aktivieren", pt: "Ativar" },
   "Actives": { en: "Enabled", es: "Activas", de: "Aktiv", pt: "Ativas" },
@@ -1907,6 +1915,12 @@ const state = {
   leafletPinLayer: null,
   leafletPinMarkers: new Map(),
   leafletPinFadeTimers: new Map(),
+  osmSpotsLastFetchedBounds: null,
+  osmSpotsLastFetchTime: 0,
+  osmSpotsFetchTimer: null,
+  osmSpotsLoading: false,
+  osmSpotsBlockedUntil: 0,
+  osmSpotsRequestId: 0,
   leafletMarkers: null,
   nauticalLayer: null,
   nauticalEnabled: true,
@@ -2462,6 +2476,7 @@ function initMapEngine() {
   state.leafletMarkers = L.layerGroup().addTo(state.leafletMap);
   state.leafletMap.on("click", selectLeafletMapPoint);
   state.leafletMap.on("moveend zoomend", syncLeafletState);
+  state.leafletMap.on("moveend zoomend", scheduleOverpassSpotFetch);
   state.leafletMap.on("zoomend", updateLeafletPinVisibility);
 }
 
@@ -3058,6 +3073,9 @@ function setWaterMode(mode, options = {}) {
   if (nextMode === state.waterMode) return;
 
   state.waterMode = nextMode;
+  state.osmSpotsRequestId += 1;
+  state.osmSpotsBlockedUntil = 0;
+  state.osmSpotsLoading = false;
   state.activeFishFilters = normalizeFishFilters(["all"]);
   state.activityFish = normalizeActivityFish(state.activityFish);
   if (!isSeaMode()) state.activeChart = "cloud";
@@ -3078,6 +3096,10 @@ function setWaterMode(mode, options = {}) {
   } else if (state.days.length) {
     renderAll();
   }
+
+  state.osmSpotsLastFetchedBounds = null;
+  renderLeafletPins();
+  scheduleOverpassSpotFetch({ force: true });
 }
 
 function normalizeMobileView(view) {
@@ -3287,6 +3309,8 @@ function updateMapLayerPanel() {
   if (els.mapLayersButton) {
     els.mapLayersButton.classList.toggle("is-active", state.mapLayerOpen);
     els.mapLayersButton.setAttribute("aria-expanded", String(state.mapLayerOpen));
+    els.mapLayersButton.classList.toggle("is-loading", state.osmSpotsLoading);
+    els.mapLayersButton.setAttribute("aria-busy", String(state.osmSpotsLoading));
   }
 
   if (els.mapLayerSheet) {
@@ -3298,6 +3322,28 @@ function updateMapLayerPanel() {
   if (els.mapLayerBackdrop) {
     els.mapLayerBackdrop.hidden = !state.mapLayerOpen;
   }
+}
+
+function updateOverpassLoadingIndicator() {
+  if (!els.mapLayersButton) return;
+  els.mapLayersButton.classList.toggle("is-loading", state.osmSpotsLoading);
+  els.mapLayersButton.setAttribute("aria-busy", String(state.osmSpotsLoading));
+}
+
+function showToast(message, options = {}) {
+  if (!message || !document.body) return;
+
+  const toast = document.createElement("div");
+  toast.className = "app-toast";
+  toast.setAttribute("role", "status");
+  toast.textContent = message;
+  document.body.append(toast);
+
+  window.requestAnimationFrame(() => toast.classList.add("is-visible"));
+  window.setTimeout(() => {
+    toast.classList.remove("is-visible");
+    window.setTimeout(() => toast.remove(), 220);
+  }, options.duration ?? 3600);
 }
 
 function setSpotPanelOpen(open) {
@@ -3469,6 +3515,7 @@ function renderSpotTools() {
   updateMapLayerPanel();
   updateSpotPanel();
   renderSpotNameSheet();
+  scheduleOverpassSpotFetch();
 
   const active = getActiveSpot();
   els.activeSpotName.textContent = active.name;
@@ -4590,6 +4637,153 @@ function filterPinsByZoom(zoomLevel) {
   return getMapPinCatalog().filter((pin) => isPinVisibleAtZoom(pin, zoomLevel));
 }
 
+function getOverpassService() {
+  return window.overpassSpots && typeof window.overpassSpots.fetchSpotsInBounds === "function"
+    ? window.overpassSpots
+    : null;
+}
+
+function getOsmSpotsCache() {
+  const service = getOverpassService();
+  return service?.spotsCache instanceof Map ? service.spotsCache : null;
+}
+
+function getOsmCachedSpots() {
+  const cache = getOsmSpotsCache();
+  return cache ? [...cache.values()] : [];
+}
+
+function leafletBoundsToOverpassBounds(bounds) {
+  if (!bounds) return null;
+
+  const north = Number(bounds.getNorth?.() ?? bounds.north);
+  const south = Number(bounds.getSouth?.() ?? bounds.south);
+  const east = Number(bounds.getEast?.() ?? bounds.east);
+  const west = Number(bounds.getWest?.() ?? bounds.west);
+
+  if (![north, south, east, west].every(isValidNumber)) return null;
+  return { north, south, east, west };
+}
+
+function scheduleOverpassSpotFetch(options = {}) {
+  if (!state.leafletMap || state.mapZoom < OVERPASS_MIN_ZOOM) {
+    window.clearTimeout(state.osmSpotsFetchTimer);
+    state.osmSpotsFetchTimer = null;
+    if (state.osmSpotsLoading) state.osmSpotsRequestId += 1;
+    state.osmSpotsLoading = false;
+    updateOverpassLoadingIndicator();
+    return;
+  }
+
+  const bounds = leafletBoundsToOverpassBounds(state.leafletMap.getBounds());
+  if (!bounds || (!options.force && !shouldFetchOverpassBounds(bounds))) return;
+  if (state.osmSpotsLoading) return;
+
+  const now = Date.now();
+  if (state.osmSpotsBlockedUntil > now) return;
+
+  const elapsed = now - state.osmSpotsLastFetchTime;
+  const delay = Math.max(0, OVERPASS_MIN_FETCH_INTERVAL_MS - elapsed);
+  window.clearTimeout(state.osmSpotsFetchTimer);
+  state.osmSpotsFetchTimer = window.setTimeout(fetchOverpassSpotsForCurrentBounds, delay);
+}
+
+function shouldFetchOverpassBounds(bounds) {
+  if (!state.osmSpotsLastFetchedBounds) return true;
+  return overpassBoundsMoveRatio(bounds, state.osmSpotsLastFetchedBounds) >= OVERPASS_BOUNDS_MOVE_RATIO;
+}
+
+function overpassBoundsMoveRatio(nextBounds, previousBounds) {
+  const next = boundsMetrics(nextBounds);
+  const previous = boundsMetrics(previousBounds);
+  if (!next || !previous) return 1;
+
+  const latShift = Math.abs(next.centerLat - previous.centerLat) / Math.max(previous.latSpan, 0.0001);
+  const lngShift = Math.abs(next.centerLng - previous.centerLng) / Math.max(previous.lngSpan, 0.0001);
+  const latScale = Math.abs(next.latSpan - previous.latSpan) / Math.max(previous.latSpan, 0.0001);
+  const lngScale = Math.abs(next.lngSpan - previous.lngSpan) / Math.max(previous.lngSpan, 0.0001);
+
+  return Math.max(latShift, lngShift, latScale, lngScale);
+}
+
+function boundsMetrics(bounds) {
+  if (!bounds) return null;
+
+  const latSpan = Math.abs(bounds.north - bounds.south);
+  const lngSpan = Math.abs(bounds.east - bounds.west);
+  return {
+    centerLat: (bounds.north + bounds.south) / 2,
+    centerLng: (bounds.east + bounds.west) / 2,
+    latSpan,
+    lngSpan,
+  };
+}
+
+async function fetchOverpassSpotsForCurrentBounds() {
+  const service = getOverpassService();
+  if (!service || !state.leafletMap || state.osmSpotsLoading || state.mapZoom < OVERPASS_MIN_ZOOM) return;
+
+  const bounds = leafletBoundsToOverpassBounds(state.leafletMap.getBounds());
+  if (!bounds || !shouldFetchOverpassBounds(bounds)) return;
+
+  const requestId = state.osmSpotsRequestId + 1;
+  state.osmSpotsRequestId = requestId;
+  state.osmSpotsLoading = true;
+  state.osmSpotsLastFetchTime = Date.now();
+  updateOverpassLoadingIndicator();
+
+  try {
+    const spots = await service.fetchSpotsInBounds(bounds, state.waterMode);
+    if (requestId !== state.osmSpotsRequestId) return;
+
+    cacheOsmSpots(spots.filter((spot) => isOsmSpotAllowedForWaterMode(spot, state.waterMode)));
+    state.osmSpotsLastFetchedBounds = bounds;
+    renderLeafletPins();
+  } catch (error) {
+    state.osmSpotsBlockedUntil = Date.now() + OVERPASS_RETRY_DELAY_MS;
+    showToast(t("Spots OSM indisponibles — réessai dans 30s"));
+  } finally {
+    if (requestId === state.osmSpotsRequestId) {
+      state.osmSpotsLoading = false;
+      updateOverpassLoadingIndicator();
+    }
+  }
+}
+
+function cacheOsmSpots(spotsList) {
+  const cache = getOsmSpotsCache();
+  if (!cache || !Array.isArray(spotsList)) return;
+
+  spotsList.forEach((spot) => {
+    if (!spot?.id || !isValidNumber(spot.lat) || !isValidNumber(spot.lng)) return;
+    if (cache.has(spot.id)) cache.delete(spot.id);
+    cache.set(spot.id, {
+      ...spot,
+      source: "osm",
+      zoomLevel: OVERPASS_SPOT_ZOOM_LEVEL,
+      type: normalizeWaterMode(spot.type),
+    });
+  });
+
+  trimOsmSpotsCache(cache);
+}
+
+function trimOsmSpotsCache(cache) {
+  if (!(cache instanceof Map) || cache.size <= OVERPASS_CACHE_LIMIT) return;
+
+  const removeCount = Math.min(OVERPASS_CACHE_TRIM, cache.size - OVERPASS_CACHE_LIMIT);
+  let removed = 0;
+  for (const key of cache.keys()) {
+    cache.delete(key);
+    removed += 1;
+    if (removed >= removeCount) break;
+  }
+}
+
+function isOsmSpotAllowedForWaterMode(spot, waterMode) {
+  return normalizeWaterMode(spot?.type) === normalizeWaterMode(waterMode);
+}
+
 function getMapPinCatalog() {
   const pins = [];
 
@@ -4605,6 +4799,25 @@ function getMapPinCatalog() {
       type: spot.type,
       species: spot.species,
       note: spot.note ?? "",
+    });
+    if (pin) pins.push(pin);
+  });
+
+  getOsmCachedSpots().forEach((spot) => {
+    if (!isOsmSpotAllowedForWaterMode(spot, state.waterMode)) return;
+    const pin = normalizeMapPin({
+      id: spot.id,
+      source: "osm",
+      name: spot.name,
+      area: spot.named ? "OpenStreetMap" : "",
+      lat: spot.lat,
+      lon: spot.lng ?? spot.lon,
+      zoomLevel: spot.zoomLevel ?? OVERPASS_SPOT_ZOOM_LEVEL,
+      type: spot.type,
+      species: [],
+      tags: spot.tags,
+      named: spot.named !== false,
+      osmElementType: spot.osmElementType,
     });
     if (pin) pins.push(pin);
   });
@@ -4669,7 +4882,7 @@ function getMapPinCatalog() {
       area: favorite.group ?? "Favori",
       lat: favorite.lat,
       lon: favorite.lon,
-      zoomLevel: 11,
+      zoomLevel: 8,
       type: favorite.waterMode ?? state.waterMode,
       species: [],
       favoriteId: favorite.id,
@@ -4704,7 +4917,7 @@ function normalizePinZoomLevel(value) {
   const zoom = Number(value);
   const defaultZoom = PIN_ZOOM_LEVELS[PIN_ZOOM_LEVELS.length - 1];
   if (!isValidNumber(zoom)) return defaultZoom;
-  return PIN_ZOOM_LEVELS.find((level) => zoom <= level) ?? defaultZoom;
+  return Math.max(PIN_ZOOM_LEVELS[0], Math.min(MAP_MAX_ZOOM, zoom));
 }
 
 function normalizePinType(type) {
@@ -4712,7 +4925,7 @@ function normalizePinType(type) {
 }
 
 function dedupeMapPins(pins) {
-  const priority = { favorite: 6, search: 5, nearby: 5, db: 4, preset: 3, known: 2 };
+  const priority = { favorite: 8, search: 7, nearby: 7, db: 6, preset: 5, osm: 3, known: 2 };
   const unique = new Map();
 
   pins.forEach((pin) => {
@@ -4745,7 +4958,8 @@ function pinZoomThreshold(zoomLevel) {
 }
 
 function isPinVisibleAtZoom(pin, zoomLevel) {
-  return pin.zoomLevel <= pinZoomThreshold(zoomLevel);
+  const zoom = Number(zoomLevel);
+  return isValidNumber(zoom) && pin.zoomLevel <= zoom;
 }
 
 function renderLeafletPins() {
@@ -4759,6 +4973,7 @@ function renderLeafletPins() {
     if (existing) {
       existing.__pinData = pin;
       existing.setLatLng([pin.lat, pin.lon]);
+      existing.setZIndexOffset(pinZIndex(pin));
       syncLeafletPinIcon(existing, pin);
       syncLeafletPinTooltip(existing, pin);
       updateLeafletPinElement(existing, pin);
@@ -4826,6 +5041,7 @@ function updateLeafletPinVisibilityForMarker(marker, pin, forceVisible = null) {
   element.dataset.zoomLevel = String(pin.zoomLevel);
   element.dataset.pinSource = pin.source;
   element.dataset.pinType = pin.type;
+  element.classList.toggle("is-label-enabled", pinHasHoverLabel(pin) && state.mapZoom >= 14);
 }
 
 function syncLeafletPinIcon(marker, pin) {
@@ -4861,6 +5077,9 @@ function updateLeafletPinElement(marker, pin) {
   element.dataset.pinType = pin.type;
   element.classList.toggle("is-active", isMapPinActive(pin));
   element.classList.toggle("is-detail-pin", pin.zoomLevel >= 14);
+  element.classList.toggle("is-named", pin.named !== false);
+  element.classList.toggle("is-unnamed", pin.named === false);
+  element.classList.toggle("is-label-enabled", pinHasHoverLabel(pin) && state.mapZoom >= 14);
 }
 
 function createLeafletPinIcon(pin) {
@@ -4888,7 +5107,10 @@ function leafletPinClassName(pin) {
 
   if (pin.source === "favorite") classes.push("favorite-star-marker");
   else if (pin.source === "nearby" || pin.source === "search") classes.push("discovery-spot-marker");
+  else if (pin.source === "osm") classes.push("osm-spot-marker");
   else classes.push("map-db-pin-marker");
+  if (pin.named === false) classes.push("is-unnamed");
+  else classes.push("is-named");
   if (isMapPinActive(pin)) classes.push("is-active");
   if (pin.zoomLevel >= 14) classes.push("is-detail-pin");
 
@@ -4901,15 +5123,24 @@ function leafletPinHtml(pin) {
     : pin.source === "known"
       ? fishSpotIcon(markerFishForSpot({ fish: pin.species }))
       : pinIcon();
-  const label = pin.zoomLevel >= 14 ? `<span class="map-pin-label">${escapeHtml(pin.name)}</span>` : "";
+  const label = pinHasHoverLabel(pin) ? `<span class="map-pin-label">${escapeHtml(pin.name)}</span>` : "";
   return `${icon}${label}`;
 }
 
 function leafletPinIconSignature(pin) {
-  return `${pin.source}:${pin.type}:${pin.zoomLevel}:${isMapPinActive(pin)}:${markerFishForSpot({ fish: pin.species })}`;
+  return `${pin.source}:${pin.type}:${pin.zoomLevel}:${pin.named !== false}:${isMapPinActive(pin)}:${markerFishForSpot({ fish: pin.species })}`;
+}
+
+function pinHasHoverLabel(pin) {
+  if (pin.source === "osm") return pin.named !== false;
+  return pin.zoomLevel >= 14;
 }
 
 function leafletPinSize(pin) {
+  if (pin.source === "osm" && pin.named === false) {
+    return isMapPinActive(pin) ? [28, 34] : [22, 28];
+  }
+
   if (pin.source === "favorite") {
     if (isMapPinActive(pin)) return [40, 40];
     return pin.zoomLevel <= 5 ? [40, 40] : [34, 34];
@@ -4924,6 +5155,7 @@ function leafletPinSize(pin) {
 function pinZIndex(pin) {
   if (isMapPinActive(pin)) return 1300;
   if (pin.source === "favorite") return 1100;
+  if (pin.source === "osm") return pin.named === false ? 330 : 360;
   if (pin.zoomLevel <= 5) return 650;
   if (pin.zoomLevel <= 8) return 560;
   if (pin.zoomLevel <= 11) return 480;

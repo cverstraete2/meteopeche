@@ -92,6 +92,9 @@
   --accent:         #0058cc;
   --accent-soft:    rgba(0, 88, 204, 0.10);
   --accent-grad:    linear-gradient(135deg, #0058cc 0%, #00a896 100%);
+  --acc:            var(--accent);
+  --t2:             var(--c-teal);
+  --t3:             var(--c-amber);
 
   --go:    #15803d;
   --go-bg: #dcfce7;
@@ -182,6 +185,9 @@
   --accent:         #38bdf8;
   --accent-soft:    rgba(56,189,248,0.12);
   --accent-grad:    linear-gradient(135deg, #38bdf8 0%, #2dd4bf 100%);
+  --acc:            var(--accent);
+  --t2:             var(--c-teal);
+  --t3:             var(--c-amber);
 
   --go:    #4ade80;
   --go-bg: rgba(74,222,128,0.13);
@@ -1486,6 +1492,7 @@ body.is-map-fullscreen-active .mobile-tabbar {
 }
 
 .map-control {
+  position: relative;
   width: 40px;
   height: 40px;
   border-radius: var(--r-sm);
@@ -1516,6 +1523,51 @@ body.is-map-fullscreen-active .mobile-tabbar {
 .map-control[aria-pressed="true"] {
   background: var(--accent-soft);
   color: var(--accent);
+}
+
+.map-layers-trigger.is-loading::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 2px solid rgba(56, 189, 248, 0.28);
+  border-top-color: var(--accent);
+  animation: markerSpinner 700ms linear infinite;
+}
+
+@keyframes markerSpinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.app-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--safe-bottom) + 92px);
+  z-index: 5000;
+  max-width: min(90vw, 420px);
+  transform: translate(-50%, 12px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-pill);
+  background: var(--surface-raised);
+  color: var(--text-1);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  padding: 10px 16px;
+  pointer-events: none;
+  text-align: center;
+  transition: opacity 180ms ease, transform 180ms ease;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.app-toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
 /* Fish filter */
@@ -3421,6 +3473,7 @@ body.is-map-fullscreen-active .mobile-tabbar {
 .fish-filter-icon,
 .map-progressive-marker,
 .map-db-pin-marker,
+.osm-spot-marker,
 .discovery-spot-marker,
 .favorite-star-marker,
 .known-fishing-marker,
@@ -3441,6 +3494,7 @@ body.is-map-fullscreen-active .mobile-tabbar {
 
 .fish-filter-icon svg,
 .map-db-pin-marker svg,
+.osm-spot-marker svg,
 .known-fishing-marker svg {
   width: 24px;
   height: 24px;
@@ -3460,6 +3514,10 @@ body.is-map-fullscreen-active .mobile-tabbar {
 
 .map-progressive-marker.is-hidden {
   pointer-events: none !important;
+}
+
+.map-progressive-marker.is-active {
+  transform: scale(1.2);
 }
 
 .map-progressive-marker.is-zoom-5 {
@@ -3486,6 +3544,31 @@ body.is-map-fullscreen-active .mobile-tabbar {
   width: 24px;
   height: 24px;
   fill: var(--accent);
+}
+
+.osm-spot-marker svg {
+  width: 26px;
+  height: 34px;
+  fill: var(--t2);
+  stroke: var(--bg-card);
+  stroke-width: 2.2;
+  paint-order: stroke fill;
+}
+
+.osm-spot-marker.is-unnamed svg {
+  width: 20px;
+  height: 26px;
+  fill: var(--t3);
+}
+
+.osm-spot-marker.is-active {
+  background: var(--acc);
+  box-shadow: 0 0 0 4px rgba(0, 88, 204, 0.22), var(--shadow-md);
+}
+
+.osm-spot-marker.is-active svg {
+  fill: var(--text-inv);
+  stroke: var(--acc);
 }
 
 .map-db-pin-marker.is-active {
@@ -3519,8 +3602,8 @@ body.is-map-fullscreen-active .mobile-tabbar {
   font-weight: 800;
 }
 
-.map-progressive-marker:hover .map-pin-label,
-.map-progressive-marker:focus-visible .map-pin-label {
+.map-progressive-marker.is-label-enabled:hover .map-pin-label,
+.map-progressive-marker.is-label-enabled:focus-visible .map-pin-label {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
@@ -3539,20 +3622,20 @@ body.is-map-fullscreen-active .mobile-tabbar {
 .favorite-star-marker svg {
   width: 28px;
   height: 28px;
-  fill: var(--amber);
+  fill: var(--acc);
   stroke: var(--bg-card);
   stroke-width: 2.2;
   paint-order: stroke fill;
 }
 
 .favorite-star-marker.is-active {
-  background: var(--amber);
+  background: var(--acc);
   box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.24), var(--shadow-md);
 }
 
 .favorite-star-marker.is-active svg {
   fill: var(--text-inv);
-  stroke: var(--amber);
+  stroke: var(--acc);
 }
 
 .discovery-spot-marker svg {
