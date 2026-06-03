@@ -16427,6 +16427,9 @@ function installMapProviderDebugInspector() {
   const eventSmokeRouteLabels = smokeRoutes
     .filter((route) => Number(route.expected?.nativeEventCountMin) > 0)
     .map((route) => route.label);
+  const capabilitySmokeRouteLabels = smokeRoutes
+    .filter((route) => route.expected?.nativeCapabilityError || route.expected?.nativeCapabilityErrorPrefix)
+    .map((route) => route.label);
   const inspector = {
     mapOverlayTileUrl,
     tileBbox4326,
@@ -16478,6 +16481,7 @@ function installMapProviderDebugInspector() {
   document.documentElement.dataset.mapProviderSmokeRouteCount = String(smokeRoutes.length);
   document.documentElement.dataset.mapProviderSmokeRouteLabels = smokeRoutes.map((route) => route.label).join(",");
   document.documentElement.dataset.mapProviderSmokeEventRouteLabels = eventSmokeRouteLabels.join(",");
+  document.documentElement.dataset.mapProviderSmokeCapabilityRouteLabels = capabilitySmokeRouteLabels.join(",");
 }
 
 installMapProviderDebugInspector();

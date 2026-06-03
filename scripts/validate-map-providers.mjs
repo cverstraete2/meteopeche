@@ -368,6 +368,7 @@ expectIncludes(contents.nativeBridgeDocs, "nativeDebugDatasets", "native bridge 
 expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-route-count", "native bridge contract doc documents smoke route count data attribute");
 expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-route-labels", "native bridge contract doc documents smoke route labels data attribute");
 expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-event-route-labels", "native bridge contract doc documents event smoke route labels data attribute");
+expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-capability-route-labels", "native bridge contract doc documents capability smoke route labels data attribute");
 expectIncludes(contents.nativeBridgeDocs, "native capability-failure entries for both providers", "native bridge contract doc documents native capability failure smoke routes");
 expectIncludes(contents.nativeBridgeDocs, "data-web-map-sdk-debug-google-overlay-count", "native bridge contract doc documents Google web debug overlay count");
 expectIncludes(contents.nativeBridgeDocs, "data-web-map-sdk-debug-apple-annotation-count", "native bridge contract doc documents Apple web debug annotation count");
@@ -495,6 +496,8 @@ expectIncludes(contents.source, "nativeDebugDatasets: [", "source event simulati
 expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmokeRouteCount", "source records smoke route count dataset");
 expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmokeRouteLabels", "source records smoke route labels dataset");
 expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmokeEventRouteLabels", "source records event smoke route labels dataset");
+expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmokeCapabilityRouteLabels", "source records capability smoke route labels dataset");
+expectIncludes(contents.source, "nativeCapabilityError || route.expected?.nativeCapabilityErrorPrefix", "source derives capability smoke route labels from expected metadata");
 expectIncludes(contents.source, "apple-native-debug-bridge-capability-protocol-fail", "source includes Apple native protocol capability failure smoke route");
 expectIncludes(contents.source, "apple-native-debug-bridge-capability-commands-fail", "source includes Apple native command capability failure smoke route");
 expectIncludes(contents.source, "apple-native-debug-bridge-capability-events-fail", "source includes Apple native event capability failure smoke route");
