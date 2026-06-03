@@ -446,6 +446,16 @@ For native experiments, `apple-native` and `google-native` require a Capacitor/n
 
 The iOS and Android projects include app-local `MeteoPecheMap` Capacitor bridge code. The iOS bridge can now report readiness for the default-off `apple-native` MapKit renderer when that provider is explicitly enabled, and the Android bridge can report readiness for the default-off `google-native` Google `MapView` renderer groundwork when a Maps API key is configured. Both expose `getDebugState` with a rolling native command journal for renderer validation.
 
+For an iOS MapKit smoke build in Xcode, keep the committed/default config unchanged and create a local test bundle:
+
+```bash
+METEOPECHE_EXPERIMENTAL_MAP_PROVIDERS=apple-native npm run build
+npx cap sync ios
+open ios/App/App.xcodeproj
+```
+
+Run the `App` scheme on a simulator or device, then inspect the app with Safari Develop tools. `document.documentElement.dataset.mapProvider` should be `apple-native`, `data-native-map-bridge-ready` should be `apple-native`, and both `data-map-provider-fallback-reason` and `data-map-provider-layer-error` should stay empty. Re-run `npm run build` without the environment variable before web/PWA validation to restore the ignored local `dist` config to the production-safe default.
+
 On localhost or `file://` only, the branch can mount a native provider against a debug bridge without native code:
 
 ```text

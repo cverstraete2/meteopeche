@@ -125,6 +125,10 @@ expectIncludes(contents.readme, "`containerMetrics`", "README documents native c
 expectIncludes(contents.readme, "command-type counts", "README documents native scaffold command-type counts");
 expectIncludes(contents.readme, "last received `containerMetrics`", "README documents native scaffold last container metrics");
 expectIncludes(contents.readme, "default-off `apple-native` MapKit renderer", "README documents default-off iOS MapKit renderer");
+expectIncludes(contents.readme, "METEOPECHE_EXPERIMENTAL_MAP_PROVIDERS=apple-native npm run build", "README documents iOS native Xcode smoke build");
+expectIncludes(contents.readme, "npx cap sync ios", "README documents iOS native Xcode sync");
+expectIncludes(contents.readme, "document.documentElement.dataset.mapProvider", "README documents iOS native runtime dataset check");
+expectIncludes(contents.readme, "Re-run `npm run build` without the environment variable", "README documents restoring default dist config after iOS smoke build");
 expectIncludes(contents.readme, "`MKTileOverlay` registry", "README documents iOS MapKit tile overlay registry");
 expectIncludes(contents.readme, "MapKit marker annotations and shape overlays", "README documents iOS MapKit marker and shape registries");
 expectIncludes(contents.readme, "layer membership, layer visibility, and pin-tier visibility", "README documents native layer membership and pin-tier visibility");
