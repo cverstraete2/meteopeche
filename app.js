@@ -54,6 +54,32 @@ const GOOGLE_MAPS_SCRIPT_ID = "google-maps-js-api";
 const APPLE_MAPKIT_SCRIPT_ID = "apple-mapkit-js-api";
 const APPLE_MAPKIT_JS_URL = "https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js";
 const SMART_ALERT_TYPES = ["rising-tide", "best-solunar", "wind-drop", "species-activity", "morning-report"];
+const ENTITLEMENT_TIERS = ["free", "pro"];
+const ENTITLEMENT_SOURCES = ["local", "storekit", "play-billing", "server", "test"];
+const PRO_FEATURES = [
+  "planning.10day",
+  "planning.monthly",
+  "alerts.windDrop",
+  "alerts.speciesActivity",
+  "alerts.multiSpot",
+  "glance.widgets",
+  "glance.liveActivity",
+  "glance.watch",
+  "journal.analytics",
+  "trip.export",
+];
+const FEATURE_ENTITLEMENTS = {
+  "planning.10day": "pro",
+  "planning.monthly": "pro",
+  "alerts.windDrop": "pro",
+  "alerts.speciesActivity": "pro",
+  "alerts.multiSpot": "pro",
+  "glance.widgets": "pro",
+  "glance.liveActivity": "pro",
+  "glance.watch": "pro",
+  "journal.analytics": "pro",
+  "trip.export": "pro",
+};
 const SMART_ALERT_DEFAULTS = {
   quietHours: { start: "21:00", end: "07:00" },
   maxPerDay: 2,
@@ -2134,6 +2160,7 @@ const state = {
   smartAlerts: defaultSmartAlertSettings(),
   smartAlertSchedule: [],
   glancePayload: null,
+  entitlements: defaultEntitlementState(),
   native: {
     isNative: Boolean(window.Capacitor?.isNativePlatform?.()),
     online: navigator.onLine !== false,
@@ -7390,6 +7417,7 @@ function restoreState() {
   state.smartAlerts = normalizeSmartAlertSettings(saved.smartAlerts);
   state.smartAlertSchedule = normalizeSmartAlertSchedule(saved.smartAlertSchedule);
   state.glancePayload = normalizeGlancePayload(readAppStore().glancePayload);
+  state.entitlements = normalizeEntitlementState(saved.entitlements);
 }
 
 function applyTheme(options = {}) {
@@ -7811,6 +7839,7 @@ function buildSmartAlertCandidates(options = {}) {
   SMART_ALERT_TYPES.forEach((type) => {
     const alertSettings = settings.alerts[type];
     if (!alertSettings?.enabled) return;
+    if (SMART_ALERT_CATALOG[type]?.proRequired && !canUseFeature(smartAlertFeature(type))) return;
     const builder = {
       "rising-tide": risingTideAlertCandidates,
       "best-solunar": bestSolunarAlertCandidates,
@@ -12874,14 +12903,22 @@ function renderSmartAlertSetup() {
   if (els.smartAlertQuietEnd) els.smartAlertQuietEnd.value = state.smartAlerts.quietHours.end;
   if (els.smartAlertPreview) {
     const mode = config.proRequired ? "Pro" : "Inclus";
+    const lock = config.proRequired && !canUseFeature(smartAlertFeature(type)) ? ` ${proFeatureReason(smartAlertFeature(type))}` : "";
     const lead = config.deliveryTime ? `à ${config.deliveryTime}` : `${alertSettings.leadMinutes} min avant`;
-    els.smartAlertPreview.textContent = `${config.label} · ${mode} · ${lead}. ${config.description} ${config.uncertaintyNote}`;
+    els.smartAlertPreview.textContent = `${config.label} · ${mode} · ${lead}. ${config.description} ${config.uncertaintyNote}${lock}`;
   }
   if (els.smartAlertStatus) {
     els.smartAlertStatus.textContent = scheduled.length
       ? `${scheduled.length} alertes programmées pour ${scheduled[0].spotName}.`
       : "Aucune alerte programmée.";
   }
+}
+
+function smartAlertFeature(type) {
+  return {
+    "wind-drop": "alerts.windDrop",
+    "species-activity": "alerts.speciesActivity",
+  }[type] ?? "alerts.basic";
 }
 
 function populateSmartAlertTypes() {
@@ -16855,6 +16892,7 @@ function saveSettings() {
     notificationsEnabled: Boolean(state.notificationsEnabled),
     smartAlerts: normalizeSmartAlertSettings(state.smartAlerts),
     smartAlertSchedule: normalizeSmartAlertSchedule(state.smartAlertSchedule),
+    entitlements: normalizeEntitlementState(state.entitlements),
   };
   updateAppStore((store) => {
     store.settings = {
@@ -17089,7 +17127,57 @@ function normalizeSettings(settings) {
     notificationsEnabled: Boolean(settings.notificationsEnabled),
     smartAlerts: normalizeSmartAlertSettings(settings.smartAlerts),
     smartAlertSchedule: normalizeSmartAlertSchedule(settings.smartAlertSchedule),
+    entitlements: normalizeEntitlementState(settings.entitlements),
   };
+}
+
+function defaultEntitlementState() {
+  return {
+    tier: "free",
+    source: "local",
+    expiresAt: null,
+    checkedAt: null,
+    features: {},
+  };
+}
+
+function normalizeEntitlementState(entitlements) {
+  const source = entitlements && typeof entitlements === "object" ? entitlements : {};
+  const tier = ENTITLEMENT_TIERS.includes(source.tier) ? source.tier : "free";
+  const entitlementSource = ENTITLEMENT_SOURCES.includes(source.source) ? source.source : "local";
+  const features = source.features && typeof source.features === "object" ? source.features : {};
+
+  return {
+    tier,
+    source: entitlementSource,
+    expiresAt: typeof source.expiresAt === "string" ? source.expiresAt : null,
+    checkedAt: typeof source.checkedAt === "string" ? source.checkedAt : null,
+    features: Object.fromEntries(PRO_FEATURES.map((feature) => [feature, Boolean(features[feature])])),
+  };
+}
+
+function hasEntitlement(entitlement = "pro") {
+  const entitlements = normalizeEntitlementState(state.entitlements);
+  if (entitlement === "free") return true;
+  if (entitlements.tier !== entitlement) return false;
+  if (!entitlements.expiresAt) return true;
+  return Date.parse(entitlements.expiresAt) > Date.now();
+}
+
+function featureRequiresPro(feature) {
+  return FEATURE_ENTITLEMENTS[feature] === "pro";
+}
+
+function canUseFeature(feature) {
+  const required = FEATURE_ENTITLEMENTS[feature] ?? "free";
+  return required === "free" || hasEntitlement(required);
+}
+
+function proFeatureReason(feature) {
+  if (canUseFeature(feature)) return "";
+  return featureRequiresPro(feature)
+    ? "Fonctionnalité MeteoCatch Pro."
+    : "Fonctionnalité indisponible.";
 }
 
 function defaultSmartAlertSettings() {
