@@ -2191,6 +2191,7 @@ const els = {
   dayTimeline: document.querySelector("#dayTimeline"),
   dayTimeRange: document.querySelector("#dayTimeRange"),
   dayTimelineTime: document.querySelector("#dayTimelineTime"),
+  dayTimelineReadout: document.querySelector("#dayTimelineReadout"),
   compassCanvas: document.querySelector("#compassCanvas"),
   chartCanvas: document.querySelector("#chartCanvas"),
   chartLegend: document.querySelector("#chartLegend"),
@@ -11186,6 +11187,7 @@ function setTimelineMinute(value) {
   state.timelineMinute = normalizeTimelineMinute(value);
   const selected = getSelectedDay();
   renderDayTimeline(selected);
+  renderTimingWindow(selected);
   renderConditionBrief(selected);
   renderMetrics(selected);
   renderWaterInsights(selected);
@@ -13372,11 +13374,29 @@ function renderDayTimeline(day) {
   }
 
   const minute = selectedTimelineMinute();
+  const today = localDateKey();
+  const now = new Date();
+  const nowMinute = normalizeTimelineMinute(now.getHours() * 60 + now.getMinutes());
+  const isToday = day.date === today;
+  const peakMinute = day.bestWindow?.peakMinute;
 
   els.dayTimeline.hidden = false;
+  els.dayTimeline.classList.toggle("is-today", isToday);
+  els.dayTimeline.classList.toggle("has-window-peak", isValidNumber(peakMinute));
+  els.dayTimeline.style.setProperty("--timeline-now", `${(nowMinute / 1425) * 100}%`);
+  els.dayTimeline.style.setProperty("--timeline-window-peak", `${((peakMinute ?? minute) / 1425) * 100}%`);
   els.dayTimeRange.value = String(minute);
   els.dayTimeRange.style.setProperty("--timeline-progress", `${(minute / 1425) * 100}%`);
+  els.dayTimeRange.setAttribute("aria-valuetext", `Sélection ${formatHourCompact(minute)}`);
   els.dayTimelineTime.textContent = formatHourCompact(minute);
+  if (els.dayTimelineReadout) {
+    const parts = [
+      `Sélection ${formatHourCompact(minute)}`,
+      isToday ? `maintenant ${formatHourCompact(nowMinute)}` : null,
+      isValidNumber(peakMinute) ? `pic ${formatHourCompact(peakMinute)}` : null,
+    ].filter(Boolean);
+    els.dayTimelineReadout.textContent = parts.join(" · ");
+  }
 }
 
 function renderRiggingCalculator(day) {

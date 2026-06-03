@@ -2783,6 +2783,7 @@ body.is-map-fullscreen-active .mobile-tabbar {
   box-shadow: none;
   gap: 6px;
   padding: 0 2px var(--sp-2);
+  position: relative;
 }
 
 .weather-timeline .day-timeline-head {
@@ -2809,22 +2810,44 @@ body.is-map-fullscreen-active .mobile-tabbar {
 }
 
 .weather-timeline input[type="range"] {
-  height: 3px;
-  background: linear-gradient(90deg, var(--accent) var(--timeline-progress, 50%), var(--border) var(--timeline-progress, 50%));
+  height: 28px;
+  border-radius: var(--r-pill);
+  background:
+    linear-gradient(90deg, transparent calc(var(--timeline-window-peak, 50%) - 1px), var(--go) calc(var(--timeline-window-peak, 50%) - 1px), var(--go) calc(var(--timeline-window-peak, 50%) + 1px), transparent calc(var(--timeline-window-peak, 50%) + 1px)),
+    linear-gradient(90deg, transparent calc(var(--timeline-now, -10%) - 1px), var(--warn) calc(var(--timeline-now, -10%) - 1px), var(--warn) calc(var(--timeline-now, -10%) + 1px), transparent calc(var(--timeline-now, -10%) + 1px)),
+    linear-gradient(90deg, var(--accent) var(--timeline-progress, 50%), var(--border) var(--timeline-progress, 50%));
+  background-size: 100% 4px;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
 .weather-timeline input[type="range"]::-webkit-slider-thumb {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--bg-card);
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow-sm);
 }
 
 .weather-timeline input[type="range"]::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--bg-card);
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow-sm);
 }
 
 .weather-timeline .day-timeline-scale {
   padding: 0;
+}
+
+.weather-timeline .day-timeline-readout {
+  min-height: 18px;
+  font-size: 0.72rem;
+  text-align: right;
+  color: var(--text-3);
+}
+
+.weather-timeline:not(.is-today) input[type="range"] {
+  --timeline-now: -10%;
 }
 
 .weather-subtabs {
