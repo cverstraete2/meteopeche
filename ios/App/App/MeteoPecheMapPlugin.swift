@@ -434,6 +434,7 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
             "markerClassNames": markerClassNamesDebugState(),
             "markerAnchorCount": markerPayloadCount(for: "iconAnchor"),
             "markerTooltipAnchorCount": markerPayloadCount(for: "tooltipAnchor"),
+            "markerPopupAnchorCount": markerPayloadCount(for: "popupAnchor"),
             "markerOpacityCount": markerPayloadCount(for: "opacity"),
             "markerZIndexCount": markerPayloadCount(for: "zIndexOffset"),
             "shapeOverlayCount": shapeOverlays.count,
@@ -471,7 +472,7 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
 
     private func markerPayloadCount(for key: String) -> Int {
         annotationPayloads.values.filter { payload in
-            if key == "iconAnchor" || key == "tooltipAnchor" {
+            if key == "iconAnchor" || key == "tooltipAnchor" || key == "popupAnchor" {
                 let icon = payload["icon"] as? [String: Any]
                 return numericPair(icon?[key]) != nil && numericPair(icon?["iconSize"]) != nil
             }

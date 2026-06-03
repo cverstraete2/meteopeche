@@ -6532,7 +6532,7 @@ function installLocalNativeMapBridgeDebug() {
     return counts;
   }, {});
   const markerPayloadCount = (key) => [...itemPayloads.values()].filter((payload) => {
-    if (key === "iconAnchor" || key === "tooltipAnchor") {
+    if (key === "iconAnchor" || key === "tooltipAnchor" || key === "popupAnchor") {
       return Array.isArray(payload?.icon?.[key]) && Array.isArray(payload?.icon?.iconSize);
     }
     return payload?.[key] !== undefined;
@@ -6561,6 +6561,7 @@ function installLocalNativeMapBridgeDebug() {
     markerClassNames: markerClassNamesState(),
     markerAnchorCount: markerPayloadCount("iconAnchor"),
     markerTooltipAnchorCount: markerPayloadCount("tooltipAnchor"),
+    markerPopupAnchorCount: markerPayloadCount("popupAnchor"),
     markerOpacityCount: markerPayloadCount("opacity"),
     markerZIndexCount: markerPayloadCount("zIndexOffset"),
     shapePopupCount: shapePayloadCount("popup"),
@@ -6818,6 +6819,7 @@ function installLocalNativeMapBridgeDebug() {
       document.documentElement.dataset.nativeMapBridgeDebugMarkerClassNames = markerClassNamesState().join("|");
       document.documentElement.dataset.nativeMapBridgeDebugMarkerAnchorCount = String(markerPayloadCount("iconAnchor"));
       document.documentElement.dataset.nativeMapBridgeDebugMarkerTooltipAnchorCount = String(markerPayloadCount("tooltipAnchor"));
+      document.documentElement.dataset.nativeMapBridgeDebugMarkerPopupAnchorCount = String(markerPayloadCount("popupAnchor"));
       document.documentElement.dataset.nativeMapBridgeDebugMarkerOpacityCount = String(markerPayloadCount("opacity"));
       document.documentElement.dataset.nativeMapBridgeDebugMarkerZIndexCount = String(markerPayloadCount("zIndexOffset"));
       document.documentElement.dataset.nativeMapBridgeDebugShapePopupCount = String(shapePayloadCount("popup"));

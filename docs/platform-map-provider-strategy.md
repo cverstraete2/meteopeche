@@ -272,6 +272,7 @@ Do not install Google or Apple map SDKs as the first step. First, introduce the 
 - Tightened iOS MapKit native marker updates so merged `updateItem` payloads immediately reapply callout, visibility, anchor, opacity, interactivity, and z-index styling to already-visible annotation views.
 - Added Android Google native marker anchor telemetry and provider-neutral icon anchor handling by translating shared `iconSize`/`iconAnchor` payloads into Google marker anchors while keeping existing opacity and z-index behavior.
 - Preserved provider-neutral `tooltipAnchor` values in native div-icon payloads and mirrored tooltip-anchor debug counts in the local native bridge plus iOS MapKit and Android Google scaffolds.
+- Mirrored provider-neutral `popupAnchor` debug counts beside icon and tooltip anchors across the local native bridge plus iOS MapKit and Android Google scaffolds.
 - Added first-pass Android Google native shape callouts: circle, polyline, and polygon clicks now reuse a shared info-window anchor to display popup or tooltip text while still emitting provider-scoped item-click events.
 - Fixed iOS MapKit native shape coordinate decoding so provider-neutral `[lat, lon]` arrays and one-level nested polygon arrays render as native polylines/polygons instead of requiring dictionary-shaped coordinates.
 - Added iOS MapKit native dashed-shape styling by mapping provider-neutral `dashArray` values to `MKOverlayPathRenderer.lineDashPattern`, preserving regulation/anchor overlay stroke semantics.

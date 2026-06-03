@@ -522,6 +522,7 @@ public class MeteoPecheMapPlugin extends Plugin implements OnMapReadyCallback {
         renderer.put("markerClassNames", markerClassNamesJson());
         renderer.put("markerAnchorCount", markerPayloadCount("iconAnchor"));
         renderer.put("markerTooltipAnchorCount", markerPayloadCount("tooltipAnchor"));
+        renderer.put("markerPopupAnchorCount", markerPayloadCount("popupAnchor"));
         renderer.put("markerOpacityCount", markerPayloadCount("opacity"));
         renderer.put("markerZIndexCount", markerPayloadCount("zIndexOffset"));
         renderer.put("nativeCircleCount", nativeCircles.size());
@@ -611,7 +612,7 @@ public class MeteoPecheMapPlugin extends Plugin implements OnMapReadyCallback {
         for (JSObject definition : markerDefinitions.values()) {
             JSObject payload = definition.getJSObject("payload");
             if (payload == null) continue;
-            if (key.equals("iconAnchor") || key.equals("tooltipAnchor")) {
+            if (key.equals("iconAnchor") || key.equals("tooltipAnchor") || key.equals("popupAnchor")) {
                 JSObject icon = payload.getJSObject("icon");
                 if (icon != null && numericPair(icon.opt(key)) != null && numericPair(icon.opt("iconSize")) != null) {
                     count += 1;
