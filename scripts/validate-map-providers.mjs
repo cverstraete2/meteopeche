@@ -363,6 +363,8 @@ expectIncludes(contents.nativeBridgeDocs, "data-map-provider-fallback-reason=\"m
 expectIncludes(contents.nativeBridgeDocs, "mapProviderSmokeRoutes()", "native bridge contract doc documents provider smoke route inspector");
 expectIncludes(contents.nativeBridgeDocs, "apple-native-debug-bridge-events", "native bridge contract doc documents Apple native event simulation smoke route");
 expectIncludes(contents.nativeBridgeDocs, "google-native-debug-bridge-events", "native bridge contract doc documents Google native event simulation smoke route");
+expectIncludes(contents.nativeBridgeDocs, "nativeEventCountMin", "native bridge contract doc documents event smoke route count expectation");
+expectIncludes(contents.nativeBridgeDocs, "nativeDebugDatasets", "native bridge contract doc documents event smoke route debug dataset expectations");
 expectIncludes(contents.nativeBridgeDocs, "data-web-map-sdk-debug-google-overlay-count", "native bridge contract doc documents Google web debug overlay count");
 expectIncludes(contents.nativeBridgeDocs, "data-web-map-sdk-debug-apple-annotation-count", "native bridge contract doc documents Apple web debug annotation count");
 expectIncludes(contents.source, "document.documentElement.dataset.nativeMapBridgeDebugCommandCount", "source records debug native command count");
@@ -480,6 +482,12 @@ expectIncludes(contents.source, "mapProviderDebugSimulateEvents", "source local 
 expectIncludes(contents.source, "apple-native-debug-bridge-events", "source includes Apple native event simulation smoke route");
 expectIncludes(contents.source, "google-native-debug-bridge-events", "source includes Google native event simulation smoke route");
 expectIncludes(contents.source, "mapProviderDebugSimulateEvents: \"1\"", "source enables automatic native event simulation from smoke routes");
+expectIncludes(contents.source, "nativeEventCountMin: 2", "source event simulation smoke routes define minimum native event count");
+expectIncludes(contents.source, "nativeEventTypes: [\"map:apple-native:moveend\", \"map:apple-native:zoomend\"]", "source Apple event simulation smoke route expects move and zoom events");
+expectIncludes(contents.source, "nativeEventTypes: [\"map:google-native:moveend\", \"map:google-native:zoomend\"]", "source Google event simulation smoke route expects move and zoom events");
+expectIncludes(contents.source, "optionalNativeEventTypes: [\"map:apple-native:click\"]", "source Apple event simulation smoke route documents optional click event");
+expectIncludes(contents.source, "optionalNativeEventTypes: [\"map:google-native:click\"]", "source Google event simulation smoke route documents optional click event");
+expectIncludes(contents.source, "nativeDebugDatasets: [", "source event simulation smoke routes expose native debug dataset expectations");
 expectIncludes(contents.source, "nativeEventCenter(payload)", "source normalizes native event centers");
 expectIncludes(contents.source, "nativeEventZoom(payload)", "source normalizes native event zoom");
 expectIncludes(contents.source, "nativePayloadLatLng", "source derives fallback native item-click coordinates from item payloads");

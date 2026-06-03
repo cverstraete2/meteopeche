@@ -16297,6 +16297,14 @@ function mapProviderSmokeRoutes(baseUrl = window.location.href) {
     }, {
       provider: MAP_PROVIDER_IDS.APPLE_NATIVE,
       fallbackReason: "",
+      nativeEventCountMin: 2,
+      nativeEventTypes: ["map:apple-native:moveend", "map:apple-native:zoomend"],
+      optionalNativeEventTypes: ["map:apple-native:click"],
+      nativeDebugDatasets: [
+        "data-native-map-bridge-debug-event-count",
+        "data-native-map-bridge-debug-last-camera-center",
+        "data-native-map-bridge-debug-last-camera-zoom",
+      ],
       note: "Auto-simulates native move and item-click callbacks for event parity smoke testing.",
     }),
     route("apple-native-debug-bridge-not-ready", {
@@ -16325,6 +16333,14 @@ function mapProviderSmokeRoutes(baseUrl = window.location.href) {
     }, {
       provider: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
       fallbackReason: "",
+      nativeEventCountMin: 2,
+      nativeEventTypes: ["map:google-native:moveend", "map:google-native:zoomend"],
+      optionalNativeEventTypes: ["map:google-native:click"],
+      nativeDebugDatasets: [
+        "data-native-map-bridge-debug-event-count",
+        "data-native-map-bridge-debug-last-camera-center",
+        "data-native-map-bridge-debug-last-camera-zoom",
+      ],
       note: "Auto-simulates native move and item-click callbacks for event parity smoke testing.",
     }),
     route("google-native-debug-bridge-not-ready", {

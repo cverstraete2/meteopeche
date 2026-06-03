@@ -144,4 +144,4 @@ The same local harness can intentionally fail SDK startup to prove the provider 
 Those failure routes should recover to Leaflet/OpenMap with `data-map-provider-fallback-reason="mount-failed"`.
 
 The app also exposes `window.METEOPECHE_MAP_PROVIDER_DEBUG.mapProviderSmokeRoutes()` for the canonical local QA route matrix and expected provider/fallback outcomes.
-That matrix includes `apple-native-debug-bridge-events` and `google-native-debug-bridge-events`, which add `mapProviderDebugSimulateEvents=1` to verify native move and item-click callback normalization from the same local smoke list.
+That matrix includes `apple-native-debug-bridge-events` and `google-native-debug-bridge-events`, which add `mapProviderDebugSimulateEvents=1` to verify native move and item-click callback normalization from the same local smoke list. Their expected metadata includes `nativeEventCountMin`, provider-scoped `nativeEventTypes`, optional click event types, and `nativeDebugDatasets` for event count and camera telemetry.
