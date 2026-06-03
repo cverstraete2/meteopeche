@@ -390,6 +390,10 @@ expectIncludes(contents.source, "item.setMap(this.visible)", "source native laye
 expectIncludes(contents.source, "this.setItemsVisible(nativeItems, this.visible)", "source native batch layers explicitly sync item visibility on add");
 expectIncludes(contents.source, "map: layer?.map ?? null", "source Google web markers defer unlayered map attachment");
 expectIncludes(contents.source, "batchGroup.setMap(layer.map)", "source web marker batches inherit parent layer visibility");
+expectIncludes(contents.source, "function googleWebMapEventName", "source maps app map events to Google web SDK events");
+expectIncludes(contents.source, "if (eventName === \"zoomend\") return \"zoom_changed\";", "source maps app zoomend to Google zoom_changed");
+expectIncludes(contents.source, "this.emit(\"zoom_changed\", { zoom })", "source local Google web debug SDK emits zoom_changed");
+expectIncludes(contents.docs, "app-level `zoomend` binds to Google `zoom_changed`", "strategy doc records Google web zoom event normalization");
 ["source", "dist", "ios", "android"].forEach((bundle) => {
   expectProviderPinTierLayerVisibility(contents[bundle], bundle);
   expectGoogleWebShapeLayerDeferral(contents[bundle], bundle);

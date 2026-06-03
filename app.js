@@ -3381,7 +3381,7 @@ class GoogleMapsWebProvider {
   }
 
   once(eventName, handler) {
-    const googleEvent = eventName === "moveend" ? "idle" : eventName;
+    const googleEvent = googleWebMapEventName(eventName);
     const listener = this.maps.event.addListener(this.map, googleEvent, (...args) => {
       listener.remove();
       this.listeners = this.listeners.filter((entry) => entry !== listener);
@@ -3508,7 +3508,7 @@ class GoogleMapsWebProvider {
   on(eventName, handler) {
     const events = String(eventName).split(/\s+/).filter(Boolean);
     events.forEach((event) => {
-      const googleEvent = event === "moveend" ? "idle" : event;
+      const googleEvent = googleWebMapEventName(event);
       const listener = this.maps.event.addListener(this.map, googleEvent, (payload) => {
         handler(this.normalizeEvent(event, payload));
       });
@@ -4977,6 +4977,12 @@ function googleDivIconAnchor(icon) {
   return options.iconAnchor ?? [size[0] / 2, size[1]];
 }
 
+function googleWebMapEventName(eventName) {
+  if (eventName === "moveend") return "idle";
+  if (eventName === "zoomend") return "zoom_changed";
+  return eventName;
+}
+
 function googleHtmlMarkerDomEventName(eventName) {
   if (eventName === "mouseover") return "mouseenter";
   if (eventName === "mouseout") return "mouseleave";
@@ -6046,6 +6052,7 @@ function createLocalGoogleMapsDebugSdk() {
 
     setZoom(zoom) {
       this.zoom = zoom;
+      this.emit("zoom_changed", { zoom });
       this.emit("idle", { zoom });
     }
 

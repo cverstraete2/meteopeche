@@ -160,6 +160,7 @@ Do not install Google or Apple map SDKs as the first step. First, introduce the 
 - Added Google Maps web runtime config gates: `enableGoogleMapsWeb` and `googleMapsApiKey`, generated from `METEOPECHE_ENABLE_GOOGLE_MAPS_WEB` and `METEOPECHE_GOOGLE_MAPS_API_KEY`.
 - Added a dormant Google Maps JS loader and placeholder provider. Chrome still falls back to Leaflet/OpenMap until the Google overlay adapter reaches parity.
 - Expanded the dormant Google Maps web provider with base map initialization, Google `ImageMapType` tile overlays, layer groups, visibility handling, event binding, click normalization, and provider view methods.
+- Normalized Google web map events so app-level `moveend` binds to Google `idle` and app-level `zoomend` binds to Google `zoom_changed`, preserving progressive pin-tier updates under the Google Maps JS provider.
 - Added shared tile URL helpers for Google overlay support, including XYZ tile URL generation and EPSG:4326 WMS BBOX generation for EMODnet overlays.
 - Moved low-risk app state sync and map centering calls from direct Leaflet access to provider methods.
 - Added provider geometry methods for markers, circle markers, circles, polylines, polygons, tooltips, popups, and layer clearing.
