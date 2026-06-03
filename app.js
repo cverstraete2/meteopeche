@@ -2297,6 +2297,7 @@ let i18nReverseMap = null;
 let i18nObserver = null;
 let i18nApplying = false;
 let i18nScheduled = false;
+let nativeMapInteractionRegionFrame = 0;
 
 function defaultLanguage() {
   const browserLanguage = String(navigator.languages?.[0] || navigator.language || "fr").toLowerCase().split("-")[0];
@@ -4452,6 +4453,7 @@ class NativeBridgeMapProvider {
       maxZoom: MAP_MAX_ZOOM,
     }, { strict: true });
     this.container.classList.add("is-native-map");
+    this.setInteractionRegions();
     return this.bridge;
   }
 
@@ -4699,6 +4701,15 @@ class NativeBridgeMapProvider {
       height: this.container?.clientHeight ?? 0,
       containerMetrics: nativeMapContainerMetrics(this.container),
     });
+    this.setInteractionRegions();
+  }
+
+  setInteractionRegions() {
+    return this.call("setInteractionRegions", nativeMapInteractionRegions(this.container, this.id));
+  }
+
+  usesWebMapGestures() {
+    return this.id !== MAP_PROVIDER_IDS.APPLE_NATIVE;
   }
 
   metersPerCssPixel() {
@@ -5393,6 +5404,84 @@ function nativeMapContainerMetrics(container) {
   };
 }
 
+function nativeMapInteractionRegions(container, providerId = state.mapProviderId) {
+  return {
+    providerId,
+    passthroughEnabled: providerId === MAP_PROVIDER_IDS.APPLE_NATIVE
+      && (!isMobileLayout() || state.activeMobileView === "map"),
+    mapFrame: nativeMapContainerMetrics(container),
+    interactiveRects: nativeMapInteractiveRects(),
+  };
+}
+
+function nativeMapInteractiveRects() {
+  const elements = new Set([
+    els.spotControls,
+    els.spotNameSheet,
+    els.mapOverlayActions,
+    els.mapZoomIn,
+    els.mapZoomOut,
+    els.mapFullscreenButton,
+    els.mapLayersButton,
+    els.mapLayerSheet,
+    els.mapLayerBackdrop,
+    els.fishFilterControl,
+    els.fishFilterPanel,
+    els.marineOverlayControl,
+    els.safetyBanner,
+    els.mapFavoritesButton,
+    els.mapFavoritesOverlay,
+    document.querySelector("#mobileTabbar"),
+    ...document.querySelectorAll(".app-toast"),
+  ]);
+
+  return [...elements]
+    .map(nativeMapInteractiveRect)
+    .filter(Boolean);
+}
+
+function nativeMapInteractiveRect(element) {
+  if (!isNativeMapInteractiveElementVisible(element)) return null;
+  const rect = element.getBoundingClientRect();
+  const padding = 6;
+  const left = Math.max(0, rect.left - padding);
+  const top = Math.max(0, rect.top - padding);
+  const right = rect.right + padding;
+  const bottom = rect.bottom + padding;
+  return {
+    left,
+    top,
+    right,
+    bottom,
+    width: right - left,
+    height: bottom - top,
+  };
+}
+
+function isNativeMapInteractiveElementVisible(element) {
+  if (!(element instanceof Element) || element.hidden || element.inert) return false;
+  if (element.getAttribute("aria-hidden") === "true") return false;
+  const rect = element.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return false;
+  const style = window.getComputedStyle(element);
+  return style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity) !== 0;
+}
+
+function scheduleNativeMapInteractionRegionSync() {
+  if (nativeMapInteractionRegionFrame) return;
+  nativeMapInteractionRegionFrame = window.requestAnimationFrame(() => {
+    nativeMapInteractionRegionFrame = 0;
+    const provider = state.mapProvider;
+    if (!provider || typeof provider.setInteractionRegions !== "function") return;
+    provider.setInteractionRegions();
+  });
+}
+
+function shouldInstallMapSurfaceGestures() {
+  const provider = state.mapProvider;
+  return !provider || (typeof provider.usesWebMapGestures === "function" && provider.usesWebMapGestures());
+}
+
 function nativeTileOverlayPayload(overlay) {
   return {
     id: overlay.id,
@@ -5561,6 +5650,26 @@ function nativeBridgeContract(providerId = MAP_PROVIDER_IDS.APPLE_NATIVE) {
           visualViewportScale: 1,
           devicePixelRatio: 3,
         },
+      },
+      setInteractionRegions: {
+        providerId,
+        passthroughEnabled: providerId === MAP_PROVIDER_IDS.APPLE_NATIVE,
+        mapFrame: {
+          width: 390,
+          height: 640,
+          left: 0,
+          top: 0,
+          right: 390,
+          bottom: 640,
+        },
+        interactiveRects: [{
+          left: 16,
+          top: 16,
+          right: 120,
+          bottom: 84,
+          width: 104,
+          height: 68,
+        }],
       },
       createTileOverlay: {
         providerId,
@@ -6467,6 +6576,7 @@ const NATIVE_MAP_BRIDGE_COMMANDS = [
   "init",
   "setView",
   "invalidateSize",
+  "setInteractionRegions",
   "createTileOverlay",
   "setLayerVisible",
   "clearLayer",
@@ -6509,6 +6619,7 @@ function installLocalNativeMapBridgeDebug() {
   const pinTiers = new Map();
   const pinTierVisibility = new Map();
   let rendererFrame = null;
+  let interactionRegions = null;
   let lastCameraCenter = null;
   let lastCameraZoom = null;
   const unsupportedValue = params.get("mapProviderDebugBridgeUnsupported") ?? params.get("native_map_bridge_debug_unsupported") ?? "";
@@ -6624,6 +6735,7 @@ function installLocalNativeMapBridgeDebug() {
     implemented: false,
     ready: supportedProviders.includes(providerId),
     frame: rendererFrame,
+    interactionRegionCount: interactionRegions?.interactiveRects?.length ?? 0,
     lastCameraCenter,
     lastCameraZoom,
     tileOverlayCount: tileOverlayDefinitions.size,
@@ -6731,6 +6843,10 @@ function installLocalNativeMapBridgeDebug() {
     if (command === "init" || command === "invalidateSize") {
       if (payload.containerMetrics) rendererFrame = payload.containerMetrics;
     }
+    if (command === "setInteractionRegions") {
+      interactionRegions = payload;
+      if (payload.mapFrame) rendererFrame = payload.mapFrame;
+    }
     if (command === "setView") {
       if (payload.center) {
         lastCameraCenter = {
@@ -6809,6 +6925,7 @@ function installLocalNativeMapBridgeDebug() {
       tileOverlayVisibility.clear();
       pinTiers.clear();
       pinTierVisibility.clear();
+      interactionRegions = null;
       rendererFrame = null;
       lastCameraCenter = null;
       lastCameraZoom = null;
@@ -6920,6 +7037,9 @@ function installLocalNativeMapBridgeDebug() {
         .join(",");
       if (payload?.containerMetrics) {
         document.documentElement.dataset.nativeMapBridgeDebugContainerMetrics = JSON.stringify(payload.containerMetrics);
+      }
+      if (payload?.interactiveRects) {
+        document.documentElement.dataset.nativeMapBridgeDebugInteractionRegionCount = String(payload.interactiveRects.length);
       }
       document.documentElement.dataset.nativeMapBridgeDebugLayerCount = String(layerMembership.size);
       document.documentElement.dataset.nativeMapBridgeDebugLayerMembership = JSON.stringify(layerMembershipState());
@@ -7884,6 +8004,7 @@ function updateFavoritesOverlay() {
     els.mapFavoritesOverlay.setAttribute("aria-hidden", String(!state.favoritesOpen));
     els.mapFavoritesOverlay.inert = !state.favoritesOpen;
   }
+  scheduleNativeMapInteractionRegionSync();
 }
 
 function setMapFullscreen(open) {
@@ -7902,6 +8023,7 @@ function setMapFullscreen(open) {
   window.requestAnimationFrame(() => {
     state.mapProvider?.invalidateSize?.();
     updateMapScale();
+    scheduleNativeMapInteractionRegionSync();
   });
 }
 
@@ -7922,6 +8044,7 @@ function updateMapLayerPanel() {
   if (els.mapLayerBackdrop) {
     els.mapLayerBackdrop.hidden = !state.mapLayerOpen;
   }
+  scheduleNativeMapInteractionRegionSync();
 }
 
 function updateOverpassLoadingIndicator() {
@@ -7966,6 +8089,7 @@ function updateSpotPanel() {
     els.spotForm.inert = !state.spotPanelOpen;
     els.spotForm.toggleAttribute("inert", !state.spotPanelOpen);
   }
+  scheduleNativeMapInteractionRegionSync();
 }
 
 function getSelectedPreset() {
@@ -8052,6 +8176,7 @@ function renderSpotNameSheet() {
   els.spotNameSheet.classList.toggle("is-open", Boolean(pending));
   els.spotNameSheet.setAttribute("aria-hidden", pending ? "false" : "true");
   els.spotNameSheet.inert = !pending;
+  scheduleNativeMapInteractionRegionSync();
 
   if (!pending) return;
 
@@ -9059,6 +9184,7 @@ function renderFishFilterControls() {
     });
     els.fishFilterPanel.append(button);
   });
+  scheduleNativeMapInteractionRegionSync();
 }
 
 function selectFishFilter(id) {
@@ -10790,7 +10916,7 @@ function bindEvents() {
   els.spotNameCancel.addEventListener("click", closeSpotNameSheet);
   els.spotNameFavorite.addEventListener("click", () => confirmPendingSpot({ favorite: true }));
 
-  if (!state.mapProvider || isNativeMapProvider(state.mapProviderId)) {
+  if (shouldInstallMapSurfaceGestures()) {
     els.spotMap.addEventListener("click", selectMapPoint);
     els.spotMap.addEventListener("pointerdown", startMapDrag);
     els.spotMap.addEventListener("mousedown", rememberMapClickStart);

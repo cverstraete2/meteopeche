@@ -36,6 +36,7 @@ Both native bridges keep a small rolling command journal, command-type counts, e
 | `init` | Create the native map under the web map container and apply initial center, zoom, min zoom, max zoom, and container layout metrics. |
 | `setView` | Move the map camera to a normalized `{ lat, lon }` center and zoom. |
 | `invalidateSize` | Recalculate native map layout after web layout changes, using the latest container layout metrics. |
+| `setInteractionRegions` | Report web UI rectangles that must keep receiving touches while the empty Apple native map surface passes gestures through to MapKit. |
 | `createTileOverlay` | Register a shared marine tile overlay, including seamarks and EMODnet WMS metadata. |
 | `setLayerVisible` | Show or hide a provider layer or overlay. |
 | `clearLayer` | Remove all items from a layer and clear their rendered native handles. |
@@ -68,6 +69,7 @@ Both native bridges keep a small rolling command journal, command-type counts, e
 - Layer visibility and clearing commands should resolve or reject their bridge promises consistently. The web provider listens for those async results in debug-sensitive layer paths, clearing stale `data-map-provider-layer-error` values after successful native updates and recording a bounded diagnostic only when the bridge rejects.
 - `setLayerVisible` should apply to every native item currently owned by that layer, including marker, circle, polyline, and polygon handles, so non-tile layers such as bathymetry labels, regulation shapes, anchor-watch overlays, and progressive pin tier groups keep the same visibility semantics across Leaflet, MapKit, Google Maps, and the local native debug bridge.
 - `init` and `invalidateSize` include `containerMetrics` with CSS-pixel bounds (`width`, `height`, `left`, `top`, `right`, `bottom`), page scroll, visual viewport offsets/scale, and `devicePixelRatio`. Native renderers should use this to align a platform map view beneath the web UI.
+- `setInteractionRegions` includes `passthroughEnabled`, a `mapFrame` matching the native map CSS-pixel bounds, and `interactiveRects` with CSS-pixel rectangles for web controls, sheets, menus, and the tab bar. The iOS bridge uses these rectangles to let `MKMapView` own pan/zoom gestures on empty map space while preserving web UI taps. Android accepts the command for capability parity while its touch path remains unchanged.
 
 ## Events
 

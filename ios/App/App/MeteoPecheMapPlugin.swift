@@ -106,7 +106,7 @@ private class MeteoPecheMapTileOverlay: MKTileOverlay {
 }
 
 @objc(MeteoPecheMapPlugin)
-class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
+class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate, UIGestureRecognizerDelegate {
     private typealias MapKitAnnotationUpdate = (
         itemId: String,
         itemType: String,
@@ -127,6 +127,7 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         "init",
         "setView",
         "invalidateSize",
+        "setInteractionRegions",
         "createTileOverlay",
         "setLayerVisible",
         "clearLayer",
@@ -175,6 +176,7 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
     private var itemLayers: [String: String] = [:]
     private var pinTiers: [String: [String: Any]] = [:]
     private var pinTierVisibility: [String: Bool] = [:]
+    private var mapTapRecognizer: UITapGestureRecognizer?
 
     let identifier = "MeteoPecheMapPlugin"
     let jsName = "MeteoPecheMap"
@@ -185,6 +187,7 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         CAPPluginMethod(name: "init", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setView", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "invalidateSize", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setInteractionRegions", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "createTileOverlay", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setLayerVisible", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clearLayer", returnType: CAPPluginReturnPromise),
@@ -260,6 +263,11 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
     @objc func invalidateSize(_ call: CAPPluginCall) {
         applyContainerMetrics(call.getObject("containerMetrics"))
         resolveCommand(call, "invalidateSize")
+    }
+
+    @objc func setInteractionRegions(_ call: CAPPluginCall) {
+        applyInteractionRegions(call)
+        resolveCommand(call, "setInteractionRegions")
     }
 
     @objc func createTileOverlay(_ call: CAPPluginCall) {
@@ -359,6 +367,12 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
             self.itemLayers.removeAll()
             self.pinTiers.removeAll()
             self.pinTierVisibility.removeAll()
+            self.mapTapRecognizer = nil
+            if let passthroughWebView = self.webView as? MeteoPechePassthroughWebView {
+                passthroughWebView.nativeMapPassthroughEnabled = false
+                passthroughWebView.nativeMapFrame = .null
+                passthroughWebView.nativeMapInteractiveRects = []
+            }
         }
         call.resolve()
     }
@@ -449,6 +463,7 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
             "mapViewAttached": mapView?.superview != nil,
             "mapViewHidden": mapView?.isHidden ?? true,
             "frame": mapViewFrame ?? NSNull(),
+            "interactionRegionCount": (webView as? MeteoPechePassthroughWebView)?.nativeMapInteractiveRects.count ?? 0,
             "lastCameraCenter": lastCameraCenter ?? NSNull(),
             "lastCameraZoom": lastCameraZoom ?? NSNull(),
             "tileOverlayCount": tileOverlays.count,
@@ -547,15 +562,13 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         DispatchQueue.main.async {
             if self.mapView == nil {
                 let mapView = MKMapView(frame: .zero)
-                mapView.isHidden = false
-                mapView.isUserInteractionEnabled = true
-                mapView.mapType = .standard
-                mapView.delegate = self
+                self.configureMapKitView(mapView)
                 self.bridge?.viewController?.view.insertSubview(mapView, at: 0)
                 self.mapView = mapView
             }
             self.applyContainerMetrics(call.getObject("containerMetrics"))
             self.applyCamera(call)
+            self.applyInteractionRegions(call)
         }
     }
 
@@ -795,13 +808,50 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
     private func ensureMapKitViewForOverlay() {
         if self.mapView == nil {
             let mapView = MKMapView(frame: .zero)
-            mapView.isHidden = false
-            mapView.isUserInteractionEnabled = true
-            mapView.mapType = .standard
-            mapView.delegate = self
+            self.configureMapKitView(mapView)
             self.bridge?.viewController?.view.insertSubview(mapView, at: 0)
             self.mapView = mapView
         }
+    }
+
+    private func configureMapKitView(_ mapView: MKMapView) {
+        mapView.isHidden = false
+        mapView.isUserInteractionEnabled = true
+        mapView.mapType = .standard
+        mapView.delegate = self
+        let tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleMapKitTap(_:)))
+        tapRecognizer.cancelsTouchesInView = false
+        tapRecognizer.delegate = self
+        mapView.addGestureRecognizer(tapRecognizer)
+        mapTapRecognizer = tapRecognizer
+    }
+
+    @objc private func handleMapKitTap(_ recognizer: UITapGestureRecognizer) {
+        guard
+            recognizer.state == .ended,
+            let mapView = recognizer.view as? MKMapView
+        else { return }
+        let point = recognizer.location(in: mapView)
+        if mapKitHitView(mapView, at: point, contains: MKAnnotationView.self) { return }
+        let coordinate = mapView.convert(point, toCoordinateFrom: mapView)
+        guard CLLocationCoordinate2DIsValid(coordinate) else { return }
+        emitMapKitEvent("click", payload: [
+            "lat": coordinate.latitude,
+            "lon": coordinate.longitude
+        ])
+    }
+
+    private func mapKitHitView<T: UIView>(_ rootView: UIView, at point: CGPoint, contains viewType: T.Type) -> Bool {
+        var hitView = rootView.hitTest(point, with: nil)
+        while let view = hitView {
+            if view is T { return true }
+            hitView = view.superview
+        }
+        return false
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        true
     }
 
     func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
@@ -1129,6 +1179,9 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         DispatchQueue.main.async {
             self.mapView?.frame = frame
             self.mapView?.autoresizingMask = []
+            if let passthroughWebView = self.webView as? MeteoPechePassthroughWebView {
+                passthroughWebView.nativeMapFrame = frame
+            }
             self.mapViewFrame = [
                 "left": Double(left),
                 "top": Double(top),
@@ -1141,6 +1194,21 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
                     "height": Double(self.mapView?.frame.height ?? 0)
                 ]
             ]
+        }
+    }
+
+    private func applyInteractionRegions(_ call: CAPPluginCall) {
+        let enabled = call.getBool("passthroughEnabled") ?? true
+        let mapFramePayload = call.getObject("mapFrame") ?? call.getObject("containerMetrics")
+        let interactiveRects = rawArray(call, "interactiveRects")
+            .compactMap { $0 as? [String: Any] }
+            .compactMap { rectValue($0) }
+
+        DispatchQueue.main.async {
+            guard let passthroughWebView = self.webView as? MeteoPechePassthroughWebView else { return }
+            passthroughWebView.nativeMapPassthroughEnabled = enabled
+            passthroughWebView.nativeMapFrame = self.rectValue(mapFramePayload) ?? self.mapView?.frame ?? .null
+            passthroughWebView.nativeMapInteractiveRects = interactiveRects
         }
     }
 
@@ -1185,6 +1253,23 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
             return double.isFinite ? double : nil
         }
         return nil
+    }
+
+    private func rectValue(_ payload: [String: Any]?) -> CGRect? {
+        guard
+            let payload = payload,
+            let left = cgFloat(payload["left"] ?? payload["x"]),
+            let top = cgFloat(payload["top"] ?? payload["y"])
+        else { return nil }
+
+        let width = cgFloat(payload["width"])
+            ?? cgFloat(payload["right"]).map { max(0, $0 - left) }
+            ?? 0
+        let height = cgFloat(payload["height"])
+            ?? cgFloat(payload["bottom"]).map { max(0, $0 - top) }
+            ?? 0
+        guard width.isFinite, height.isFinite, width >= 0, height >= 0 else { return nil }
+        return CGRect(x: left, y: top, width: width, height: height)
     }
 
     private func rawArray(_ call: CAPPluginCall, _ key: String) -> [Any] {

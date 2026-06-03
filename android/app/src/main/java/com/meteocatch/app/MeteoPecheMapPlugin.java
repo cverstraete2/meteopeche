@@ -65,6 +65,7 @@ public class MeteoPecheMapPlugin extends Plugin implements OnMapReadyCallback {
         "init",
         "setView",
         "invalidateSize",
+        "setInteractionRegions",
         "createTileOverlay",
         "setLayerVisible",
         "clearLayer",
@@ -209,6 +210,11 @@ public class MeteoPecheMapPlugin extends Plugin implements OnMapReadyCallback {
         applyContainerMetrics(call.getObject("containerMetrics"));
         updateGoogleMapFrame();
         resolveCommand(call, "invalidateSize");
+    }
+
+    @PluginMethod
+    public void setInteractionRegions(PluginCall call) {
+        resolveCommand(call, "setInteractionRegions");
     }
 
     @PluginMethod

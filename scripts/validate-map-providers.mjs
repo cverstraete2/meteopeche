@@ -116,9 +116,11 @@ expectIncludes(contents.source, "loadLeafletLibraryFallback", "source defines ca
 expectIncludes(contents.source, "leaflet-js-fallback", "source marks fallback Leaflet script");
 expectIncludes(contents.source, "vendor/leaflet/leaflet.js?v=20260603-native-cache-recovery", "source loads cache-busted Leaflet fallback script");
 expectIncludes(contents.source, "document.documentElement.classList.toggle(\"is-native-map-provider\", isNativeMapProvider(state.mapProviderId))", "source marks native provider for transparent web corridor");
-expectIncludes(contents.source, "if (!state.mapProvider || isNativeMapProvider(state.mapProviderId))", "source installs map surface gestures for native providers");
-expectIncludes(contents.ios, "if (!state.mapProvider || isNativeMapProvider(state.mapProviderId))", "iOS bundle installs map surface gestures for native providers");
-expectIncludes(contents.android, "if (!state.mapProvider || isNativeMapProvider(state.mapProviderId))", "Android bundle installs map surface gestures for native providers");
+expectIncludes(contents.source, "function shouldInstallMapSurfaceGestures()", "source gates fallback map surface gestures");
+expectIncludes(contents.source, "usesWebMapGestures() {\n    return this.id !== MAP_PROVIDER_IDS.APPLE_NATIVE;", "source lets Apple native MapKit own map gestures");
+expectIncludes(contents.source, "setInteractionRegions", "source reports native map interaction regions");
+expectIncludes(contents.ios, "function shouldInstallMapSurfaceGestures()", "iOS bundle gates fallback map surface gestures");
+expectIncludes(contents.android, "function shouldInstallMapSurfaceGestures()", "Android bundle gates fallback map surface gestures");
 expectIncludes(contents.styles, "html.is-native-map-provider[data-current-mobile-view=\"map\"] body", "styles scope native map body transparency to map tab");
 expectIncludes(contents.styles, "html.is-native-map-provider[data-current-mobile-view=\"map\"] .spot-map", "styles keep native map surface transparent through web layer on map tab");
 expectIncludes(contents.styles, "html.is-native-map-provider:not([data-current-mobile-view=\"map\"]) body", "styles restore opaque app background away from native map tab");
@@ -244,6 +246,7 @@ expectIncludes(
   "init",
   "setView",
   "invalidateSize",
+  "setInteractionRegions",
   "createTileOverlay",
   "setLayerVisible",
   "clearLayer",
@@ -868,12 +871,15 @@ expectIncludes(contents.iosNativeMapPlugin, "\"pinTierCount\"", "iOS native map 
 expectIncludes(contents.iosNativeMapPlugin, "call.getObject(\"overlay\")", "iOS native map plugin reads nested tile overlay payload");
 expectIncludes(contents.iosNativeMapPlugin, "recordCommand(\"init\", call)", "iOS native map plugin records strict init command");
 expectIncludes(contents.iosNativeMapPlugin, "resolveCommand(call, \"setView\")", "iOS native map plugin records non-strict commands");
+expectIncludes(contents.iosBridgeViewController, "MeteoPechePassthroughWebView", "iOS bridge view controller installs MapKit passthrough web view");
+expectIncludes(contents.iosNativeMapPlugin, "handleMapKitTap", "iOS native map plugin emits background MapKit tap events");
 [
   "getDebugState",
   "getStatus",
   "init",
   "setView",
   "invalidateSize",
+  "setInteractionRegions",
   "createTileOverlay",
   "setLayerVisible",
   "clearLayer",

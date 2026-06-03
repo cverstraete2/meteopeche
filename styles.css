@@ -4153,6 +4153,10 @@ html[data-current-mobile-view="more"] main {
     top: calc(var(--safe-top) + 96px);
   }
 
+  .map-layer-sheet {
+    padding-top: calc(var(--safe-top) + 88px);
+  }
+
   .map-overlay-actions {
     bottom: calc(var(--safe-bottom) + var(--tabbar-h) + 122px);
   }
