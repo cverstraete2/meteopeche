@@ -820,7 +820,7 @@ expectIncludes(contents.iosNativeMapPlugin, "setMapKitLayerVisibleById(childLaye
 expectIncludes(contents.iosNativeMapPlugin, "call.getBool(\"isLayer\") ?? false", "iOS native map plugin records single child-layer membership");
 expectIncludes(contents.iosNativeMapPlugin, "item[\"isLayer\"] as? Bool ?? false", "iOS native map plugin records batched child-layer membership");
 expectIncludes(contents.iosNativeMapPlugin, "let itemIds = Array(layerMembership[layerId] ?? [])", "iOS native map plugin finds layer-owned items during layer visibility updates");
-expectIncludes(contents.iosNativeMapPlugin, "setMapKitItemVisiblePayload([\"itemId\": itemId, \"visible\": visible])", "iOS native map plugin applies layer visibility to owned items");
+expectIncludes(contents.iosNativeMapPlugin, "setMapKitItemVisibleOnMain(itemId: itemId, visible: visible)", "iOS native map plugin applies layer visibility to owned items");
 expectIncludes(contents.iosNativeMapPlugin, "private func layerChildrenDebugState()", "iOS native map plugin serializes child layer debug state");
 expectIncludes(contents.iosNativeMapPlugin, "private var pinTiers: [String: [String: Any]]", "iOS native map plugin tracks pin tiers");
 expectIncludes(contents.iosNativeMapPlugin, "configureMapKitPinTier(call)", "iOS native map plugin handles pin-tier configuration");

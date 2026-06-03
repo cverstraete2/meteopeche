@@ -574,11 +574,13 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         let layerId = call.getString("layerId") ?? call.getString("overlayId") ?? call.getString("id") ?? ""
         guard !layerId.isEmpty else { return }
         let visible = call.getBool("visible") ?? true
-        setMapKitLayerVisibleById(layerId, visible: visible, visitedLayerIds: Set<String>())
+        DispatchQueue.main.async {
+            self.setMapKitLayerVisibleById(layerId, visible: visible, visitedLayerIds: Set<String>())
+        }
     }
 
     private func setMapKitLayerVisibleById(_ layerId: String, visible: Bool, visitedLayerIds: Set<String>) {
-        guard !layerId.isEmpty, !visitedLayerIds.contains(layerId) else { return }
+        guard Thread.isMainThread, !layerId.isEmpty, !visitedLayerIds.contains(layerId) else { return }
         var visitedLayerIds = visitedLayerIds
         visitedLayerIds.insert(layerId)
         layerVisibility[layerId] = visible
@@ -589,18 +591,16 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         let itemIds = Array(layerMembership[layerId] ?? [])
         for itemId in itemIds {
             if layerChildren[layerId]?.contains(itemId) == true { continue }
-            setMapKitItemVisiblePayload(["itemId": itemId, "visible": visible])
+            setMapKitItemVisibleOnMain(itemId: itemId, visible: visible)
         }
         guard let overlay = tileOverlays[layerId] else { return }
-        DispatchQueue.main.async {
-            self.tileOverlayVisibility[layerId] = visible
-            if visible {
-                if !(self.mapView?.overlays.contains(where: { ($0 as? MKTileOverlay) === overlay }) ?? false) {
-                    self.mapView?.addOverlay(overlay, level: .aboveLabels)
-                }
-            } else {
-                self.mapView?.removeOverlay(overlay)
+        tileOverlayVisibility[layerId] = visible
+        if visible {
+            if !(mapView?.overlays.contains(where: { ($0 as? MKTileOverlay) === overlay }) ?? false) {
+                mapView?.addOverlay(overlay, level: .aboveLabels)
             }
+        } else {
+            mapView?.removeOverlay(overlay)
         }
     }
 
@@ -926,9 +926,10 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
     private func setMapKitItemsVisible(_ call: CAPPluginCall) {
         let visible = call.getBool("visible") ?? true
         let itemIds = rawArray(call, "itemIds").compactMap { $0 as? String }
-        for itemId in itemIds {
-            let syntheticCall = ["itemId": itemId, "visible": visible] as [String: Any]
-            setMapKitItemVisiblePayload(syntheticCall)
+        DispatchQueue.main.async {
+            itemIds.forEach { itemId in
+                self.setMapKitItemVisibleOnMain(itemId: itemId, visible: visible)
+            }
         }
     }
 
@@ -936,24 +937,29 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         guard let itemId = payload["itemId"] as? String else { return }
         let visible = payload["visible"] as? Bool ?? true
         DispatchQueue.main.async {
-            self.itemVisibility[itemId] = visible
-            if let annotation = self.annotations[itemId] {
-                if visible {
-                    if !(self.mapView?.annotations.contains(where: { ($0 as? MeteoPecheMapAnnotation)?.itemId == itemId }) ?? false) {
-                        self.mapView?.addAnnotation(annotation)
-                    }
-                } else {
-                    self.mapView?.removeAnnotation(annotation)
+            self.setMapKitItemVisibleOnMain(itemId: itemId, visible: visible)
+        }
+    }
+
+    private func setMapKitItemVisibleOnMain(itemId: String, visible: Bool) {
+        guard Thread.isMainThread, !itemId.isEmpty else { return }
+        itemVisibility[itemId] = visible
+        if let annotation = annotations[itemId] {
+            if visible {
+                if !(mapView?.annotations.contains(where: { ($0 as? MeteoPecheMapAnnotation)?.itemId == itemId }) ?? false) {
+                    mapView?.addAnnotation(annotation)
                 }
+            } else {
+                mapView?.removeAnnotation(annotation)
             }
-            if let overlay = self.shapeOverlays[itemId] {
-                if visible {
-                    if !(self.mapView?.overlays.contains(where: { self.shapeItemId(for: $0) == itemId }) ?? false) {
-                        self.mapView?.addOverlay(overlay, level: .aboveLabels)
-                    }
-                } else {
-                    self.mapView?.removeOverlay(overlay)
+        }
+        if let overlay = shapeOverlays[itemId] {
+            if visible {
+                if !(mapView?.overlays.contains(where: { shapeItemId(for: $0) == itemId }) ?? false) {
+                    mapView?.addOverlay(overlay, level: .aboveLabels)
                 }
+            } else {
+                mapView?.removeOverlay(overlay)
             }
         }
     }
