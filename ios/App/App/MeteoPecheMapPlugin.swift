@@ -409,7 +409,13 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         if eventLog.count > maxCommands {
             eventLog.removeFirst(eventLog.count - maxCommands)
         }
+        guard hasSafeListenerArray(for: bridgeEventName) else { return }
         notifyListeners(bridgeEventName, data: payload)
+    }
+
+    private func hasSafeListenerArray(for eventName: String) -> Bool {
+        guard let listeners = eventListeners?.object(forKey: eventName) as? NSArray else { return false }
+        return listeners.count > 0
     }
 
     private func rendererDebugState() -> [String: Any] {
@@ -652,7 +658,8 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
 
     private func addMapKitItemsToLayer(_ call: CAPPluginCall) {
         let layerId = call.getString("layerId") ?? ""
-        guard !layerId.isEmpty, let items = call.getArray("items") else { return }
+        guard !layerId.isEmpty else { return }
+        let items = rawArray(call, "items")
         for item in items {
             if let item = item as? [String: Any], let itemId = item["itemId"] as? String {
                 addMapKitLayerMembership(layerId: layerId, itemId: itemId, isLayer: item["isLayer"] as? Bool ?? false)
@@ -837,7 +844,7 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
     }
 
     private func createMapKitItems(_ call: CAPPluginCall) {
-        guard let items = call.getArray("items") else { return }
+        let items = rawArray(call, "items")
         for item in items {
             guard
                 let item = item as? [String: Any],
@@ -916,7 +923,7 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
 
     private func setMapKitItemsVisible(_ call: CAPPluginCall) {
         let visible = call.getBool("visible") ?? true
-        guard let itemIds = call.getArray("itemIds", String.self) else { return }
+        let itemIds = rawArray(call, "itemIds").compactMap { $0 as? String }
         for itemId in itemIds {
             let syntheticCall = ["itemId": itemId, "visible": visible] as [String: Any]
             setMapKitItemVisiblePayload(syntheticCall)
@@ -1081,6 +1088,16 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         if let value = value as? NSNumber { return value.doubleValue }
         if let value = value as? String { return Double(value) }
         return nil
+    }
+
+    private func rawArray(_ call: CAPPluginCall, _ key: String) -> [Any] {
+        if let array = call.options[key] as? [Any] {
+            return array
+        }
+        if let array = call.options[key] as? NSArray {
+            return array.compactMap { $0 }
+        }
+        return []
     }
 
     private func intValue(_ value: Any?) -> Int? {
