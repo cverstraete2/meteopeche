@@ -311,7 +311,9 @@ expectIncludes(contents.nativeBridgeDocs, "renderer.tileOverlayTypes", "native b
 expectIncludes(contents.nativeBridgeDocs, "renderer.tileOverlayVisibility", "native bridge contract doc documents debug renderer tile overlay visibility");
 expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-marker-ids", "native bridge contract doc documents debug marker ids data attribute");
 expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-shape-ids", "native bridge contract doc documents debug shape ids data attribute");
+expectIncludes(contents.nativeBridgeDocs, "renderer.markerCount", "native bridge contract doc documents debug renderer marker count");
 expectIncludes(contents.nativeBridgeDocs, "renderer.markerIds", "native bridge contract doc documents debug renderer marker ids");
+expectIncludes(contents.nativeBridgeDocs, "renderer.shapeCount", "native bridge contract doc documents debug renderer shape count");
 expectIncludes(contents.nativeBridgeDocs, "renderer.shapeIds", "native bridge contract doc documents debug renderer shape ids");
 expectIncludes(contents.nativeBridgeDocs, "`setLayerVisible` should apply to every native item currently owned by that layer", "native bridge contract doc requires layer visibility to apply to member items");
 expectIncludes(contents.nativeBridgeDocs, "renderer.itemVisibility", "native bridge contract doc documents debug renderer item visibility");
@@ -387,7 +389,9 @@ expectIncludes(contents.source, "tileOverlayDefinitions = new Map()", "source lo
 expectIncludes(contents.source, "tileOverlayVisibilityState", "source local native debug bridge tracks tile overlay visibility");
 expectIncludes(contents.source, "tileOverlayIdsState", "source local native debug bridge tracks tile overlay ids");
 expectIncludes(contents.source, "tileOverlayTypesState", "source local native debug bridge tracks tile overlay types");
+expectIncludes(contents.source, "markerCount: markerIdsState().length", "source local native debug bridge exposes marker count");
 expectIncludes(contents.source, "markerIdsState", "source local native debug bridge tracks marker ids");
+expectIncludes(contents.source, "shapeCount: shapeIdsState().length", "source local native debug bridge exposes shape count");
 expectIncludes(contents.source, "shapeIdsState", "source local native debug bridge tracks shape ids");
 expectIncludes(contents.source, "setLayerItemVisibility", "source local native debug bridge applies layer visibility to member items");
 expectIncludes(contents.source, "payload.isLayer === true", "source local native debug bridge records child layer membership");
@@ -656,7 +660,9 @@ expectIncludes(contents.iosNativeMapPlugin, "\"tileOverlayTypes\"", "iOS native 
 expectIncludes(contents.iosNativeMapPlugin, "private class MeteoPecheMapAnnotation", "iOS native map plugin defines dormant MapKit annotation");
 expectIncludes(contents.iosNativeMapPlugin, "private var annotations: [String: MeteoPecheMapAnnotation]", "iOS native map plugin tracks MapKit annotations");
 expectIncludes(contents.iosNativeMapPlugin, "private var shapeOverlays: [String: MKOverlay]", "iOS native map plugin tracks MapKit shape overlays");
+expectIncludes(contents.iosNativeMapPlugin, "\"markerCount\": annotations.count", "iOS native map plugin exposes provider-neutral marker count");
 expectIncludes(contents.iosNativeMapPlugin, "\"markerIds\": Array(annotations.keys).sorted()", "iOS native map plugin exposes provider-neutral marker ids");
+expectIncludes(contents.iosNativeMapPlugin, "\"shapeCount\": shapeOverlays.count", "iOS native map plugin exposes provider-neutral shape count");
 expectIncludes(contents.iosNativeMapPlugin, "\"shapeIds\": Array(shapeOverlays.keys).sorted()", "iOS native map plugin exposes provider-neutral shape ids");
 expectIncludes(contents.iosNativeMapPlugin, "\"markerCalloutCount\": markerCalloutCount()", "iOS native map plugin exposes marker callout debug count");
 expectIncludes(contents.iosNativeMapPlugin, "private func markerCalloutCount", "iOS native map plugin counts marker callout-ready payloads");
