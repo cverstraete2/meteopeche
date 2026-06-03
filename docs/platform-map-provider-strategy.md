@@ -171,6 +171,7 @@ Do not install Google or Apple map SDKs as the first step. First, introduce the 
 - Added provider bounds methods and moved regional marine overlay sampling to provider center/bounds/zoom.
 - Added provider marker update primitives for position, icon, z-index, opacity, marker element access, tooltip content, one-time events, and fly-to.
 - Aligned provider event subscriptions so Leaflet, Google web, Apple web, and native bridge `on()` calls all return an unsubscribe handle with `remove()`, matching the shared provider interface.
+- Aligned provider one-time event subscriptions so Leaflet, Google web, Apple web, and native bridge `once()` calls also return a removable handle; Google and Apple web now normalize one-time payloads through the same paths as persistent events.
 - Moved progressive pin creation, position updates, icon creation/sync, opacity changes, click fly-to, and pulse cleanup through provider methods while preserving Leaflet pane batching.
 - Added provider methods for progressive pin tier layer creation, batch insertion/removal, and pane visibility.
 - Moved progressive pin pane and batch-group management through provider methods; direct Leaflet geometry calls are now concentrated in the Leaflet provider implementation.

@@ -2964,6 +2964,9 @@ class LeafletMapProvider {
 
   once(eventName, handler) {
     this.map?.once?.(eventName, handler);
+    return {
+      remove: () => this.map?.off?.(eventName, handler),
+    };
   }
 
   getCenter() {
@@ -3385,12 +3388,18 @@ class GoogleMapsWebProvider {
 
   once(eventName, handler) {
     const googleEvent = googleWebMapEventName(eventName);
-    const listener = this.maps.event.addListener(this.map, googleEvent, (...args) => {
+    const listener = this.maps.event.addListener(this.map, googleEvent, (payload) => {
       listener.remove();
       this.listeners = this.listeners.filter((entry) => entry !== listener);
-      handler(...args);
+      handler(this.normalizeEvent(eventName, payload));
     });
     this.listeners.push(listener);
+    return {
+      remove: () => {
+        listener?.remove?.();
+        this.listeners = this.listeners.filter((entry) => entry !== listener);
+      },
+    };
   }
 
   addPolygon(layer, definition) {
@@ -3949,23 +3958,35 @@ class AppleMapsWebProvider {
   }
 
   once(eventName, handler) {
-    const mapkitEvent = eventName === "moveend" ? "region-change-end" : eventName;
+    const eventMap = { moveend: "region-change-end", zoomend: "region-change-end" };
+    const mapkitEvent = eventMap[eventName] ?? eventName;
     if (!this.map?.addEventListener) {
       window.requestAnimationFrame(handler);
-      return;
+      return { remove: () => {} };
     }
     let handled = false;
+    let timeoutId = null;
+    const handle = {
+      remove: () => {
+        if (handled) return;
+        handled = true;
+        if (timeoutId) window.clearTimeout(timeoutId);
+        this.map?.removeEventListener?.(mapkitEvent, listener);
+        this.listeners = this.listeners.filter((entry) => entry !== handle);
+      },
+    };
     const listener = (event) => {
       if (handled) return;
       handled = true;
+      if (timeoutId) window.clearTimeout(timeoutId);
       this.map.removeEventListener?.(mapkitEvent, listener);
-      this.listeners = this.listeners.filter((entry) => entry.remove !== remove);
-      handler(event);
+      this.listeners = this.listeners.filter((entry) => entry !== handle);
+      handler(this.normalizeEvent(eventName, event));
     };
-    const remove = () => this.map?.removeEventListener?.(mapkitEvent, listener);
     this.map.addEventListener(mapkitEvent, listener);
-    this.listeners.push({ remove });
-    window.setTimeout(() => listener({ type: mapkitEvent }), 140);
+    this.listeners.push(handle);
+    timeoutId = window.setTimeout(() => listener({ type: mapkitEvent }), 140);
+    return handle;
   }
 
   invalidateSize() {}
@@ -4596,18 +4617,28 @@ class NativeBridgeMapProvider {
 
   once(eventName, handler) {
     let handled = false;
+    let timeoutId = null;
     const listener = this.on(eventName, (event) => {
       if (handled) return;
       handled = true;
+      if (timeoutId) window.clearTimeout(timeoutId);
       listener?.remove?.();
       handler(event);
     });
-    window.setTimeout(() => {
+    timeoutId = window.setTimeout(() => {
       if (handled) return;
       handled = true;
       listener?.remove?.();
       handler({ type: eventName });
     }, 160);
+    return {
+      remove: () => {
+        if (handled) return;
+        handled = true;
+        if (timeoutId) window.clearTimeout(timeoutId);
+        listener?.remove?.();
+      },
+    };
   }
 
   getCenter() {
