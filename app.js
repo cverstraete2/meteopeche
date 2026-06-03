@@ -53,6 +53,60 @@ const MAP_PROVIDER_DEFAULT_SUPPORT = {
 const GOOGLE_MAPS_SCRIPT_ID = "google-maps-js-api";
 const APPLE_MAPKIT_SCRIPT_ID = "apple-mapkit-js-api";
 const APPLE_MAPKIT_JS_URL = "https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js";
+const SMART_ALERT_TYPES = ["rising-tide", "best-solunar", "wind-drop", "species-activity", "morning-report"];
+const SMART_ALERT_DEFAULTS = {
+  quietHours: { start: "21:00", end: "07:00" },
+  maxPerDay: 2,
+  leadMinutes: 45,
+};
+const SMART_ALERT_CATALOG = {
+  "rising-tide": {
+    label: "Marée montante",
+    description: "Prévenir avant une marée montante exploitable sur le spot sélectionné.",
+    defaultEnabled: false,
+    proRequired: false,
+    leadMinutes: 60,
+    safetyNote: "Vérifier l'accès, les coefficients et la météo locale avant la mise à l'eau.",
+    uncertaintyNote: "L'heure dépend de la source de marée et peut varier selon la station de référence.",
+  },
+  "best-solunar": {
+    label: "Meilleur créneau solunar",
+    description: "Prévenir avant le meilleur créneau combinant lune, lumière et conditions.",
+    defaultEnabled: false,
+    proRequired: false,
+    leadMinutes: 45,
+    safetyNote: "Le solunar est un signal d'aide à la décision, pas une garantie de prise.",
+    uncertaintyNote: "Le score se met à jour lorsque les prévisions météo changent.",
+  },
+  "wind-drop": {
+    label: "Baisse du vent",
+    description: "Prévenir quand le vent repasse sous un seuil exploitable.",
+    defaultEnabled: false,
+    proRequired: true,
+    leadMinutes: 30,
+    safetyNote: "Surveiller les rafales, la houle et les avis de sécurité même si le vent moyen baisse.",
+    uncertaintyNote: "Les seuils peuvent changer avec les mises à jour horaires du modèle.",
+  },
+  "species-activity": {
+    label: "Activité espèce élevée",
+    description: "Prévenir quand l'espèce ciblée dépasse un score d'activité fort.",
+    defaultEnabled: false,
+    proRequired: true,
+    leadMinutes: 45,
+    safetyNote: "Adapter le montage, la zone et la réglementation à l'espèce ciblée.",
+    uncertaintyNote: "L'activité est une estimation issue des conditions et cycles disponibles.",
+  },
+  "morning-report": {
+    label: "Rapport du matin",
+    description: "Envoyer une synthèse quotidienne calme: meilleur créneau, météo et risques.",
+    defaultEnabled: false,
+    proRequired: false,
+    leadMinutes: 0,
+    deliveryTime: "07:00",
+    safetyNote: "Le rapport ne remplace pas les bulletins météo et règles locales.",
+    uncertaintyNote: "Les données peuvent évoluer dans la journée, surtout vent, pluie et houle.",
+  },
+};
 const PIN_ZOOM_LEVELS = [5, 8, 11, 14];
 const PIN_LAYER_TIERS = [
   { id: "tier1", minZoom: 5, maxZoom: 7, pane: "pinTier1Pane", zIndex: 410 },
@@ -2077,6 +2131,7 @@ const state = {
   onboardingCompleted: false,
   privacyAccepted: false,
   notificationsEnabled: false,
+  smartAlerts: defaultSmartAlertSettings(),
   native: {
     isNative: Boolean(window.Capacitor?.isNativePlatform?.()),
     online: navigator.onLine !== false,
@@ -7320,6 +7375,7 @@ function restoreState() {
   state.onboardingCompleted = Boolean(saved.onboardingCompleted);
   state.privacyAccepted = Boolean(saved.privacyAccepted);
   state.notificationsEnabled = Boolean(saved.notificationsEnabled);
+  state.smartAlerts = normalizeSmartAlertSettings(saved.smartAlerts);
 }
 
 function applyTheme(options = {}) {
@@ -16342,6 +16398,7 @@ function saveSettings() {
     onboardingCompleted: Boolean(state.onboardingCompleted),
     privacyAccepted: Boolean(state.privacyAccepted),
     notificationsEnabled: Boolean(state.notificationsEnabled),
+    smartAlerts: normalizeSmartAlertSettings(state.smartAlerts),
   };
   updateAppStore((store) => {
     store.settings = {
@@ -16529,7 +16586,55 @@ function normalizeSettings(settings) {
     onboardingCompleted: Boolean(settings.onboardingCompleted),
     privacyAccepted: Boolean(settings.privacyAccepted),
     notificationsEnabled: Boolean(settings.notificationsEnabled),
+    smartAlerts: normalizeSmartAlertSettings(settings.smartAlerts),
   };
+}
+
+function defaultSmartAlertSettings() {
+  return {
+    quietHours: { ...SMART_ALERT_DEFAULTS.quietHours },
+    maxPerDay: SMART_ALERT_DEFAULTS.maxPerDay,
+    alerts: Object.fromEntries(SMART_ALERT_TYPES.map((type) => {
+      const config = SMART_ALERT_CATALOG[type];
+      return [type, {
+        enabled: Boolean(config?.defaultEnabled),
+        leadMinutes: config?.leadMinutes ?? SMART_ALERT_DEFAULTS.leadMinutes,
+        deliveryTime: config?.deliveryTime ?? null,
+        proRequired: Boolean(config?.proRequired),
+      }];
+    })),
+  };
+}
+
+function normalizeSmartAlertSettings(settings) {
+  const defaults = defaultSmartAlertSettings();
+  const source = settings && typeof settings === "object" ? settings : {};
+  const sourceAlerts = source.alerts && typeof source.alerts === "object" ? source.alerts : {};
+
+  return {
+    quietHours: {
+      start: normalizeClockTime(source.quietHours?.start, defaults.quietHours.start),
+      end: normalizeClockTime(source.quietHours?.end, defaults.quietHours.end),
+    },
+    maxPerDay: clamp(Number(source.maxPerDay) || defaults.maxPerDay, 1, 5),
+    alerts: Object.fromEntries(SMART_ALERT_TYPES.map((type) => {
+      const config = SMART_ALERT_CATALOG[type];
+      const saved = sourceAlerts[type] && typeof sourceAlerts[type] === "object" ? sourceAlerts[type] : {};
+      const fallback = defaults.alerts[type];
+      return [type, {
+        enabled: Boolean(saved.enabled ?? fallback.enabled),
+        leadMinutes: clamp(Number(saved.leadMinutes) || fallback.leadMinutes, 0, 180),
+        deliveryTime: normalizeClockTime(saved.deliveryTime, fallback.deliveryTime),
+        proRequired: Boolean(config?.proRequired),
+      }];
+    })),
+  };
+}
+
+function normalizeClockTime(value, fallback = null) {
+  if (value == null && fallback == null) return null;
+  const text = typeof value === "string" ? value : fallback;
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(text) ? text : fallback;
 }
 
 function normalizeTheme(theme) {
