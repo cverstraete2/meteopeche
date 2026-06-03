@@ -193,6 +193,9 @@ expectIncludes(contents.docs, "supportedEvents", "strategy doc records native br
 expectIncludes(contents.docs, "validates protocol version, required commands, and provider-scoped events", "strategy doc records native bridge capability validation");
 expectIncludes(contents.docs, "mapProviderDebugSdkFail", "strategy doc records local web SDK failure switch");
 expectIncludes(contents.docs, "mapProviderSmokeRoutes()", "strategy doc records provider smoke route inspector");
+expectIncludes(contents.docs, "route URLs, expected outcomes", "strategy doc records DOM smoke route URL and expected outcome metadata");
+expectIncludes(contents.docs, "native capability errors", "strategy doc records DOM native capability error metadata");
+expectIncludes(contents.docs, "native debug dataset expectations", "strategy doc records DOM native debug dataset metadata");
 expectIncludes(contents.docs, "mapProviderExperimental", "strategy doc records experimental provider smoke gating");
 
 [
