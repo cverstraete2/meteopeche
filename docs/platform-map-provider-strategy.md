@@ -286,4 +286,5 @@ Do not install Google or Apple map SDKs as the first step. First, introduce the 
 - Added generic `renderer.layerVisibility` telemetry to the local native debug bridge plus the iOS MapKit and Android Google scaffolds, so provider QA can inspect optional bathymetry marker groups and other non-tile layer toggles, not only tile overlays or pin tiers.
 - Applied native `setLayerVisible` to all marker and shape items currently owned by the target layer in both the MapKit and Google scaffolds, bringing non-tile layer toggles closer to Leaflet layer-group semantics.
 - Matched the local native debug bridge to that same layer-owned item visibility behavior, so browser smoke tests can inspect native-style layer toggles before running device builds.
+- Added explicit child-layer tracking for local debug, iOS MapKit, and Android Google native scaffolds so parent layer visibility cascades through nested provider layers such as coastal overlay groups and progressive pin tiers.
 - Tightened iOS MapKit teardown cleanup so `destroy` also clears provider-owned tile overlay definitions, keeping post-destroy debug state and future remounts free of stale overlay metadata.

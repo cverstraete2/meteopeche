@@ -107,6 +107,7 @@ public class MeteoPecheMapPlugin extends Plugin implements OnMapReadyCallback {
     private Marker shapeInfoWindowMarker = null;
     private final Map<String, Boolean> itemVisibility = new HashMap<>();
     private final Map<String, Set<String>> layerMembership = new HashMap<>();
+    private final Map<String, Set<String>> layerChildren = new HashMap<>();
     private final Map<String, Boolean> layerVisibility = new HashMap<>();
     private final Map<String, String> itemLayers = new HashMap<>();
     private final Map<String, JSObject> pinTiers = new HashMap<>();
@@ -319,6 +320,7 @@ public class MeteoPecheMapPlugin extends Plugin implements OnMapReadyCallback {
         shapeInfoWindowMarker = null;
         itemVisibility.clear();
         layerMembership.clear();
+        layerChildren.clear();
         layerVisibility.clear();
         itemLayers.clear();
         pinTiers.clear();
@@ -532,6 +534,7 @@ public class MeteoPecheMapPlugin extends Plugin implements OnMapReadyCallback {
         renderer.put("itemTypeCounts", itemTypeCountsJson());
         renderer.put("layerCount", layerMembership.size());
         renderer.put("layerMembership", layerMembershipJson());
+        renderer.put("layerChildren", layerChildrenJson());
         renderer.put("layerVisibility", layerVisibilityJson());
         renderer.put("pinTierCount", pinTiers.size());
         renderer.put("pinTierIds", pinTierIdsJson());
@@ -786,10 +789,23 @@ public class MeteoPecheMapPlugin extends Plugin implements OnMapReadyCallback {
         String layerId = firstString(call.getString("layerId"), call.getString("overlayId"), call.getString("id"));
         if (layerId == null || layerId.length() == 0) return;
         boolean visible = call.getBoolean("visible", true);
+        setGoogleLayerVisibleById(layerId, visible, new HashSet<>());
+    }
+
+    private void setGoogleLayerVisibleById(String layerId, boolean visible, Set<String> visitedLayerIds) {
+        if (layerId == null || layerId.length() == 0 || visitedLayerIds.contains(layerId)) return;
+        visitedLayerIds.add(layerId);
         layerVisibility.put(layerId, visible);
+        Set<String> childLayerIds = layerChildren.get(layerId);
+        if (childLayerIds != null) {
+            for (String childLayerId : new HashSet<>(childLayerIds)) {
+                setGoogleLayerVisibleById(childLayerId, visible, visitedLayerIds);
+            }
+        }
         Set<String> itemIds = layerMembership.get(layerId);
         if (itemIds != null) {
             for (String itemId : new HashSet<>(itemIds)) {
+                if (childLayerIds != null && childLayerIds.contains(itemId)) continue;
                 itemVisibility.put(itemId, visible);
                 applyGoogleItemVisibility(itemId);
             }
@@ -810,6 +826,7 @@ public class MeteoPecheMapPlugin extends Plugin implements OnMapReadyCallback {
         tileOverlayDefinitions.remove(layerId);
         tileOverlayVisibility.remove(layerId);
         layerVisibility.remove(layerId);
+        layerChildren.remove(layerId);
         removeNativeGoogleTileOverlay(layerId);
         Set<String> itemIds = layerMembership.remove(layerId);
         if (itemIds != null) {
@@ -838,7 +855,7 @@ public class MeteoPecheMapPlugin extends Plugin implements OnMapReadyCallback {
     }
 
     private void addGoogleItemToLayer(PluginCall call) {
-        addLayerMembership(call.getString("layerId", ""), call.getString("itemId", ""));
+        addLayerMembership(call.getString("layerId", ""), call.getString("itemId", ""), call.getBoolean("isLayer", false));
     }
 
     private void addGoogleItemsToLayer(PluginCall call) {
@@ -848,7 +865,7 @@ public class MeteoPecheMapPlugin extends Plugin implements OnMapReadyCallback {
         for (int i = 0; i < items.length(); i++) {
             JSONObject item = items.optJSONObject(i);
             if (item == null) continue;
-            addLayerMembership(layerId, item.optString("itemId", ""));
+            addLayerMembership(layerId, item.optString("itemId", ""), item.optBoolean("isLayer", false));
         }
     }
 
@@ -938,13 +955,19 @@ public class MeteoPecheMapPlugin extends Plugin implements OnMapReadyCallback {
         removeItemFromMemberships(itemId);
     }
 
-    private void addLayerMembership(String layerId, String itemId) {
+    private void addLayerMembership(String layerId, String itemId, boolean isLayer) {
         if (layerId == null || layerId.length() == 0 || itemId == null || itemId.length() == 0) return;
         if (!layerMembership.containsKey(layerId)) {
             layerMembership.put(layerId, new HashSet<>());
         }
         layerMembership.get(layerId).add(itemId);
         itemLayers.put(itemId, layerId);
+        if (isLayer) {
+            if (!layerChildren.containsKey(layerId)) {
+                layerChildren.put(layerId, new HashSet<>());
+            }
+            layerChildren.get(layerId).add(itemId);
+        }
     }
 
     private void removeLayerMembership(String layerId, String itemId) {
@@ -958,6 +981,13 @@ public class MeteoPecheMapPlugin extends Plugin implements OnMapReadyCallback {
         }
         if (layerId.equals(itemLayers.get(itemId))) {
             itemLayers.remove(itemId);
+        }
+        Set<String> childLayerIds = layerChildren.get(layerId);
+        if (childLayerIds != null) {
+            childLayerIds.remove(itemId);
+            if (childLayerIds.isEmpty()) {
+                layerChildren.remove(layerId);
+            }
         }
     }
 
@@ -1438,6 +1468,18 @@ public class MeteoPecheMapPlugin extends Plugin implements OnMapReadyCallback {
                 itemIds.put(itemId);
             }
             layers.put(entry.getKey(), itemIds);
+        }
+        return layers;
+    }
+
+    private JSObject layerChildrenJson() {
+        JSObject layers = new JSObject();
+        for (Map.Entry<String, Set<String>> entry : layerChildren.entrySet()) {
+            JSArray childLayerIds = new JSArray();
+            for (String childLayerId : entry.getValue()) {
+                childLayerIds.put(childLayerId);
+            }
+            layers.put(entry.getKey(), childLayerIds);
         }
         return layers;
     }

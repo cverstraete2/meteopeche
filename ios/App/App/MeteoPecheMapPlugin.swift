@@ -160,6 +160,7 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
     private var shapeItemTypes: [String: String] = [:]
     private var shapePayloads: [String: [String: Any]] = [:]
     private var layerMembership: [String: Set<String>] = [:]
+    private var layerChildren: [String: Set<String>] = [:]
     private var layerVisibility: [String: Bool] = [:]
     private var itemLayers: [String: String] = [:]
     private var pinTiers: [String: [String: Any]] = [:]
@@ -336,6 +337,7 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
             self.shapeItemTypes.removeAll()
             self.shapePayloads.removeAll()
             self.layerMembership.removeAll()
+            self.layerChildren.removeAll()
             self.layerVisibility.removeAll()
             self.itemLayers.removeAll()
             self.pinTiers.removeAll()
@@ -441,6 +443,7 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
             "itemTypeCounts": itemTypeCountsDebugState(),
             "layerCount": layerMembership.count,
             "layerMembership": layerMembershipDebugState(),
+            "layerChildren": layerChildrenDebugState(),
             "layerVisibility": layerVisibility,
             "pinTierCount": pinTiers.count,
             "pinTierIds": Array(pinTiers.keys).sorted(),
@@ -554,9 +557,21 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         let layerId = call.getString("layerId") ?? call.getString("overlayId") ?? call.getString("id") ?? ""
         guard !layerId.isEmpty else { return }
         let visible = call.getBool("visible") ?? true
+        setMapKitLayerVisibleById(layerId, visible: visible, visitedLayerIds: Set<String>())
+    }
+
+    private func setMapKitLayerVisibleById(_ layerId: String, visible: Bool, visitedLayerIds: Set<String>) {
+        guard !layerId.isEmpty, !visitedLayerIds.contains(layerId) else { return }
+        var visitedLayerIds = visitedLayerIds
+        visitedLayerIds.insert(layerId)
         layerVisibility[layerId] = visible
+        let childLayerIds = Array(layerChildren[layerId] ?? [])
+        for childLayerId in childLayerIds {
+            setMapKitLayerVisibleById(childLayerId, visible: visible, visitedLayerIds: visitedLayerIds)
+        }
         let itemIds = Array(layerMembership[layerId] ?? [])
         for itemId in itemIds {
+            if layerChildren[layerId]?.contains(itemId) == true { continue }
             setMapKitItemVisiblePayload(["itemId": itemId, "visible": visible])
         }
         guard let overlay = tileOverlays[layerId] else { return }
@@ -578,6 +593,7 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         let overlay = tileOverlays.removeValue(forKey: layerId)
         tileOverlayDefinitions.removeValue(forKey: layerId)
         layerVisibility.removeValue(forKey: layerId)
+        layerChildren.removeValue(forKey: layerId)
         let itemIds = layerMembership.removeValue(forKey: layerId) ?? []
         let annotationsToRemove = itemIds.compactMap { annotations.removeValue(forKey: $0) }
         let overlaysToRemove = itemIds.compactMap { shapeOverlays.removeValue(forKey: $0) }
@@ -614,7 +630,7 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
     private func addMapKitItemToLayer(_ call: CAPPluginCall) {
         let layerId = call.getString("layerId") ?? ""
         let itemId = call.getString("itemId") ?? ""
-        addMapKitLayerMembership(layerId: layerId, itemId: itemId)
+        addMapKitLayerMembership(layerId: layerId, itemId: itemId, isLayer: call.getBool("isLayer") ?? false)
     }
 
     private func addMapKitItemsToLayer(_ call: CAPPluginCall) {
@@ -622,7 +638,7 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         guard !layerId.isEmpty, let items = call.getArray("items") else { return }
         for item in items {
             if let item = item as? [String: Any], let itemId = item["itemId"] as? String {
-                addMapKitLayerMembership(layerId: layerId, itemId: itemId)
+                addMapKitLayerMembership(layerId: layerId, itemId: itemId, isLayer: item["isLayer"] as? Bool ?? false)
             }
         }
     }
@@ -633,10 +649,13 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         removeMapKitLayerMembership(layerId: layerId, itemId: itemId)
     }
 
-    private func addMapKitLayerMembership(layerId: String, itemId: String) {
+    private func addMapKitLayerMembership(layerId: String, itemId: String, isLayer: Bool) {
         guard !layerId.isEmpty, !itemId.isEmpty else { return }
         layerMembership[layerId, default: Set<String>()].insert(itemId)
         itemLayers[itemId] = layerId
+        if isLayer {
+            layerChildren[layerId, default: Set<String>()].insert(itemId)
+        }
     }
 
     private func removeMapKitLayerMembership(layerId: String, itemId: String) {
@@ -648,6 +667,10 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         if itemLayers[itemId] == layerId {
             itemLayers.removeValue(forKey: itemId)
         }
+        layerChildren[layerId]?.remove(itemId)
+        if layerChildren[layerId]?.isEmpty == true {
+            layerChildren.removeValue(forKey: layerId)
+        }
     }
 
     private func removeMapKitItemFromMemberships(_ itemId: String) {
@@ -657,11 +680,19 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
             if layerMembership[layerId]?.isEmpty == true {
                 layerMembership.removeValue(forKey: layerId)
             }
+            layerChildren[layerId]?.remove(itemId)
+            if layerChildren[layerId]?.isEmpty == true {
+                layerChildren.removeValue(forKey: layerId)
+            }
         }
         for layerId in Array(layerMembership.keys) {
             layerMembership[layerId]?.remove(itemId)
             if layerMembership[layerId]?.isEmpty == true {
                 layerMembership.removeValue(forKey: layerId)
+            }
+            layerChildren[layerId]?.remove(itemId)
+            if layerChildren[layerId]?.isEmpty == true {
+                layerChildren.removeValue(forKey: layerId)
             }
         }
     }
@@ -670,6 +701,14 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         var layers: [String: [String]] = [:]
         for (layerId, itemIds) in layerMembership {
             layers[layerId] = Array(itemIds).sorted()
+        }
+        return layers
+    }
+
+    private func layerChildrenDebugState() -> [String: [String]] {
+        var layers: [String: [String]] = [:]
+        for (layerId, childLayerIds) in layerChildren {
+            layers[layerId] = Array(childLayerIds).sorted()
         }
         return layers
     }
