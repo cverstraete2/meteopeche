@@ -6475,6 +6475,8 @@ function installLocalNativeMapBridgeDebug() {
   const itemTypes = new Map();
   const itemPayloads = new Map();
   const itemClassNames = new Map();
+  const tileOverlayDefinitions = new Map();
+  const tileOverlayVisibility = new Map();
   const pinTiers = new Map();
   const pinTierVisibility = new Map();
   const unsupportedValue = params.get("mapProviderDebugBridgeUnsupported") ?? params.get("native_map_bridge_debug_unsupported") ?? "";
@@ -6531,6 +6533,8 @@ function installLocalNativeMapBridgeDebug() {
     counts[type] = (counts[type] ?? 0) + 1;
     return counts;
   }, {});
+  const tileOverlayIdsState = () => [...tileOverlayDefinitions.keys()].sort();
+  const tileOverlayVisibilityState = () => Object.fromEntries(tileOverlayVisibility.entries());
   const markerPayloadCount = (key) => [...itemPayloads.values()].filter((payload) => {
     if (key === "iconAnchor" || key === "tooltipAnchor" || key === "popupAnchor") {
       return Array.isArray(payload?.icon?.[key]) && Array.isArray(payload?.icon?.iconSize);
@@ -6552,6 +6556,9 @@ function installLocalNativeMapBridgeDebug() {
     providerId,
     implemented: false,
     ready: supportedProviders.includes(providerId),
+    tileOverlayCount: tileOverlayDefinitions.size,
+    tileOverlayIds: tileOverlayIdsState(),
+    tileOverlayVisibility: tileOverlayVisibilityState(),
     layerCount: layerMembership.size,
     layerMembership: layerMembershipState(),
     layerChildren: layerChildrenState(),
@@ -6642,7 +6649,15 @@ function installLocalNativeMapBridgeDebug() {
       if (layerId) {
         const visible = payload.visible !== false;
         layerVisibility.set(layerId, visible);
+        if (tileOverlayDefinitions.has(layerId)) tileOverlayVisibility.set(layerId, visible);
         setLayerItemVisibility(layerId, visible);
+      }
+    }
+    if (command === "createTileOverlay") {
+      const layerId = payload.layerId ?? payload.overlayId ?? payload.id;
+      if (layerId) {
+        tileOverlayDefinitions.set(layerId, payload.overlay ?? payload);
+        tileOverlayVisibility.set(layerId, payload.visible !== false);
       }
     }
     if (command === "addToLayer") {
@@ -6682,6 +6697,8 @@ function installLocalNativeMapBridgeDebug() {
     if (command === "clearLayer") {
       const layerId = payload.layerId ?? payload.overlayId ?? payload.id;
       layerVisibility.delete(layerId);
+      tileOverlayDefinitions.delete(layerId);
+      tileOverlayVisibility.delete(layerId);
       clearLayerMembership(layerId);
     }
     if (command === "removeItem") {
@@ -6701,6 +6718,8 @@ function installLocalNativeMapBridgeDebug() {
       itemTypes.clear();
       itemPayloads.clear();
       itemClassNames.clear();
+      tileOverlayDefinitions.clear();
+      tileOverlayVisibility.clear();
       pinTiers.clear();
       pinTierVisibility.clear();
     }
@@ -6814,6 +6833,9 @@ function installLocalNativeMapBridgeDebug() {
       document.documentElement.dataset.nativeMapBridgeDebugLayerMembership = JSON.stringify(layerMembershipState());
       document.documentElement.dataset.nativeMapBridgeDebugLayerChildren = JSON.stringify(layerChildrenState());
       document.documentElement.dataset.nativeMapBridgeDebugLayerVisibility = JSON.stringify(layerVisibilityState());
+      document.documentElement.dataset.nativeMapBridgeDebugTileOverlayCount = String(tileOverlayDefinitions.size);
+      document.documentElement.dataset.nativeMapBridgeDebugTileOverlayIds = tileOverlayIdsState().join(",");
+      document.documentElement.dataset.nativeMapBridgeDebugTileOverlayVisibility = JSON.stringify(tileOverlayVisibilityState());
       document.documentElement.dataset.nativeMapBridgeDebugItemVisibility = JSON.stringify(itemVisibilityState());
       document.documentElement.dataset.nativeMapBridgeDebugItemTypeCounts = JSON.stringify(itemTypeCountsState());
       document.documentElement.dataset.nativeMapBridgeDebugMarkerClassNames = markerClassNamesState().join("|");

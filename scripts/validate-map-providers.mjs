@@ -303,6 +303,10 @@ expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-layer-co
 expectIncludes(contents.nativeBridgeDocs, "renderer.layerMembership", "native bridge contract doc documents debug renderer layer membership");
 expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-layer-visibility", "native bridge contract doc documents debug renderer layer visibility data attribute");
 expectIncludes(contents.nativeBridgeDocs, "renderer.layerVisibility", "native bridge contract doc documents debug renderer layer visibility");
+expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-tile-overlay-count", "native bridge contract doc documents debug tile overlay count data attribute");
+expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-tile-overlay-visibility", "native bridge contract doc documents debug tile overlay visibility data attribute");
+expectIncludes(contents.nativeBridgeDocs, "renderer.tileOverlayCount", "native bridge contract doc documents debug renderer tile overlay count");
+expectIncludes(contents.nativeBridgeDocs, "renderer.tileOverlayVisibility", "native bridge contract doc documents debug renderer tile overlay visibility");
 expectIncludes(contents.nativeBridgeDocs, "`setLayerVisible` should apply to every native item currently owned by that layer", "native bridge contract doc requires layer visibility to apply to member items");
 expectIncludes(contents.nativeBridgeDocs, "renderer.itemVisibility", "native bridge contract doc documents debug renderer item visibility");
 expectIncludes(contents.nativeBridgeDocs, "renderer.pinTierVisibility", "native bridge contract doc documents debug renderer pin-tier visibility");
@@ -373,11 +377,17 @@ expectIncludes(contents.source, "renderer: debugRendererState(providerId)", "sou
 expectIncludes(contents.source, "layerMembershipState", "source local native debug bridge tracks layer membership");
 expectIncludes(contents.source, "layerChildrenState", "source local native debug bridge tracks child layer membership");
 expectIncludes(contents.source, "layerVisibilityState", "source local native debug bridge tracks layer visibility");
+expectIncludes(contents.source, "tileOverlayDefinitions = new Map()", "source local native debug bridge tracks tile overlay definitions");
+expectIncludes(contents.source, "tileOverlayVisibilityState", "source local native debug bridge tracks tile overlay visibility");
+expectIncludes(contents.source, "tileOverlayIdsState", "source local native debug bridge tracks tile overlay ids");
 expectIncludes(contents.source, "setLayerItemVisibility", "source local native debug bridge applies layer visibility to member items");
 expectIncludes(contents.source, "payload.isLayer === true", "source local native debug bridge records child layer membership");
 expectIncludes(contents.source, "setLayerItemVisibility(childLayerId, visible, visitedLayerIds)", "source local native debug bridge cascades layer visibility to child layers");
 expectIncludes(contents.source, "nativeMapBridgeDebugLayerChildren", "source records native bridge debug child layer membership");
 expectIncludes(contents.source, "nativeMapBridgeDebugLayerVisibility", "source records native bridge debug layer visibility");
+expectIncludes(contents.source, "nativeMapBridgeDebugTileOverlayCount", "source records native bridge debug tile overlay count");
+expectIncludes(contents.source, "nativeMapBridgeDebugTileOverlayIds", "source records native bridge debug tile overlay ids");
+expectIncludes(contents.source, "nativeMapBridgeDebugTileOverlayVisibility", "source records native bridge debug tile overlay visibility");
 expectIncludes(contents.source, "itemVisibilityState", "source local native debug bridge tracks item visibility");
 expectIncludes(contents.source, "itemTypeCountsState", "source local native debug bridge tracks item type counts");
 expectIncludes(contents.source, "itemPayloads = new Map()", "source local native debug bridge tracks item payloads");
