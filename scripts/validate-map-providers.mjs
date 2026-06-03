@@ -376,6 +376,7 @@ expectIncludes(contents.nativeBridgeDocs, "nativeDebugDatasets", "native bridge 
 expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-route-count", "native bridge contract doc documents smoke route count data attribute");
 expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-route-labels", "native bridge contract doc documents smoke route labels data attribute");
 expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-route-params", "native bridge contract doc documents smoke route params metadata attribute");
+expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-route-urls", "native bridge contract doc documents smoke route URL metadata attribute");
 expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-expected-outcomes", "native bridge contract doc documents smoke route expected outcome metadata attribute");
 expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-event-route-labels", "native bridge contract doc documents event smoke route labels data attribute");
 expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-capability-route-labels", "native bridge contract doc documents capability smoke route labels data attribute");
@@ -511,6 +512,8 @@ expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmo
 expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmokeRouteLabels", "source records smoke route labels dataset");
 expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmokeRouteParams", "source records smoke route params metadata");
 expectIncludes(contents.source, "JSON.stringify(routeParamRoutes)", "source serializes smoke route params metadata");
+expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmokeRouteUrls", "source records smoke route URL metadata");
+expectIncludes(contents.source, "JSON.stringify(routeUrlRoutes)", "source serializes smoke route URL metadata");
 expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmokeExpectedOutcomes", "source records smoke route expected outcome metadata");
 expectIncludes(contents.source, "JSON.stringify(expectedOutcomeRoutes)", "source serializes smoke route expected outcome metadata");
 expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmokeEventRouteLabels", "source records event smoke route labels dataset");
