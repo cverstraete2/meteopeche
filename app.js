@@ -21,13 +21,36 @@ const WATER_MODES = {
   SEA: "sea",
   FRESHWATER: "freshwater",
 };
-const MOBILE_VIEWS = ["map", "activity", "weather", "rigging", "journal", "preferences"];
-const WEATHER_SUBTABS = ["overview", "forces", "sun", "tides"];
+const MOBILE_VIEWS = ["map", "weather", "activity", "journal", "more"];
+const WEATHER_SUBTABS = ["overview", "forces", "sun"];
 const ATMOSPHERE_CHARTS = ["cloud", "pressure"];
 const MARINE_OVERLAY_MODES = ["none", "surface", "depth", "wave"];
 const THEME_MODES = ["light", "dark"];
 const LANGUAGE_MODES = ["fr", "en", "es", "de", "pt"];
+const MAP_PROVIDER_IDS = {
+  LEAFLET_OPENMAP: "leaflet-openmap",
+  APPLE_WEB: "apple-web",
+  APPLE_NATIVE: "apple-native",
+  GOOGLE_WEB: "google-web",
+  GOOGLE_NATIVE: "google-native",
+};
+const MAP_PROVIDER_DEFAULT_SUPPORT = {
+  [MAP_PROVIDER_IDS.LEAFLET_OPENMAP]: true,
+  [MAP_PROVIDER_IDS.APPLE_WEB]: false,
+  [MAP_PROVIDER_IDS.APPLE_NATIVE]: false,
+  [MAP_PROVIDER_IDS.GOOGLE_WEB]: false,
+  [MAP_PROVIDER_IDS.GOOGLE_NATIVE]: false,
+};
+const GOOGLE_MAPS_SCRIPT_ID = "google-maps-js-api";
+const APPLE_MAPKIT_SCRIPT_ID = "apple-mapkit-js-api";
+const APPLE_MAPKIT_JS_URL = "https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js";
 const PIN_ZOOM_LEVELS = [5, 8, 11, 14];
+const PIN_LAYER_TIERS = [
+  { id: "tier1", minZoom: 5, maxZoom: 7, pane: "pinTier1Pane", zIndex: 410 },
+  { id: "tier2", minZoom: 8, maxZoom: 10, pane: "pinTier2Pane", zIndex: 420 },
+  { id: "tier3", minZoom: 11, maxZoom: 13, pane: "pinTier3Pane", zIndex: 430 },
+  { id: "tier4", minZoom: 14, maxZoom: 99, pane: "pinTier4Pane", zIndex: 440 },
+];
 const OVERPASS_MIN_ZOOM = 10;
 const OVERPASS_SPOT_ZOOM_LEVEL = 13;
 const OVERPASS_MIN_FETCH_INTERVAL_MS = 2000;
@@ -49,7 +72,9 @@ const I18N_TRANSLATIONS = {
   "MeteoCatch mobile": { en: "MeteoCatch mobile", es: "MeteoCatch móvil", de: "MeteoCatch mobil", pt: "MeteoCatch móvel" },
   "Fermer l'onboarding": { en: "Close onboarding", es: "Cerrar onboarding", de: "Onboarding schließen", pt: "Fechar onboarding" },
   "Prépare tes sorties comme une vraie app de terrain": { en: "Plan your trips like a true field app", es: "Prepara tus salidas como una app de campo", de: "Plane deine Trips wie mit einer echten Outdoor-App", pt: "Prepara as tuas saídas como uma app de terreno" },
+  "Choisis un spot, trouve le bon créneau": { en: "Choose a spot, find the right window", es: "Elige un spot, encuentra la mejor franja", de: "Wähle einen Spot, finde das richtige Zeitfenster", pt: "Escolhe um spot, encontra a melhor janela" },
   "Position précise pour choisir le spot, rappels locaux, journal photo et accès hors ligne aux écrans essentiels.": { en: "Precise location to choose a spot, local reminders, photo log and offline access to essential screens.", es: "Ubicación precisa para elegir el spot, recordatorios locales, diario con fotos y acceso sin conexión a las pantallas esenciales.", de: "Präziser Standort für Spotwahl, lokale Erinnerungen, Fototagebuch und Offline-Zugriff auf wichtige Ansichten.", pt: "Localização precisa para escolher o spot, lembretes locais, diário fotográfico e acesso offline aos ecrãs essenciais." },
+  "Commence avec un spot de démonstration. Le GPS, les notifications et les photos sont proposés seulement quand ils deviennent utiles.": { en: "Start with a demo spot. GPS, notifications and photos are offered only when they become useful.", es: "Empieza con un spot de demo. GPS, notificaciones y fotos se proponen solo cuando son útiles.", de: "Starte mit einem Demo-Spot. GPS, Benachrichtigungen und Fotos werden erst angeboten, wenn sie nützlich sind.", pt: "Começa com um spot de demonstração. GPS, notificações e fotos aparecem apenas quando são úteis." },
   "GPS précis": { en: "Precise GPS", es: "GPS preciso", de: "Präzises GPS", pt: "GPS preciso" },
   "À configurer": { en: "To set up", es: "Por configurar", de: "Einzurichten", pt: "Por configurar" },
   "Autoriser": { en: "Allow", es: "Permitir", de: "Erlauben", pt: "Permitir" },
@@ -76,7 +101,9 @@ const I18N_TRANSLATIONS = {
   "Plus tard": { en: "Later", es: "Más tarde", de: "Später", pt: "Mais tarde" },
   "Prévisions marines par spot": { en: "Marine forecasts by spot", es: "Previsiones marinas por spot", de: "Meeresvorhersagen nach Spot", pt: "Previsões marinhas por spot" },
   "Préférences": { en: "Preferences", es: "Preferencias", de: "Einstellungen", pt: "Preferências" },
+  "Plus": { en: "More", es: "Más", de: "Mehr", pt: "Mais" },
   "Profil": { en: "Profile", es: "Perfil", de: "Profil", pt: "Perfil" },
+  "Profil & app": { en: "Profile & app", es: "Perfil y app", de: "Profil & App", pt: "Perfil e app" },
   "← Retour": { en: "← Back", es: "← Volver", de: "← Zurück", pt: "← Voltar" },
   "Milieu": { en: "Environment", es: "Medio", de: "Gewässer", pt: "Ambiente" },
   "Mer": { en: "Sea", es: "Mar", de: "Meer", pt: "Mar" },
@@ -84,6 +111,13 @@ const I18N_TRANSLATIONS = {
   "Thème": { en: "Theme", es: "Tema", de: "Design", pt: "Tema" },
   "Clair": { en: "Light", es: "Claro", de: "Hell", pt: "Claro" },
   "Sombre": { en: "Dark", es: "Oscuro", de: "Dunkel", pt: "Escuro" },
+  "Abonnement": { en: "Subscription", es: "Suscripción", de: "Abo", pt: "Subscrição" },
+  "MeteoCatch Pro": { en: "MeteoCatch Pro", es: "MeteoCatch Pro", de: "MeteoCatch Pro", pt: "MeteoCatch Pro" },
+  "Gratuit": { en: "Free", es: "Gratis", de: "Kostenlos", pt: "Gratuito" },
+  "Pro actif": { en: "Pro active", es: "Pro activo", de: "Pro aktiv", pt: "Pro ativo" },
+  "Mode test Pro": { en: "Pro test mode", es: "Modo de prueba Pro", de: "Pro-Testmodus", pt: "Modo de teste Pro" },
+  "Active l'état Pro localement pour tester les limites d'abonnement.": { en: "Enable the Pro state locally to test subscription limits.", es: "Activa el estado Pro localmente para probar los límites de suscripción.", de: "Aktiviere den Pro-Status lokal, um Abo-Grenzen zu testen.", pt: "Ativa o estado Pro localmente para testar limites de subscrição." },
+  "Statut d'abonnement local pour valider l'expérience Pro avant mise en production.": { en: "Local subscription status for validating the Pro experience before production.", es: "Estado de suscripción local para validar la experiencia Pro antes de producción.", de: "Lokaler Abo-Status, um das Pro-Erlebnis vor der Produktion zu prüfen.", pt: "Estado de subscrição local para validar a experiência Pro antes de produção." },
   "Langue": { en: "Language", es: "Idioma", de: "Sprache", pt: "Idioma" },
   "Niveau": { en: "Level", es: "Nivel", de: "Level", pt: "Nível" },
   "Débutant": { en: "Beginner", es: "Principiante", de: "Anfänger", pt: "Iniciante" },
@@ -100,6 +134,7 @@ const I18N_TRANSLATIONS = {
   "Espèce cible": { en: "Target species", es: "Especie objetivo", de: "Zielfisch", pt: "Espécie alvo" },
   "Profondeur cible": { en: "Target depth", es: "Profundidad objetivo", de: "Zieltiefe", pt: "Profundidade alvo" },
   "App native & confidentialité": { en: "Native app & privacy", es: "App nativa y privacidad", de: "Native App & Datenschutz", pt: "App nativa e privacidade" },
+  "Données, app native & confidentialité": { en: "Data, native app & privacy", es: "Datos, app nativa y privacidad", de: "Daten, native App & Datenschutz", pt: "Dados, app nativa e privacidade" },
   "Données": { en: "Data", es: "Datos", de: "Daten", pt: "Dados" },
   "Sources météo et Copernicus en attente": { en: "Weather and Copernicus sources pending", es: "Fuentes meteorológicas y Copernicus pendientes", de: "Wetter- und Copernicus-Quellen ausstehend", pt: "Fontes meteorológicas e Copernicus pendentes" },
   "Privacy": { en: "Privacy", es: "Privacidad", de: "Datenschutz", pt: "Privacidade" },
@@ -120,6 +155,7 @@ const I18N_TRANSLATIONS = {
   "Retirer des favoris": { en: "Remove from favorites", es: "Quitar de favoritos", de: "Aus Favoriten entfernen", pt: "Remover dos favoritos" },
   "Favoris": { en: "Favorites", es: "Favoritos", de: "Favoriten", pt: "Favoritos" },
   "Modifier": { en: "Edit", es: "Modificar", de: "Ändern", pt: "Editar" },
+  "Changer spot": { en: "Change spot", es: "Cambiar spot", de: "Spot wechseln", pt: "Alterar spot" },
   "Masquer": { en: "Hide", es: "Ocultar", de: "Ausblenden", pt: "Ocultar" },
   "Ma position": { en: "My location", es: "Mi ubicación", de: "Mein Standort", pt: "A minha posição" },
   "Utiliser ma position": { en: "Use my location", es: "Usar mi ubicación", de: "Meinen Standort verwenden", pt: "Usar a minha posição" },
@@ -192,6 +228,9 @@ const I18N_TRANSLATIONS = {
   "Sélecteur météo": { en: "Weather selector", es: "Selector meteorológico", de: "Wetterauswahl", pt: "Seletor meteorológico" },
   "Sous-vues météo": { en: "Weather subviews", es: "Subvistas meteorológicas", de: "Wetter-Unteransichten", pt: "Subvistas meteorológicas" },
   "Décision rapide": { en: "Quick decision", es: "Decisión rápida", de: "Schnellentscheidung", pt: "Decisão rápida" },
+  "Résumé": { en: "Summary", es: "Resumen", de: "Übersicht", pt: "Resumo" },
+  "Forces": { en: "Forces", es: "Fuerzas", de: "Kräfte", pt: "Forças" },
+  "Soleil / marées": { en: "Sun / tide", es: "Sol / mareas", de: "Sonne / Gezeiten", pt: "Sol / marés" },
   "Rosace": { en: "Compass", es: "Rosa", de: "Kompassrose", pt: "Rosa dos ventos" },
   "Soleil": { en: "Sun", es: "Sol", de: "Sonne", pt: "Sol" },
   "Marées": { en: "Tides", es: "Mareas", de: "Gezeiten", pt: "Marés" },
@@ -593,6 +632,54 @@ const MAP_BOUNDS = {
   east: 9.95,
   north: 44.25,
   south: 41.15,
+};
+const SHARED_MAP_TILE_OVERLAYS = {
+  seamarks: {
+    id: "seamarks",
+    name: "OpenSeaMap seamarks",
+    type: "xyz",
+    url: "https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png",
+    minZoom: MAP_MIN_ZOOM,
+    maxZoom: MAP_MAX_ZOOM,
+    maxNativeZoom: 17,
+    opacity: 0.92,
+  },
+  emodnetCoastlines: {
+    id: "emodnet-coastlines",
+    name: "EMODnet coastlines",
+    type: "wms",
+    url: BATHYMETRY_WMS,
+    layers: "coastlines",
+    styles: "coastline_osm",
+    format: "image/png",
+    transparent: true,
+    version: "1.3.0",
+    opacity: 0.86,
+  },
+  emodnetSeaNames: {
+    id: "emodnet-sea-names",
+    name: "EMODnet sea names",
+    type: "wms",
+    url: BATHYMETRY_WMS,
+    layers: "world:sea_names",
+    styles: "sea_names",
+    format: "image/png",
+    transparent: true,
+    version: "1.3.0",
+    opacity: 0.72,
+  },
+  emodnetContours: {
+    id: "emodnet-contours",
+    name: "EMODnet contours",
+    type: "wms",
+    url: BATHYMETRY_WMS,
+    layers: "emodnet:contours",
+    styles: "contours",
+    format: "image/png",
+    transparent: true,
+    version: "1.3.0",
+    opacity: 0.82,
+  },
 };
 const REGULATION_WARNING_METERS = 600;
 const ANCHOR_DRIFT_LIMIT_METERS = 30;
@@ -1879,6 +1966,7 @@ const state = {
   selectedDate: "",
   timelineMinute: 12 * 60,
   selectedSpotName: spots[0].name,
+  forecastRequestId: 0,
   spotResolution: null,
   spotResolutionLoading: false,
   spotResolutionError: "",
@@ -1903,25 +1991,35 @@ const state = {
   mapTileKey: "",
   mapDrag: null,
   mapPinch: null,
+  mapLoadingTimer: null,
   mapPointers: new Map(),
   mapLayerOpen: false,
   mapFullscreen: false,
   favoritesOpen: false,
   spotPanelOpen: false,
+  mapProviderPreference: MAP_PROVIDER_IDS.LEAFLET_OPENMAP,
+  mapProviderId: MAP_PROVIDER_IDS.LEAFLET_OPENMAP,
+  mapProviderFallbackActive: false,
+  mapProviderConfigReady: false,
+  mapProviderFallbackReason: "",
+  mapProvider: null,
+  mapTileOverlays: SHARED_MAP_TILE_OVERLAYS,
   mapClickStart: null,
   suppressNextMapClick: false,
   mapTilePruneTimer: null,
-  leafletMap: null,
-  leafletPinLayer: null,
-  leafletPinMarkers: new Map(),
-  leafletPinFadeTimers: new Map(),
+  mapPinLayer: null,
+  mapPinLayers: null,
+  mapPinPanes: null,
+  mapPinMarkers: new Map(),
+  mapPinFadeTimers: new Map(),
   osmSpotsLastFetchedBounds: null,
   osmSpotsLastFetchTime: 0,
   osmSpotsFetchTimer: null,
+  osmSpotsDebouncedFetch: null,
   osmSpotsLoading: false,
   osmSpotsBlockedUntil: 0,
   osmSpotsRequestId: 0,
-  leafletMarkers: null,
+  mapMarkers: null,
   nauticalLayer: null,
   nauticalEnabled: true,
   coastalLayer: null,
@@ -1961,6 +2059,7 @@ const state = {
   activityFish: "loup",
   theme: "light",
   language: defaultLanguage(),
+  isPro: false,
   profile: { ...DEFAULT_PROFILE },
   forecastExpanded: false,
   riggingDirty: false,
@@ -2017,6 +2116,8 @@ const els = {
   dayTabs: document.querySelector("#dayTabs"),
   preferencePanel: document.querySelector(".preferences-panel"),
   languageSelect: document.querySelector("#languageSelect"),
+  proStatusLabel: document.querySelector("#proStatusLabel"),
+  proToggle: document.querySelector("#proToggle"),
   themeButtons: [...document.querySelectorAll("[data-theme-value]")],
   profileButtons: [...document.querySelectorAll("[data-profile-control] [data-profile-value]")],
   preferenceSpecies: document.querySelector("#preferenceSpecies"),
@@ -2345,7 +2446,7 @@ function setupI18nObserver() {
   });
 }
 
-function init() {
+async function init() {
   populateSpots();
   restoreState();
   setupI18nObserver();
@@ -2356,7 +2457,7 @@ function init() {
   populateCatchSpecies();
   populatePreferenceSpecies();
   populateRiggingTechniques();
-  initMapEngine();
+  await initMapEngine();
   bindEvents();
   updateDepth();
   applyWaterModeUI();
@@ -2372,112 +2473,4336 @@ function init() {
   scheduleHideAppSplash(650);
 }
 
-function initMapEngine() {
-  if (!window.L) return;
+async function initMapEngine() {
+  installLocalNativeMapBridgeDebug();
+  installLocalWebMapSdkDebug();
+  resolveRuntimeMapProvider();
 
   const active = getActiveSpot();
   state.mapCenter = { lat: active.lat, lon: active.lon };
-  state.leafletMap = L.map(els.spotMap, {
-    zoomControl: false,
-    attributionControl: false,
-    minZoom: MAP_MIN_ZOOM,
-    maxZoom: MAP_MAX_ZOOM,
-    preferCanvas: true,
-    wheelDebounceTime: 50,
-  }).setView([active.lat, active.lon], state.mapZoom);
+  const mounted = await mountMapProvider(state.mapProviderId, active);
+  if (mounted) return;
 
-  els.spotMap.classList.add("is-leaflet");
+  if (state.mapProviderId !== MAP_PROVIDER_IDS.LEAFLET_OPENMAP) {
+    state.mapProviderId = MAP_PROVIDER_IDS.LEAFLET_OPENMAP;
+    state.mapProviderFallbackActive = true;
+    state.mapProviderFallbackReason = "mount-failed";
+    applyRuntimeMapProviderDataset();
+    await mountMapProvider(MAP_PROVIDER_IDS.LEAFLET_OPENMAP, active);
+  }
+}
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    minZoom: MAP_MIN_ZOOM,
-    maxZoom: MAP_MAX_ZOOM,
-    keepBuffer: 5,
-    updateWhenIdle: false,
-    updateWhenZooming: false,
-    crossOrigin: true,
-  }).addTo(state.leafletMap);
+async function mountMapProvider(providerId, active) {
+  if (providerId === MAP_PROVIDER_IDS.LEAFLET_OPENMAP) {
+    await waitForLeafletLibrary();
+  }
 
-  state.nauticalLayer = L.tileLayer("https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png", {
-    minZoom: MAP_MIN_ZOOM,
-    maxZoom: MAP_MAX_ZOOM,
-    maxNativeZoom: 17,
-    keepBuffer: 5,
-    updateWhenIdle: false,
-    updateWhenZooming: false,
-    opacity: 0.92,
-    crossOrigin: true,
+  state.mapProvider = createMapProvider(providerId);
+  if (!state.mapProvider) return false;
+
+  try {
+    document.documentElement.dataset.mapProviderMountStep = "init";
+    await state.mapProvider.init({ center: active, zoom: state.mapZoom });
+    els.spotMap.classList.add("has-map-provider");
+    delete document.documentElement.dataset.mapProviderMountError;
+    clearFallbackMapDom();
+
+    document.documentElement.dataset.mapProviderMountStep = "base-layers";
+    state.nauticalLayer = state.mapProvider.createSeamarksLayer();
+    state.coastalLayer = state.mapProvider.createCoastalLayer();
+    updateNauticalOverlay();
+    updateCoastalOverlay();
+
+    document.documentElement.dataset.mapProviderMountStep = "ui-propagation";
+    state.mapProvider.disableUiEventPropagation([
+      els.spotControls,
+      els.spotNameSheet,
+      els.mapLayerSheet,
+      els.mapLayerBackdrop,
+      els.fishFilterControl,
+      els.mapOverlayActions,
+      els.safetyBanner,
+      els.mapFavoritesOverlay,
+    ]);
+
+    document.documentElement.dataset.mapProviderMountStep = "feature-layers";
+    document.documentElement.dataset.mapProviderMountStep = "known-layer";
+    state.knownFishingLayer = state.mapProvider.createLayerGroup();
+    document.documentElement.dataset.mapProviderMountStep = "known-overlay";
+    updateKnownFishingOverlay();
+
+    document.documentElement.dataset.mapProviderMountStep = "bathymetry-tile-layer";
+    state.emodnetBathymetryLayer = state.mapProvider.createBathymetryTileLayer();
+    document.documentElement.dataset.mapProviderMountStep = "bathymetry-marker-layer";
+    state.bathymetryLayer = state.mapProvider.createLayerGroup();
+    document.documentElement.dataset.mapProviderMountStep = "bathymetry-render";
+    renderBathymetryLayer();
+    document.documentElement.dataset.mapProviderMountStep = "bathymetry-overlay";
+    updateBathymetryOverlay();
+
+    document.documentElement.dataset.mapProviderMountStep = "regulation-layer";
+    state.regulationLayer = state.mapProvider.createLayerGroup();
+    document.documentElement.dataset.mapProviderMountStep = "regulation-overlay";
+    updateRegulationOverlay();
+
+    document.documentElement.dataset.mapProviderMountStep = "marine-anchor-layers";
+    state.marineOverlayLayer = state.mapProvider.createLayerGroup({ addToMap: true });
+    state.anchorLayer = state.mapProvider.createLayerGroup({ addToMap: true });
+    document.documentElement.dataset.mapProviderMountStep = "pin-layers";
+    setupMapPinLayers();
+    state.mapMarkers = state.mapProvider.createLayerGroup({ addToMap: true });
+    document.documentElement.dataset.mapProviderMountStep = "events";
+    state.osmSpotsDebouncedFetch = debounce(() => scheduleOverpassSpotFetch(), 600);
+    state.mapProvider.on("click", selectProviderMapPoint);
+    state.mapProvider.on("moveend zoomend", syncProviderMapState);
+    state.mapProvider.on("moveend zoomend", state.osmSpotsDebouncedFetch);
+    state.mapProvider.on("zoomend", updateMapPinVisibility);
+    delete document.documentElement.dataset.mapProviderMountStep;
+    return true;
+  } catch (error) {
+    console.warn(`Map provider ${providerId} failed to mount.`, error);
+    state.mapProviderFallbackActive = true;
+    state.mapProviderFallbackReason = "mount-failed";
+    document.documentElement.dataset.mapProviderMountError = String(error?.message ?? error ?? "mount failed").slice(0, 160);
+    applyRuntimeMapProviderDataset();
+    state.mapProvider?.destroy?.();
+    resetMapProviderMountState();
+    return false;
+  }
+}
+
+function resetMapProviderMountState() {
+  els.spotMap.classList.remove(
+    "has-map-provider",
+    "is-leaflet",
+    "is-google-map",
+    "is-apple-map",
+    "is-native-map",
+    "leaflet-container",
+    "leaflet-touch",
+    "leaflet-retina",
+    "leaflet-fade-anim",
+  );
+  delete els.spotMap._leaflet_id;
+  state.mapProvider = null;
+  state.nauticalLayer = null;
+  state.coastalLayer = null;
+  state.knownFishingLayer = null;
+  state.emodnetBathymetryLayer = null;
+  state.bathymetryLayer = null;
+  state.regulationLayer = null;
+  state.marineOverlayLayer = null;
+  state.anchorLayer = null;
+  state.mapPinLayer = null;
+  state.mapPinLayers = null;
+  state.mapPinPanes = null;
+  state.mapMarkers = null;
+}
+
+function clearFallbackMapDom() {
+  els.mapTiles.replaceChildren();
+  els.mapMarkers.replaceChildren();
+  state.mapTileKey = "";
+}
+
+function createMapProvider(providerId) {
+  const options = {
+    container: els.spotMap,
+    tileOverlays: state.mapTileOverlays,
+    onLoadingChange: setMapProviderLoading,
+  };
+
+  if (providerId === MAP_PROVIDER_IDS.GOOGLE_WEB) {
+    return new GoogleMapsWebProvider(options);
+  }
+
+  if (providerId === MAP_PROVIDER_IDS.APPLE_WEB) {
+    return new AppleMapsWebProvider(options);
+  }
+
+  if (providerId === MAP_PROVIDER_IDS.APPLE_NATIVE || providerId === MAP_PROVIDER_IDS.GOOGLE_NATIVE) {
+    return new NativeBridgeMapProvider({ ...options, providerId });
+  }
+
+  if (providerId === MAP_PROVIDER_IDS.LEAFLET_OPENMAP && isLeafletLibraryReady()) {
+    return new LeafletMapProvider(options);
+  }
+
+  return null;
+}
+
+function isLeafletLibraryReady() {
+  return Boolean(window.L?.map && window.L?.tileLayer && window.L?.layerGroup);
+}
+
+function waitForLeafletLibrary(timeoutMs = 1600) {
+  if (isLeafletLibraryReady()) return Promise.resolve(true);
+
+  return new Promise((resolve) => {
+    const startedAt = Date.now();
+    const check = () => {
+      if (isLeafletLibraryReady()) {
+        resolve(true);
+        return;
+      }
+
+      if (Date.now() - startedAt >= timeoutMs) {
+        resolve(false);
+        return;
+      }
+
+      window.setTimeout(check, 40);
+    };
+    check();
   });
+}
 
-  state.coastalLayer = L.layerGroup([
-    L.tileLayer.wms(BATHYMETRY_WMS, {
-      layers: "coastlines",
-      styles: "coastline_osm",
-      format: "image/png",
-      transparent: true,
-      version: "1.3.0",
-      opacity: 0.86,
+function leafletDefinedOptions(source, keys) {
+  return Object.fromEntries(
+    keys
+      .filter((key) => source[key] !== undefined)
+      .map((key) => [key, source[key]]),
+  );
+}
+
+class LeafletMapProvider {
+  constructor({ container, tileOverlays, onLoadingChange }) {
+    this.id = MAP_PROVIDER_IDS.LEAFLET_OPENMAP;
+    this.container = container;
+    this.tileOverlays = tileOverlays;
+    this.onLoadingChange = onLoadingChange;
+    this.map = null;
+  }
+
+  init({ center, zoom }) {
+    this.map = L.map(this.container, {
+      zoomControl: false,
+      attributionControl: false,
       minZoom: MAP_MIN_ZOOM,
       maxZoom: MAP_MAX_ZOOM,
-      attribution: "EMODnet Bathymetry",
-    }),
-    L.tileLayer.wms(BATHYMETRY_WMS, {
-      layers: "world:sea_names",
-      styles: "sea_names",
-      format: "image/png",
-      transparent: true,
-      version: "1.3.0",
-      opacity: 0.72,
+      preferCanvas: true,
+      wheelDebounceTime: 50,
+      tap: true,
+      tapTolerance: 15,
+      touchZoom: true,
+      bounceAtZoomLimits: false,
+      zoomSnap: 0.5,
+      zoomDelta: 0.5,
+    }).setView([center.lat, center.lon], zoom);
+
+    this.container.classList.add("is-leaflet");
+    this.ensureDefaultPanes();
+    this.addBaseLayer();
+    this.on("loading", () => this.onLoadingChange(true));
+    this.on("load", () => this.onLoadingChange(false));
+    return this.map;
+  }
+
+  destroy() {
+    this.container.classList.remove("is-leaflet");
+    this.map?.remove?.();
+    this.map = null;
+  }
+
+  addBaseLayer() {
+    const baseTileLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       minZoom: MAP_MIN_ZOOM,
       maxZoom: MAP_MAX_ZOOM,
-      attribution: "SeaDataNet",
+      keepBuffer: 4,
+      updateWhenIdle: true,
+      updateWhenZooming: false,
+      crossOrigin: true,
+    });
+    this.bindTileLoadingState(baseTileLayer);
+    baseTileLayer.addTo(this.map);
+    return baseTileLayer;
+  }
+
+  ensureDefaultPanes() {
+    ["tilePane", "overlayPane", "shadowPane", "markerPane", "tooltipPane", "popupPane"].forEach((paneName) => {
+      if (!this.map.getPane(paneName)) this.map.createPane(paneName);
+    });
+  }
+
+  createSeamarksLayer() {
+    const overlay = this.tileOverlays.seamarks;
+    const layer = L.tileLayer(overlay.url, {
+      minZoom: overlay.minZoom,
+      maxZoom: overlay.maxZoom,
+      maxNativeZoom: overlay.maxNativeZoom,
+      keepBuffer: 4,
+      updateWhenIdle: true,
+      updateWhenZooming: false,
+      opacity: overlay.opacity,
+      crossOrigin: true,
+    });
+    this.bindTileLoadingState(layer);
+    return layer;
+  }
+
+  createCoastalLayer() {
+    const coastlineOverlay = this.tileOverlays.emodnetCoastlines;
+    const seaNamesOverlay = this.tileOverlays.emodnetSeaNames;
+    return this.createLayerGroup({
+      layers: [
+        this.createWmsTileLayer(coastlineOverlay, { attribution: "EMODnet Bathymetry" }),
+        this.createWmsTileLayer(seaNamesOverlay, { attribution: "SeaDataNet" }),
+      ],
+    });
+  }
+
+  createBathymetryTileLayer() {
+    return this.createWmsTileLayer(this.tileOverlays.emodnetContours, { attribution: "EMODnet Bathymetry" });
+  }
+
+  createWmsTileLayer(overlay, options = {}) {
+    const layer = L.tileLayer.wms(overlay.url, {
+      layers: overlay.layers,
+      styles: overlay.styles,
+      format: overlay.format,
+      transparent: overlay.transparent,
+      version: overlay.version,
+      opacity: overlay.opacity,
+      minZoom: MAP_MIN_ZOOM,
+      maxZoom: MAP_MAX_ZOOM,
+      attribution: options.attribution,
+    });
+    this.bindTileLoadingState(layer);
+    return layer;
+  }
+
+  createLayerGroup(options = {}) {
+    const layer = L.layerGroup(options.layers ?? []);
+    if (options.addToMap) layer.addTo(this.map);
+    return layer;
+  }
+
+  createPinTierLayers(tiers) {
+    const panes = {};
+    const layers = {};
+
+    tiers.forEach((tier) => {
+      const pane = this.map.createPane(tier.pane);
+      pane.style.zIndex = String(tier.zIndex);
+      pane.style.opacity = "0";
+      pane.style.pointerEvents = "none";
+      pane.style.transition = "opacity 300ms ease-out";
+      panes[tier.id] = pane;
+      layers[tier.id] = this.createLayerGroup({ addToMap: true });
+    });
+
+    return {
+      panes,
+      layers,
+      layer: this.createLayerGroup({ layers: Object.values(layers) }),
+    };
+  }
+
+  addMarkerBatch(layer, markers) {
+    if (!layer || !markers.length) return null;
+    const batchGroup = this.createLayerGroup({ layers: markers });
+    batchGroup.addTo(layer);
+    return batchGroup;
+  }
+
+  removeMarkerFromBatch(marker, tierLayers) {
+    if (!marker) return;
+    if (marker.__pinBatchGroup) {
+      const batchGroup = marker.__pinBatchGroup;
+      batchGroup.removeLayer(marker);
+      if (!batchGroup.getLayers().length) {
+        tierLayers?.[marker.__pinTier]?.removeLayer(batchGroup);
+      }
+      marker.__pinBatchGroup = null;
+      return;
+    }
+    tierLayers?.[marker.__pinTier]?.removeLayer(marker);
+  }
+
+  setPinPaneVisibility(panes, tiers, zoom) {
+    tiers.forEach((tier) => {
+      const pane = panes?.[tier.id];
+      if (!pane) return;
+      const visible = zoom >= tier.minZoom;
+      pane.style.opacity = visible ? "1" : "0";
+      pane.style.pointerEvents = visible ? "auto" : "none";
+    });
+  }
+
+  clearLayer(layer) {
+    layer?.clearLayers?.();
+  }
+
+  createDivIcon(options) {
+    return L.divIcon(options);
+  }
+
+  addMarker(layer, definition) {
+    const marker = L.marker([definition.lat, definition.lon], leafletDefinedOptions(definition, [
+      "icon",
+      "keyboard",
+      "interactive",
+      "opacity",
+      "pane",
+      "riseOnHover",
+      "title",
+      "zIndexOffset",
+    ]));
+    this.bindTooltip(marker, definition.tooltip);
+    this.bindClick(marker, definition.onClick);
+    if (layer) marker.addTo(layer);
+    return marker;
+  }
+
+  addCircleMarker(layer, definition) {
+    const marker = L.circleMarker([definition.lat, definition.lon], leafletDefinedOptions(definition, [
+      "radius",
+      "color",
+      "weight",
+      "fillColor",
+      "fillOpacity",
+      "bubblingMouseEvents",
+    ]));
+    this.bindTooltip(marker, definition.tooltip);
+    this.bindClick(marker, definition.onClick);
+    marker.addTo(layer);
+    return marker;
+  }
+
+  addCircle(layer, definition) {
+    const circle = L.circle([definition.lat, definition.lon], leafletDefinedOptions(definition, [
+      "radius",
+      "color",
+      "fillColor",
+      "fillOpacity",
+      "weight",
+    ]));
+    this.bindTooltip(circle, definition.tooltip);
+    this.bindClick(circle, definition.onClick);
+    circle.addTo(layer);
+    return circle;
+  }
+
+  addPolyline(layer, definition) {
+    const polyline = L.polyline(definition.coordinates, leafletDefinedOptions(definition, [
+      "color",
+      "dashArray",
+      "weight",
+    ]));
+    this.bindTooltip(polyline, definition.tooltip);
+    this.bindClick(polyline, definition.onClick);
+    polyline.addTo(layer);
+    return polyline;
+  }
+
+  addPolygon(layer, definition) {
+    const polygon = L.polygon(definition.coordinates, leafletDefinedOptions(definition, [
+      "color",
+      "fillColor",
+      "fillOpacity",
+      "weight",
+      "dashArray",
+      "interactive",
+    ]));
+    this.bindTooltip(polygon, definition.tooltip);
+    if (definition.popup) polygon.bindPopup(definition.popup);
+    this.bindClick(polygon, definition.onClick);
+    polygon.addTo(layer);
+    return polygon;
+  }
+
+  bindTooltip(layer, tooltip) {
+    if (!tooltip) return;
+    layer.bindTooltip(tooltip.content, tooltip.options ?? {});
+  }
+
+  bindClick(layer, onClick) {
+    if (!onClick) return;
+    layer.on("click", (event) => onClick(event));
+  }
+
+  setMarkerPosition(marker, lat, lon) {
+    marker?.setLatLng?.([lat, lon]);
+  }
+
+  setMarkerIcon(marker, icon) {
+    marker?.setIcon?.(icon);
+  }
+
+  setMarkerZIndex(marker, zIndexOffset) {
+    marker?.setZIndexOffset?.(zIndexOffset);
+  }
+
+  setMarkerOpacity(marker, opacity) {
+    marker?.setOpacity?.(opacity);
+  }
+
+  getMarkerElement(marker) {
+    return marker?.getElement?.() ?? null;
+  }
+
+  getMarkerTooltip(marker) {
+    return marker?.getTooltip?.() ?? null;
+  }
+
+  setMarkerTooltipContent(marker, content) {
+    marker?.setTooltipContent?.(content);
+  }
+
+  ensureMarkerTooltip(marker, tooltip) {
+    if (!marker || !tooltip) return;
+    if (this.getMarkerTooltip(marker)) {
+      this.setMarkerTooltipContent(marker, tooltip.content);
+      return;
+    }
+    this.bindTooltip(marker, tooltip);
+  }
+
+  flyTo(lat, lon, zoom, options = {}) {
+    this.map?.flyTo?.([lat, lon], zoom, options);
+  }
+
+  once(eventName, handler) {
+    this.map?.once?.(eventName, handler);
+  }
+
+  getCenter() {
+    const center = this.map?.getCenter();
+    return center ? { lat: center.lat, lon: center.lng } : null;
+  }
+
+  getZoom() {
+    return this.map?.getZoom?.() ?? state.mapZoom;
+  }
+
+  getBounds() {
+    const bounds = this.map?.getBounds?.();
+    return bounds ? {
+      north: bounds.getNorth(),
+      south: bounds.getSouth(),
+      east: bounds.getEast(),
+      west: bounds.getWest(),
+    } : null;
+  }
+
+  setView(lat, lon, zoom = state.mapZoom) {
+    this.map?.setView([lat, lon], zoom, { animate: false });
+  }
+
+  setZoom(zoom, options = {}) {
+    if (!this.map) return;
+    if (options.anchorPoint) {
+      const rect = this.container.getBoundingClientRect();
+      this.map.setZoomAround(
+        L.point(options.anchorPoint.x * rect.width, options.anchorPoint.y * rect.height),
+        zoom,
+        { animate: false },
+      );
+      return;
+    }
+    this.map.setZoom(zoom, { animate: false });
+  }
+
+  invalidateSize() {
+    this.map?.invalidateSize?.(false);
+  }
+
+  metersPerCssPixel() {
+    const rect = this.container.getBoundingClientRect();
+    const midpointY = rect.height / 2;
+    const start = this.map.containerPointToLatLng([0, midpointY]);
+    const end = this.map.containerPointToLatLng([100, midpointY]);
+    return this.map.distance(start, end) / 100;
+  }
+
+  hasLayer(layer) {
+    return Boolean(layer && this.map?.hasLayer(layer));
+  }
+
+  addLayer(layer) {
+    if (layer && !this.hasLayer(layer)) layer.addTo(this.map);
+  }
+
+  removeLayer(layer) {
+    if (layer && this.hasLayer(layer)) this.map.removeLayer(layer);
+  }
+
+  setLayerVisible(layer, visible) {
+    if (visible) {
+      this.addLayer(layer);
+    } else {
+      this.removeLayer(layer);
+    }
+  }
+
+  disableUiEventPropagation(elements) {
+    elements.filter(Boolean).forEach((element) => {
+      L.DomEvent.disableClickPropagation(element);
+      L.DomEvent.disableScrollPropagation(element);
+    });
+  }
+
+  stopEvent(event) {
+    if (event?.originalEvent) L.DomEvent.stop(event.originalEvent);
+  }
+
+  on(eventName, handler) {
+    this.map?.on(eventName, handler);
+  }
+
+  bindTileLoadingState(layer) {
+    if (!layer?.on) return;
+    layer.on("loading", () => this.onLoadingChange(true));
+    layer.on("load", () => this.onLoadingChange(false));
+    layer.on("tileerror", () => this.onLoadingChange(false));
+  }
+}
+
+class GoogleMapsWebProvider {
+  constructor({ container, tileOverlays, onLoadingChange }) {
+    this.id = MAP_PROVIDER_IDS.GOOGLE_WEB;
+    this.container = container;
+    this.tileOverlays = tileOverlays;
+    this.onLoadingChange = onLoadingChange;
+    this.maps = null;
+    this.map = null;
+    this.listeners = [];
+    this.uiEventCleanups = [];
+    this.layerGroups = [];
+  }
+
+  async init({ center, zoom }) {
+    this.maps = await loadGoogleMapsWebSdk();
+    this.map = new this.maps.Map(this.container, {
+      center: { lat: center.lat, lng: center.lon },
+      zoom,
+      disableDefaultUI: true,
+      clickableIcons: false,
+      gestureHandling: "greedy",
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false,
+      minZoom: MAP_MIN_ZOOM,
+      maxZoom: MAP_MAX_ZOOM,
+    });
+    this.container.classList.add("is-google-map");
+    return this.map;
+  }
+
+  destroy() {
+    this.layerGroups.splice(0).forEach((layer) => {
+      layer.setMap?.(null);
+      layer.clear?.();
+    });
+    this.listeners.splice(0).forEach((listener) => listener?.remove?.());
+    this.uiEventCleanups.splice(0).forEach((cleanup) => cleanup());
+    this.maps?.event?.clearInstanceListeners?.(this.map);
+    this.container.classList.remove("is-google-map");
+    this.map = null;
+  }
+
+  createSeamarksLayer() {
+    return this.createTileOverlay(this.tileOverlays.seamarks);
+  }
+
+  createCoastalLayer() {
+    return this.createLayerGroup({
+      layers: [
+        this.createTileOverlay(this.tileOverlays.emodnetCoastlines),
+        this.createTileOverlay(this.tileOverlays.emodnetSeaNames),
+      ],
+    });
+  }
+
+  createBathymetryTileLayer() {
+    return this.createTileOverlay(this.tileOverlays.emodnetContours);
+  }
+
+  createTileOverlay(overlay) {
+    const imageMapType = new this.maps.ImageMapType({
+      getTileUrl: (coord, zoom) => mapOverlayTileUrl(overlay, coord.x, coord.y, zoom),
+      tileSize: new this.maps.Size(MAP_TILE_SIZE, MAP_TILE_SIZE),
+      minZoom: overlay.minZoom ?? MAP_MIN_ZOOM,
+      maxZoom: overlay.maxZoom ?? MAP_MAX_ZOOM,
+      opacity: overlay.opacity ?? 1,
+      name: overlay.name,
+    });
+    imageMapType.__overlayId = overlay.id;
+    return imageMapType;
+  }
+
+  createLayerGroup(options = {}) {
+    const layer = new GoogleMapsWebLayerGroup(options.layers ?? []);
+    this.layerGroups.push(layer);
+    if (options.addToMap) layer.setMap(this.map);
+    return layer;
+  }
+
+  createPinTierLayers(tiers) {
+    const panes = {};
+    const layers = {};
+
+    tiers.forEach((tier) => {
+      panes[tier.id] = { style: {} };
+      layers[tier.id] = this.createLayerGroup({ addToMap: true });
+      panes[tier.id].layer = layers[tier.id];
+    });
+
+    return {
+      panes,
+      layers,
+      layer: this.createLayerGroup({ layers: Object.values(layers) }),
+    };
+  }
+
+  addMarkerBatch(layer, markers) {
+    if (!layer || !markers.length) return null;
+    const batchGroup = this.createLayerGroup();
+    markers.forEach((marker) => batchGroup.add(marker));
+    layer.add(batchGroup);
+    batchGroup.setMap(layer.map);
+    return batchGroup;
+  }
+
+  removeMarkerFromBatch(marker, tierLayers) {
+    if (!marker) return;
+    if (marker.__pinBatchGroup) {
+      const batchGroup = marker.__pinBatchGroup;
+      batchGroup.remove(marker);
+      if (batchGroup.isEmpty()) {
+        tierLayers?.[marker.__pinTier]?.remove?.(batchGroup);
+      }
+      marker.__pinBatchGroup = null;
+      return;
+    }
+
+    tierLayers?.[marker.__pinTier]?.remove?.(marker);
+  }
+
+  setPinPaneVisibility(panes, tiers, zoom) {
+    tiers.forEach((tier) => {
+      const pane = panes?.[tier.id];
+      if (!pane) return;
+      const visible = zoom >= tier.minZoom;
+      pane.style.opacity = visible ? "1" : "0";
+      pane.style.pointerEvents = visible ? "auto" : "none";
+      pane.layer?.setMap?.(visible ? this.map : null);
+    });
+  }
+
+  clearLayer(layer) {
+    layer?.clear?.();
+  }
+
+  createDivIcon(options) {
+    return options;
+  }
+
+  addMarker(layer, definition) {
+    const marker = googleDivIconHtml(definition.icon)
+      ? new GoogleMapsWebHtmlMarker(this.maps, definition)
+      : new this.maps.Marker({
+        position: { lat: definition.lat, lng: definition.lon },
+        map: layer?.map ?? null,
+        title: definition.title,
+        clickable: definition.interactive !== false,
+        opacity: definition.opacity ?? 1,
+        zIndex: definition.zIndexOffset,
+        icon: googleMarkerIconFromDivIcon(definition.icon),
+      });
+    if (googleDivIconHtml(definition.icon) && layer?.map) marker.setMap(layer.map);
+    layer?.add?.(marker);
+    this.bindTooltip(marker, definition.tooltip, {
+      anchor: marker,
+      position: () => marker.getPosition?.(),
+    });
+    if (definition.onClick) googleTrackListener(marker, marker.addListener("click", (event) => definition.onClick(this.normalizeEvent("click", event))));
+    return marker;
+  }
+
+  addCircleMarker(layer, definition) {
+    const marker = new this.maps.Circle({
+      center: { lat: definition.lat, lng: definition.lon },
+      radius: Math.max(20, (definition.radius ?? 8) * mapMetersPerCssPixel()),
+      map: layer?.map ?? null,
+      strokeColor: definition.color,
+      strokeWeight: definition.weight,
+      strokeOpacity: definition.opacity ?? 1,
+      fillColor: definition.fillColor,
+      fillOpacity: definition.fillOpacity,
+      clickable: definition.interactive !== false,
+      zIndex: definition.zIndexOffset,
+    });
+    layer?.add?.(marker);
+    this.bindTooltip(marker, definition.tooltip, {
+      position: () => marker.getCenter?.(),
+    });
+    this.bindPopup(marker, definition.popup, {
+      position: (event) => event?.latLng ?? marker.getCenter?.(),
+    });
+    if (definition.onClick) googleTrackListener(marker, marker.addListener("click", (event) => definition.onClick(this.normalizeEvent("click", event))));
+    return marker;
+  }
+
+  addCircle(layer, definition) {
+    const circle = new this.maps.Circle({
+      center: { lat: definition.lat, lng: definition.lon },
+      radius: definition.radius,
+      strokeColor: definition.color,
+      strokeWeight: definition.weight,
+      strokeOpacity: definition.opacity ?? 1,
+      fillColor: definition.fillColor,
+      fillOpacity: definition.fillOpacity,
+      clickable: definition.interactive !== false,
+      map: layer?.map ?? null,
+    });
+    layer?.add?.(circle);
+    this.bindTooltip(circle, definition.tooltip, {
+      position: () => circle.getCenter?.(),
+    });
+    this.bindPopup(circle, definition.popup, {
+      position: (event) => event?.latLng ?? circle.getCenter?.(),
+    });
+    if (definition.onClick) googleTrackListener(circle, circle.addListener("click", (event) => definition.onClick(this.normalizeEvent("click", event))));
+    return circle;
+  }
+
+  addPolyline(layer, definition) {
+    const center = mapProviderShapeCenter(definition);
+    const polyline = new this.maps.Polyline({
+      path: mapProviderGoogleCoordinatePath(definition.coordinates),
+      strokeColor: definition.color,
+      strokeWeight: definition.weight,
+      strokeOpacity: definition.dashArray ? 0 : 1,
+      icons: googlePolylineIcons(definition.dashArray, definition.color),
+      clickable: definition.interactive !== false,
+      map: layer?.map ?? null,
+    });
+    polyline.__meteoPecheShapeCenter = center;
+    layer?.add?.(polyline);
+    this.bindTooltip(polyline, definition.tooltip);
+    this.bindPopup(polyline, definition.popup, {
+      position: (event) => event?.latLng ?? mapProviderGoogleLatLngLiteral(center),
+    });
+    if (definition.onClick) googleTrackListener(polyline, polyline.addListener("click", (event) => definition.onClick(this.normalizeShapeEvent(event, polyline))));
+    return polyline;
+  }
+
+  setMarkerPosition(marker, lat, lon) {
+    marker?.setPosition?.({ lat, lng: lon });
+  }
+
+  setMarkerIcon(marker, icon) {
+    marker?.setIcon?.(googleMarkerIconFromDivIcon(icon));
+  }
+
+  setMarkerZIndex(marker, zIndexOffset) {
+    marker?.setZIndex?.(zIndexOffset);
+  }
+
+  setMarkerOpacity(marker, opacity) {
+    marker?.setOpacity?.(opacity);
+  }
+
+  getMarkerElement(marker) {
+    return marker?.getElement?.() ?? null;
+  }
+
+  getMarkerTooltip(marker) {
+    return marker?.__meteoPecheTooltip ?? null;
+  }
+
+  setMarkerTooltipContent(marker, content) {
+    if (!marker?.__meteoPecheTooltip) return;
+    marker.__meteoPecheTooltip.setContent(tooltipContentForGoogle(content));
+  }
+
+  ensureMarkerTooltip(marker, tooltip) {
+    this.bindTooltip(marker, tooltip, {
+      anchor: marker,
+      position: () => marker.getPosition?.(),
+    });
+  }
+
+  bindTooltip(item, tooltip, options = {}) {
+    if (!tooltip?.content || !this.maps?.InfoWindow) return;
+    if (item.__meteoPecheTooltip) {
+      item.__meteoPecheTooltip.setContent(tooltipContentForGoogle(tooltip.content));
+      return;
+    }
+
+    const infoWindow = new this.maps.InfoWindow({
+      content: tooltipContentForGoogle(tooltip.content),
+      disableAutoPan: true,
+    });
+    item.__meteoPecheTooltip = infoWindow;
+
+    googleTrackListener(item, item.addListener?.("mouseover", (event) => {
+      const position = options.position?.() ?? event?.latLng;
+      if (position) infoWindow.setPosition(position);
+      const openOptions = { map: this.map };
+      if (options.anchor && !options.anchor.getElement) openOptions.anchor = options.anchor;
+      infoWindow.open(openOptions);
+    }));
+    googleTrackListener(item, item.addListener?.("mouseout", () => infoWindow.close()));
+  }
+
+  bindPopup(item, popup, options = {}) {
+    if (!popup || !this.maps?.InfoWindow) return;
+    if (item.__meteoPechePopup) {
+      item.__meteoPechePopup.setContent(tooltipContentForGoogle(popup));
+      return;
+    }
+
+    const infoWindow = new this.maps.InfoWindow({
+      content: tooltipContentForGoogle(popup),
+    });
+    item.__meteoPechePopup = infoWindow;
+
+    googleTrackListener(item, item.addListener?.("click", (event) => {
+      const position = options.position?.(event) ?? event?.latLng;
+      if (position) infoWindow.setPosition(position);
+      infoWindow.open(this.map);
+    }));
+  }
+
+  normalizeShapeEvent(payload, shape) {
+    const position = payload?.latLng ?? shape?.getCenter?.() ?? mapProviderGoogleLatLngLiteral(shape?.__meteoPecheShapeCenter);
+    return {
+      latlng: mapProviderLatLngFromGoogle(position),
+      originalEvent: payload?.domEvent ?? payload,
+    };
+  }
+
+  flyTo(lat, lon, zoom) {
+    if (!this.map) return;
+    this.map.setCenter({ lat, lng: lon });
+    this.map.setZoom(zoom);
+  }
+
+  once(eventName, handler) {
+    const googleEvent = eventName === "moveend" ? "idle" : eventName;
+    const listener = this.maps.event.addListener(this.map, googleEvent, (...args) => {
+      listener.remove();
+      this.listeners = this.listeners.filter((entry) => entry !== listener);
+      handler(...args);
+    });
+    this.listeners.push(listener);
+  }
+
+  addPolygon(layer, definition) {
+    const center = mapProviderShapeCenter(definition);
+    const polygon = new this.maps.Polygon({
+      paths: mapProviderGooglePolygonPaths(definition.coordinates),
+      strokeColor: definition.color,
+      strokeWeight: definition.weight,
+      strokeOpacity: definition.opacity ?? 1,
+      fillColor: definition.fillColor,
+      fillOpacity: definition.fillOpacity,
+      clickable: definition.interactive !== false,
+      map: layer?.map ?? null,
+    });
+    polygon.__meteoPecheShapeCenter = center;
+    layer?.add?.(polygon);
+    this.bindTooltip(polygon, definition.tooltip);
+    this.bindPopup(polygon, definition.popup, {
+      position: (event) => event?.latLng ?? mapProviderGoogleLatLngLiteral(center),
+    });
+    if (definition.onClick) googleTrackListener(polygon, polygon.addListener("click", (event) => definition.onClick(this.normalizeShapeEvent(event, polygon))));
+    return polygon;
+  }
+
+  getCenter() {
+    const center = this.map?.getCenter?.();
+    return center ? { lat: center.lat(), lon: center.lng() } : null;
+  }
+
+  getZoom() {
+    return this.map?.getZoom?.() ?? state.mapZoom;
+  }
+
+  getBounds() {
+    const bounds = this.map?.getBounds?.();
+    if (!bounds) return null;
+    const northEast = bounds.getNorthEast();
+    const southWest = bounds.getSouthWest();
+    return {
+      north: northEast.lat(),
+      south: southWest.lat(),
+      east: northEast.lng(),
+      west: southWest.lng(),
+    };
+  }
+
+  setView(lat, lon, zoom = state.mapZoom) {
+    if (!this.map) return;
+    this.map.setCenter({ lat, lng: lon });
+    this.map.setZoom(zoom);
+  }
+
+  setZoom(zoom) {
+    this.map?.setZoom?.(zoom);
+  }
+
+  invalidateSize() {
+    this.maps?.event?.trigger?.(this.map, "resize");
+  }
+
+  metersPerCssPixel() {
+    const center = this.getCenter() ?? getMapCenter();
+    return (Math.cos(toRad(center.lat)) * 40075016.686) / (MAP_TILE_SIZE * 2 ** this.getZoom());
+  }
+
+  hasLayer(layer) {
+    if (!layer || !this.map) return false;
+    if (layer instanceof GoogleMapsWebLayerGroup) return layer.isVisibleOn(this.map);
+    return this.map.overlayMapTypes.getArray().includes(layer);
+  }
+
+  addLayer(layer) {
+    if (!layer || this.hasLayer(layer)) return;
+    if (layer instanceof GoogleMapsWebLayerGroup) {
+      layer.setMap(this.map);
+      return;
+    }
+    this.map.overlayMapTypes.push(layer);
+  }
+
+  removeLayer(layer) {
+    if (!layer || !this.hasLayer(layer)) return;
+    if (layer instanceof GoogleMapsWebLayerGroup) {
+      layer.setMap(null);
+      return;
+    }
+
+    removeGoogleOverlay(this.map, layer);
+  }
+
+  setLayerVisible(layer, visible) {
+    if (visible) {
+      this.addLayer(layer);
+    } else {
+      this.removeLayer(layer);
+    }
+  }
+
+  disableUiEventPropagation(elements) {
+    elements.filter(Boolean).forEach((element) => {
+      const stop = (event) => event.stopPropagation();
+      element.addEventListener("click", stop);
+      element.addEventListener("pointerdown", stop);
+      element.addEventListener("wheel", stop, { passive: true });
+      this.uiEventCleanups.push(() => {
+        element.removeEventListener("click", stop);
+        element.removeEventListener("pointerdown", stop);
+        element.removeEventListener("wheel", stop);
+      });
+    });
+  }
+
+  stopEvent(event) {
+    event?.originalEvent?.stopPropagation?.();
+    event?.originalEvent?.preventDefault?.();
+  }
+
+  on(eventName, handler) {
+    const events = String(eventName).split(/\s+/).filter(Boolean);
+    events.forEach((event) => {
+      const googleEvent = event === "moveend" ? "idle" : event;
+      const listener = this.maps.event.addListener(this.map, googleEvent, (payload) => {
+        handler(this.normalizeEvent(event, payload));
+      });
+      this.listeners.push(listener);
+    });
+  }
+
+  normalizeEvent(eventName, payload) {
+    if (eventName === "click" && payload?.latLng) {
+      return {
+        latlng: {
+          lat: payload.latLng.lat(),
+          lng: payload.latLng.lng(),
+        },
+        originalEvent: payload.domEvent,
+      };
+    }
+
+    return payload;
+  }
+}
+
+class GoogleMapsWebLayerGroup {
+  constructor(layers = []) {
+    this.layers = layers.filter((layer) => !(layer instanceof GoogleMapsWebLayerGroup));
+    this.childGroups = layers.filter((layer) => layer instanceof GoogleMapsWebLayerGroup);
+    this.items = [];
+    this.map = null;
+  }
+
+  add(item) {
+    this.items.push(item);
+    if (this.map && item?.setMap) item.setMap(this.map);
+  }
+
+  remove(item) {
+    cleanupGoogleMapItem(item);
+    item?.setMap?.(null);
+    this.items = this.items.filter((entry) => entry !== item);
+  }
+
+  isEmpty() {
+    return !this.items.length && this.childGroups.every((group) => group.isEmpty());
+  }
+
+  clear() {
+    this.childGroups.forEach((group) => group.clear());
+    this.items.forEach(cleanupGoogleMapItem);
+    this.items.forEach((item) => item?.setMap?.(null));
+    this.items = [];
+  }
+
+  setMap(map) {
+    const previousMap = this.map;
+    this.map = map;
+    this.childGroups.forEach((group) => group.setMap(map));
+    this.layers.forEach((layer) => {
+      if (!map) {
+        removeGoogleOverlay(previousMap, layer);
+        return;
+      }
+      if (!map.overlayMapTypes.getArray().includes(layer)) map.overlayMapTypes.push(layer);
+    });
+    this.items.forEach((item) => item?.setMap?.(map));
+  }
+
+  isVisibleOn(map) {
+    if (this.map !== map) return false;
+    const overlays = map?.overlayMapTypes?.getArray?.() ?? [];
+    return this.layers.every((layer) => overlays.includes(layer))
+      && this.childGroups.every((group) => group.isVisibleOn(map));
+  }
+}
+
+class GoogleMapsWebHtmlMarker {
+  constructor(maps, definition) {
+    this.maps = maps;
+    this.position = new maps.LatLng(definition.lat, definition.lon);
+    this.icon = definition.icon;
+    this.title = definition.title ?? "";
+    this.zIndex = definition.zIndexOffset ?? 0;
+    this.opacity = definition.opacity ?? 1;
+    this.interactive = definition.interactive !== false;
+    this.listeners = [];
+    this.element = this.createElement();
+    this.overlay = this.createOverlay();
+  }
+
+  createElement() {
+    const element = document.createElement("div");
+    element.className = googleDivIconClassName(this.icon);
+    element.innerHTML = googleDivIconHtml(this.icon);
+    element.title = this.title;
+    element.style.position = "absolute";
+    element.style.transformOrigin = "0 0";
+    element.style.zIndex = String(this.zIndex);
+    element.style.opacity = String(this.opacity);
+    element.style.pointerEvents = this.interactive ? "auto" : "none";
+    return element;
+  }
+
+  createOverlay() {
+    const marker = this;
+    return new class extends marker.maps.OverlayView {
+      onAdd() {
+        this.getPanes()?.overlayMouseTarget?.append(marker.element);
+      }
+
+      draw() {
+        const projection = this.getProjection();
+        if (!projection) return;
+        const point = projection.fromLatLngToDivPixel(marker.position);
+        if (!point) return;
+        const [anchorX, anchorY] = googleDivIconAnchor(marker.icon);
+        marker.element.style.transform = `translate(${point.x - anchorX}px, ${point.y - anchorY}px)`;
+      }
+
+      onRemove() {
+        marker.element.remove();
+      }
+    }();
+  }
+
+	  setMap(map) {
+	    this.map = map;
+	    this.overlay.setMap(map);
+	  }
+
+  setPosition(position) {
+    this.position = new this.maps.LatLng(position.lat, position.lng);
+    this.overlay.draw?.();
+  }
+
+  getPosition() {
+    return this.position;
+  }
+
+  setIcon(icon) {
+    this.icon = icon;
+    this.element.className = googleDivIconClassName(icon);
+    this.element.innerHTML = googleDivIconHtml(icon);
+    this.overlay.draw?.();
+  }
+
+  setZIndex(zIndex) {
+    this.zIndex = zIndex ?? 0;
+    this.element.style.zIndex = String(this.zIndex);
+  }
+
+  setOpacity(opacity) {
+    this.opacity = opacity;
+    this.element.style.opacity = String(opacity);
+  }
+
+  getElement() {
+    return this.element;
+  }
+
+  addListener(eventName, handler) {
+    const domEventName = googleHtmlMarkerDomEventName(eventName);
+    const listener = (event) => handler({ domEvent: event, latLng: this.position });
+    this.element.addEventListener(domEventName, listener);
+    const handle = {
+      remove: () => {
+        this.element.removeEventListener(domEventName, listener);
+        this.listeners = this.listeners.filter((entry) => entry !== handle);
+      },
+    };
+    this.listeners.push(handle);
+    return handle;
+  }
+
+  removeListeners() {
+    [...this.listeners].forEach((listener) => listener.remove());
+  }
+}
+
+class AppleMapsWebProvider {
+  constructor({ container, tileOverlays, onLoadingChange }) {
+    this.id = MAP_PROVIDER_IDS.APPLE_WEB;
+    this.container = container;
+    this.tileOverlays = tileOverlays;
+    this.onLoadingChange = onLoadingChange;
+    this.mapkit = null;
+    this.map = null;
+    this.zoom = state.mapZoom;
+    this.listeners = [];
+    this.uiEventCleanups = [];
+    this.layerGroups = [];
+  }
+
+  async init({ center, zoom }) {
+    this.mapkit = await loadAppleMapKitWebSdk();
+    this.map = new this.mapkit.Map(this.container, {
+      showsCompass: this.mapkit.FeatureVisibility?.Hidden,
+      showsMapTypeControl: false,
+      showsScale: this.mapkit.FeatureVisibility?.Hidden,
+      showsZoomControl: false,
+    });
+    this.container.classList.add("is-apple-map");
+    this.setView(center.lat, center.lon, zoom);
+    return this.map;
+  }
+
+  destroy() {
+    this.layerGroups.splice(0).forEach((layer) => {
+      layer.setMap?.(null);
+      layer.clear?.();
+    });
+    this.listeners.splice(0).forEach((listener) => listener?.remove?.());
+    this.uiEventCleanups.splice(0).forEach((cleanup) => cleanup());
+    this.container.classList.remove("is-apple-map");
+    this.map?.destroy?.();
+    this.map = null;
+  }
+
+  createSeamarksLayer() {
+    return this.createTileOverlay(this.tileOverlays.seamarks);
+  }
+
+  createCoastalLayer() {
+    return this.createLayerGroup({
+      layers: [
+        this.createTileOverlay(this.tileOverlays.emodnetCoastlines),
+        this.createTileOverlay(this.tileOverlays.emodnetSeaNames),
+      ],
+    });
+  }
+
+  createBathymetryTileLayer() {
+    return this.createTileOverlay(this.tileOverlays.emodnetContours);
+  }
+
+  createTileOverlay(overlay) {
+    return new AppleMapsWebTileOverlay(this.mapkit, overlay);
+  }
+
+  createLayerGroup(options = {}) {
+    const layer = new AppleMapsWebLayerGroup(options.layers ?? []);
+    this.layerGroups.push(layer);
+    if (options.addToMap) layer.setMap(this.map);
+    return layer;
+  }
+
+  createPinTierLayers(tiers) {
+    const panes = {};
+    const layers = {};
+
+    tiers.forEach((tier) => {
+      panes[tier.id] = { style: {} };
+      layers[tier.id] = this.createLayerGroup({ addToMap: true });
+      panes[tier.id].layer = layers[tier.id];
+    });
+
+    return {
+      panes,
+      layers,
+      layer: this.createLayerGroup({ layers: Object.values(layers) }),
+    };
+  }
+
+  addMarkerBatch(layer, markers) {
+    if (!layer || !markers.length) return null;
+    const batchGroup = this.createLayerGroup();
+    markers.forEach((marker) => batchGroup.add(marker));
+    layer.add(batchGroup);
+    batchGroup.setMap(layer.map);
+    return batchGroup;
+  }
+
+  removeMarkerFromBatch(marker, tierLayers) {
+    if (!marker) return;
+    if (marker.__pinBatchGroup) {
+      const batchGroup = marker.__pinBatchGroup;
+      batchGroup.remove(marker);
+      if (batchGroup.isEmpty()) {
+        tierLayers?.[marker.__pinTier]?.remove?.(batchGroup);
+      }
+      marker.__pinBatchGroup = null;
+      return;
+    }
+
+    tierLayers?.[marker.__pinTier]?.remove?.(marker);
+  }
+
+  setPinPaneVisibility(panes, tiers, zoom) {
+    tiers.forEach((tier) => {
+      const pane = panes?.[tier.id];
+      if (!pane) return;
+      const visible = zoom >= tier.minZoom;
+      pane.style.opacity = visible ? "1" : "0";
+      pane.style.pointerEvents = visible ? "auto" : "none";
+      pane.layer?.setMap?.(visible ? this.map : null);
+    });
+  }
+
+  clearLayer(layer) {
+    layer?.clear?.();
+  }
+
+  createDivIcon(options) {
+    return options;
+  }
+
+  addMarker(layer, definition) {
+    const marker = new AppleMapsWebAnnotation(this.mapkit, definition);
+    layer?.add?.(marker);
+    if (definition.onClick) marker.addListener("select", (event) => definition.onClick(this.normalizeAnnotationEvent(event, marker)));
+    return marker;
+  }
+
+  addCircleMarker(layer, definition) {
+    const marker = new AppleMapsWebAnnotation(this.mapkit, {
+      ...definition,
+      icon: null,
+      title: definition.tooltip?.content,
+      markerColor: definition.fillColor ?? definition.color,
+      glyphText: "",
+    });
+    layer?.add?.(marker);
+    if (definition.onClick) marker.addListener("select", (event) => definition.onClick(this.normalizeAnnotationEvent(event, marker)));
+    return marker;
+  }
+
+  addCircle(layer, definition) {
+    const circle = new AppleMapsWebShapeOverlay(this.mapkit, "circle", definition);
+    layer?.add?.(circle);
+    if (definition.popup) circle.addListener("select", () => circle.showPopup(definition.popup));
+    if (definition.onClick) circle.addListener("select", (event) => definition.onClick(this.normalizeShapeEvent(event, circle)));
+    return circle;
+  }
+
+  addPolyline(layer, definition) {
+    const polyline = new AppleMapsWebShapeOverlay(this.mapkit, "polyline", definition);
+    layer?.add?.(polyline);
+    if (definition.popup) polyline.addListener("select", () => polyline.showPopup(definition.popup));
+    if (definition.onClick) polyline.addListener("select", (event) => definition.onClick(this.normalizeShapeEvent(event, polyline)));
+    return polyline;
+  }
+
+  addPolygon(layer, definition) {
+    const polygon = new AppleMapsWebShapeOverlay(this.mapkit, "polygon", definition);
+    layer?.add?.(polygon);
+    if (definition.popup) polygon.addListener("select", () => polygon.showPopup(definition.popup));
+    if (definition.onClick) polygon.addListener("select", (event) => definition.onClick(this.normalizeShapeEvent(event, polygon)));
+    return polygon;
+  }
+
+  getCenter() {
+    const center = this.map?.center;
+    return center ? { lat: center.latitude, lon: center.longitude } : null;
+  }
+
+  getZoom() {
+    return this.zoom ?? state.mapZoom;
+  }
+
+  getBounds() {
+    const region = this.map?.region;
+    const center = region?.center ?? this.map?.center;
+    const span = region?.span;
+    if (!center || !span) return null;
+    const latitudeDelta = span.latitudeDelta ?? span.latitude ?? 0;
+    const longitudeDelta = span.longitudeDelta ?? span.longitude ?? 0;
+    return {
+      north: center.latitude + latitudeDelta / 2,
+      south: center.latitude - latitudeDelta / 2,
+      east: center.longitude + longitudeDelta / 2,
+      west: center.longitude - longitudeDelta / 2,
+    };
+  }
+
+  setView(lat, lon, zoom = state.mapZoom) {
+    if (!this.mapkit || !this.map) return;
+    this.zoom = zoom;
+    const center = new this.mapkit.Coordinate(lat, lon);
+    this.map.center = center;
+    if (!this.mapkit.CoordinateRegion || !this.mapkit.CoordinateSpan) return;
+    const span = mapKitCoordinateSpanForZoom(zoom, lat);
+    this.map.region = new this.mapkit.CoordinateRegion(
+      center,
+      new this.mapkit.CoordinateSpan(span.latitudeDelta, span.longitudeDelta),
+    );
+  }
+
+  setZoom(zoom) {
+    const center = this.getCenter() ?? getMapCenter();
+    this.setView(center.lat, center.lon, zoom);
+  }
+
+  setMarkerPosition(marker, lat, lon) {
+    marker?.setPosition?.(lat, lon);
+  }
+
+  setMarkerIcon(marker, icon) {
+    marker?.setIcon?.(icon);
+  }
+
+  setMarkerZIndex(marker, zIndexOffset) {
+    marker?.setZIndex?.(zIndexOffset);
+  }
+
+  setMarkerOpacity(marker, opacity) {
+    marker?.setOpacity?.(opacity);
+  }
+
+  getMarkerElement(marker) {
+    return marker?.getElement?.() ?? null;
+  }
+
+  getMarkerTooltip(marker) {
+    return marker?.tooltip ?? null;
+  }
+
+  setMarkerTooltipContent(marker, content) {
+    marker?.setTooltipContent?.(content);
+  }
+
+  ensureMarkerTooltip(marker, tooltip) {
+    marker?.setTooltipContent?.(tooltip?.content);
+  }
+
+  flyTo(lat, lon, zoom) {
+    this.setView(lat, lon, zoom);
+    window.requestAnimationFrame(() => this.dispatchSyntheticEvent("region-change-end"));
+  }
+
+  once(eventName, handler) {
+    const mapkitEvent = eventName === "moveend" ? "region-change-end" : eventName;
+    if (!this.map?.addEventListener) {
+      window.requestAnimationFrame(handler);
+      return;
+    }
+    let handled = false;
+    const listener = (event) => {
+      if (handled) return;
+      handled = true;
+      this.map.removeEventListener?.(mapkitEvent, listener);
+      this.listeners = this.listeners.filter((entry) => entry.remove !== remove);
+      handler(event);
+    };
+    const remove = () => this.map?.removeEventListener?.(mapkitEvent, listener);
+    this.map.addEventListener(mapkitEvent, listener);
+    this.listeners.push({ remove });
+    window.setTimeout(() => listener({ type: mapkitEvent }), 140);
+  }
+
+  invalidateSize() {}
+
+  metersPerCssPixel() {
+    const center = this.getCenter() ?? getMapCenter();
+    return (Math.cos(toRad(center.lat)) * 40075016.686) / (MAP_TILE_SIZE * 2 ** this.getZoom());
+  }
+
+  hasLayer(layer) {
+    if (!layer || !this.map) return false;
+    if (layer instanceof AppleMapsWebLayerGroup) return layer.isVisibleOn(this.map);
+    return layer.map === this.map;
+  }
+
+  addLayer(layer) {
+    if (!layer || this.hasLayer(layer)) return;
+    layer.setMap?.(this.map);
+  }
+
+  removeLayer(layer) {
+    if (!layer || !this.hasLayer(layer)) return;
+    layer.setMap?.(null);
+  }
+
+  setLayerVisible(layer, visible) {
+    if (visible) {
+      this.addLayer(layer);
+    } else {
+      this.removeLayer(layer);
+    }
+  }
+
+  disableUiEventPropagation(elements) {
+    elements.filter(Boolean).forEach((element) => {
+      const stop = (event) => event.stopPropagation();
+      element.addEventListener("click", stop);
+      element.addEventListener("pointerdown", stop);
+      element.addEventListener("wheel", stop, { passive: true });
+      this.uiEventCleanups.push(() => {
+        element.removeEventListener("click", stop);
+        element.removeEventListener("pointerdown", stop);
+        element.removeEventListener("wheel", stop);
+      });
+    });
+  }
+
+  stopEvent(event) {
+    event?.originalEvent?.stopPropagation?.();
+    event?.originalEvent?.preventDefault?.();
+  }
+
+  on(eventName, handler) {
+    const eventMap = { click: "single-tap", moveend: "region-change-end", zoomend: "region-change-end" };
+    String(eventName).split(/\s+/).filter(Boolean).forEach((event) => {
+      const mapkitEvent = eventMap[event] ?? event;
+      const listener = (payload) => {
+        handler(this.normalizeEvent(event, payload));
+      };
+      this.map?.addEventListener?.(mapkitEvent, listener);
+      this.listeners.push({ remove: () => this.map?.removeEventListener?.(mapkitEvent, listener) });
+    });
+  }
+
+  dispatchSyntheticEvent(eventName) {
+    if (!this.map?.dispatchEvent) return;
+    try {
+      this.map.dispatchEvent(new Event(eventName));
+    } catch {
+      this.map.dispatchEvent(eventName);
+    }
+  }
+
+  normalizeEvent(eventName, payload) {
+    const coordinate = payload?.coordinate;
+    if (eventName === "click" && coordinate) {
+      return {
+        latlng: {
+          lat: coordinate.latitude,
+          lng: coordinate.longitude,
+        },
+        originalEvent: payload?.domEvent ?? payload?.originalEvent,
+      };
+    }
+
+    return payload;
+  }
+
+  normalizeAnnotationEvent(payload, marker) {
+    const position = marker?.getPosition?.();
+    return {
+      latlng: position ? { lat: position.lat, lng: position.lng } : null,
+      originalEvent: payload?.domEvent ?? payload,
+    };
+  }
+
+  normalizeShapeEvent(payload, shape) {
+    const position = shape?.getCenter?.();
+    return {
+      latlng: position ? { lat: position.lat, lng: position.lng } : null,
+      originalEvent: payload?.domEvent ?? payload,
+    };
+  }
+}
+
+class AppleMapsWebLayerGroup {
+  constructor(layers = []) {
+    this.layers = layers;
+    this.items = [];
+    this.map = null;
+  }
+
+  add(item) {
+    this.items.push(item);
+    if (this.map) item?.setMap?.(this.map);
+  }
+
+  remove(item) {
+    item?.destroy?.();
+    item?.setMap?.(null);
+    this.items = this.items.filter((entry) => entry !== item);
+  }
+
+  isEmpty() {
+    return !this.items.length && this.layers.every((layer) => layer?.isEmpty?.() ?? true);
+  }
+
+  clear() {
+    this.layers.forEach((layer) => layer?.clear?.());
+    this.items.forEach((item) => item?.destroy?.());
+    this.items.forEach((item) => item?.setMap?.(null));
+    this.items = [];
+  }
+
+  setMap(map) {
+    this.map = map;
+    this.layers.forEach((layer) => layer?.setMap?.(map));
+    this.items.forEach((item) => item?.setMap?.(map));
+  }
+
+  isVisibleOn(map) {
+    return this.map === map && this.layers.every((layer) => layer?.map === map);
+  }
+}
+
+class AppleMapsWebTileOverlay {
+  constructor(mapkit, overlay) {
+    this.mapkit = mapkit;
+    this.overlay = overlay;
+    this.tileOverlay = this.createTileOverlay();
+    this.map = null;
+  }
+
+  createTileOverlay() {
+    if (!this.mapkit?.TileOverlay) return null;
+    return new this.mapkit.TileOverlay(
+      (x, y, z) => mapOverlayTileUrl(this.overlay, x, y, z),
+      {
+        minimumZ: this.overlay.minZoom ?? MAP_MIN_ZOOM,
+        maximumZ: this.overlay.maxZoom ?? MAP_MAX_ZOOM,
+        opacity: this.overlay.opacity ?? 1,
+        data: { id: this.overlay.id },
+      },
+    );
+  }
+
+  setMap(map) {
+    if (this.map === map) return;
+    if (this.map && this.tileOverlay) this.map.removeTileOverlay?.(this.tileOverlay);
+    this.map = map;
+    if (this.map && this.tileOverlay) this.map.addTileOverlay?.(this.tileOverlay);
+  }
+}
+
+class AppleMapsWebAnnotation {
+  constructor(mapkit, definition) {
+    this.mapkit = mapkit;
+    this.definition = definition;
+    this.tooltip = definition.tooltip ?? null;
+    this.map = null;
+    this.listeners = [];
+    this.annotation = this.createAnnotation(definition);
+  }
+
+  createAnnotation(definition) {
+    const coordinate = new this.mapkit.Coordinate(definition.lat, definition.lon);
+    const options = {
+      title: appleAnnotationText(definition.title ?? definition.tooltip?.content),
+      subtitle: appleAnnotationSubtitle(definition.tooltip?.content),
+      color: definition.markerColor ?? "#2f7fa3",
+      glyphColor: "#ffffff",
+      glyphText: definition.glyphText ?? appleGlyphText(definition),
+      animates: false,
+      enabled: definition.interactive !== false,
+      calloutEnabled: Boolean(definition.tooltip?.content || definition.title),
+    };
+
+    if (appleDivIconHtml(definition.icon) && this.mapkit.Annotation) {
+      return new this.mapkit.Annotation(coordinate, () => this.createElement(definition), {
+        ...options,
+        anchorOffset: appleDivIconAnchorOffset(definition.icon),
+        size: appleDivIconSize(definition.icon),
+      });
+    }
+
+    if (this.mapkit.MarkerAnnotation) {
+      return new this.mapkit.MarkerAnnotation(coordinate, options);
+    }
+
+    return new this.mapkit.Annotation(coordinate, () => {
+      const element = document.createElement("span");
+      element.className = "apple-map-annotation";
+      element.textContent = options.glyphText || "•";
+      return element;
+    }, options);
+  }
+
+  createElement(definition) {
+    const element = document.createElement("div");
+    element.className = appleDivIconClassName(definition.icon);
+    element.innerHTML = appleDivIconHtml(definition.icon);
+    element.title = definition.title ?? "";
+    element.style.opacity = String(definition.opacity ?? 1);
+    element.style.pointerEvents = definition.interactive === false ? "none" : "auto";
+    return element;
+  }
+
+  setMap(map) {
+    if (this.map === map) return;
+    if (this.map) this.map.removeAnnotation?.(this.annotation);
+    this.map = map;
+    if (this.map) this.map.addAnnotation?.(this.annotation);
+  }
+
+  setPosition(lat, lon) {
+    this.annotation.coordinate = new this.mapkit.Coordinate(lat, lon);
+  }
+
+  getPosition() {
+    const coordinate = this.annotation?.coordinate;
+    return coordinate ? { lat: coordinate.latitude, lng: coordinate.longitude } : null;
+  }
+
+  setIcon(icon) {
+    if (appleDivIconHtml(icon) && this.annotation.element) {
+      this.annotation.element.className = appleDivIconClassName(icon);
+      this.annotation.element.innerHTML = appleDivIconHtml(icon);
+      this.annotation.size = appleDivIconSize(icon);
+      this.annotation.anchorOffset = appleDivIconAnchorOffset(icon);
+      return;
+    }
+
+    const glyphText = appleGlyphText({ ...this.definition, icon });
+    if (typeof this.annotation.glyphText !== "undefined") this.annotation.glyphText = glyphText;
+  }
+
+  setZIndex(zIndexOffset) {
+    this.annotation.displayPriority = zIndexOffset ?? 0;
+  }
+
+  setOpacity(opacity) {
+    if (this.annotation.element) this.annotation.element.style.opacity = String(opacity);
+    this.annotation.visible = opacity > 0;
+  }
+
+  getElement() {
+    return this.annotation?.element ?? null;
+  }
+
+  setTooltipContent(content) {
+    this.tooltip = { ...(this.tooltip ?? {}), content };
+    this.annotation.title = appleAnnotationText(content);
+    this.annotation.subtitle = appleAnnotationSubtitle(content);
+    this.annotation.calloutEnabled = Boolean(content);
+  }
+
+  addListener(eventName, handler) {
+    this.annotation.addEventListener?.(eventName, handler);
+    const handle = {
+      remove: () => {
+        this.annotation.removeEventListener?.(eventName, handler);
+        this.listeners = this.listeners.filter((entry) => entry !== handle);
+      },
+    };
+    this.listeners.push(handle);
+    return handle;
+  }
+
+  destroy() {
+    this.listeners.splice(0).forEach((listener) => listener.remove());
+  }
+}
+
+class AppleMapsWebShapeOverlay {
+  constructor(mapkit, type, definition) {
+    this.mapkit = mapkit;
+    this.type = type;
+    this.definition = definition;
+    this.center = mapProviderShapeCenter(definition);
+    this.map = null;
+    this.listeners = [];
+    this.popupAnnotation = null;
+    this.overlay = this.createOverlay(definition);
+  }
+
+  createOverlay(definition) {
+    const options = {
+      style: appleShapeStyle(this.mapkit, definition),
+      enabled: definition.interactive !== false,
+      data: {
+        tooltip: definition.tooltip?.content ?? definition.popup ?? "",
+      },
+    };
+
+    if (this.type === "circle") {
+      return new this.mapkit.CircleOverlay(
+        new this.mapkit.Coordinate(definition.lat, definition.lon),
+        definition.radius,
+        options,
+      );
+    }
+
+    const coordinates = mapProviderAppleCoordinatePath(this.mapkit, definition.coordinates);
+    if (this.type === "polygon") return new this.mapkit.PolygonOverlay(coordinates, options);
+    return new this.mapkit.PolylineOverlay(coordinates, options);
+  }
+
+  setMap(map) {
+    if (this.map === map) return;
+    if (this.map) {
+      this.hidePopup();
+      this.map.removeOverlay?.(this.overlay);
+    }
+    this.map = map;
+    if (this.map) this.map.addOverlay?.(this.overlay);
+  }
+
+  getCenter() {
+    if (this.type === "circle") {
+      const coordinate = this.overlay?.coordinate;
+      return coordinate ? { lat: coordinate.latitude, lng: coordinate.longitude } : this.center;
+    }
+
+    const points = this.overlay?.points ?? [];
+    if (!points.length) return this.center;
+    const center = points.reduce(
+      (sum, point) => ({
+        latitude: sum.latitude + point.latitude,
+        longitude: sum.longitude + point.longitude,
+      }),
+      { latitude: 0, longitude: 0 },
+    );
+    return {
+      lat: center.latitude / points.length,
+      lng: center.longitude / points.length,
+    };
+  }
+
+  showPopup(content) {
+    const center = this.getCenter();
+    if (!this.map || !center || !content) return;
+    this.hidePopup();
+    this.popupAnnotation = new AppleMapsWebAnnotation(this.mapkit, {
+      lat: center.lat,
+      lon: center.lng,
+      title: appleAnnotationText(content),
+      tooltip: { content },
+      markerColor: "#245f73",
+      glyphText: "",
+      zIndexOffset: 1000,
+    });
+    this.popupAnnotation.setMap(this.map);
+    this.map.selectedAnnotation = this.popupAnnotation.annotation;
+  }
+
+  hidePopup() {
+    this.popupAnnotation?.setMap?.(null);
+    this.popupAnnotation?.destroy?.();
+    this.popupAnnotation = null;
+  }
+
+  addListener(eventName, handler) {
+    this.overlay.addEventListener?.(eventName, handler);
+    const handle = {
+      remove: () => {
+        this.overlay.removeEventListener?.(eventName, handler);
+        this.listeners = this.listeners.filter((entry) => entry !== handle);
+      },
+    };
+    this.listeners.push(handle);
+    return handle;
+  }
+
+  destroy() {
+    this.hidePopup();
+    this.listeners.splice(0).forEach((listener) => listener.remove());
+  }
+}
+
+class NativeBridgeMapProvider {
+  constructor({ providerId, container, tileOverlays, onLoadingChange }) {
+    this.id = providerId;
+    this.container = container;
+    this.tileOverlays = tileOverlays;
+    this.onLoadingChange = onLoadingChange;
+    this.bridge = null;
+    this.center = null;
+    this.zoom = state.mapZoom;
+    this.layers = [];
+    this.items = [];
+    this.listeners = [];
+    this.localListeners = new Map();
+    this.itemCallbacks = new Map();
+    this.uiEventCleanups = [];
+    this.commandWarnings = new Set();
+  }
+
+  async init({ center, zoom }) {
+    this.bridge = resolveNativeMapBridge();
+    if (!this.bridge) throw new Error(`${this.id} native bridge unavailable`);
+    await assertNativeMapBridgeReady(this.bridge, this.id);
+    this.center = { lat: center.lat, lon: center.lon };
+    this.zoom = zoom;
+    await this.call("init", {
+      providerId: this.id,
+      containerId: this.container?.id ?? "spotMap",
+      containerMetrics: nativeMapContainerMetrics(this.container),
+      center: this.center,
+      zoom,
+      minZoom: MAP_MIN_ZOOM,
+      maxZoom: MAP_MAX_ZOOM,
+    }, { strict: true });
+    this.container.classList.add("is-native-map");
+    return this.bridge;
+  }
+
+  destroy() {
+    this.listeners.splice(0).forEach((listener) => listener?.remove?.());
+    this.localListeners.clear();
+    this.itemCallbacks.clear();
+    this.uiEventCleanups.splice(0).forEach((cleanup) => cleanup());
+    this.layers.splice(0).forEach((layer) => layer.clear?.());
+    this.items.splice(0);
+    this.call("destroy", { providerId: this.id });
+    this.container.classList.remove("is-native-map");
+    this.bridge = null;
+  }
+
+  createSeamarksLayer() {
+    return this.createTileOverlay(this.tileOverlays.seamarks);
+  }
+
+  createCoastalLayer() {
+    return this.createLayerGroup({
+      layers: [
+        this.createTileOverlay(this.tileOverlays.emodnetCoastlines),
+        this.createTileOverlay(this.tileOverlays.emodnetSeaNames),
+      ],
+    });
+  }
+
+  createBathymetryTileLayer() {
+    return this.createTileOverlay(this.tileOverlays.emodnetContours);
+  }
+
+  createTileOverlay(overlay) {
+    return new NativeMapLayer(this, "tile-overlay", {
+      overlay: nativeTileOverlayPayload(overlay),
+    });
+  }
+
+  createLayerGroup(options = {}) {
+    const layer = new NativeMapLayer(this, "group");
+    this.layers.push(layer);
+    (options.layers ?? []).forEach((child) => layer.add(child));
+    if (options.addToMap) layer.setMap(true);
+    return layer;
+  }
+
+  createPinTierLayers(tiers) {
+    const panes = {};
+    const layers = {};
+
+    tiers.forEach((tier) => {
+      panes[tier.id] = { style: {} };
+      layers[tier.id] = this.createLayerGroup({ addToMap: true });
+      panes[tier.id].layer = layers[tier.id];
+      this.call("configurePinTier", {
+        layerId: layers[tier.id].id,
+        tier,
+      });
+    });
+
+    return {
+      panes,
+      layers,
+      layer: this.createLayerGroup({ layers: Object.values(layers) }),
+    };
+  }
+
+  addMarkerBatch(layer, markers) {
+    if (!layer || !markers.length) return null;
+    const batchGroup = this.createLayerGroup();
+    batchGroup.addMany(markers);
+    layer.add(batchGroup);
+    batchGroup.setMap(layer.visible);
+    return batchGroup;
+  }
+
+  removeMarkerFromBatch(marker, tierLayers) {
+    if (!marker) return;
+    if (marker.__pinBatchGroup) {
+      const batchGroup = marker.__pinBatchGroup;
+      batchGroup.remove(marker);
+      if (batchGroup.isEmpty()) {
+        tierLayers?.[marker.__pinTier]?.remove?.(batchGroup);
+      }
+      marker.__pinBatchGroup = null;
+      return;
+    }
+
+    tierLayers?.[marker.__pinTier]?.remove?.(marker);
+  }
+
+  setPinPaneVisibility(panes, tiers, zoom) {
+    tiers.forEach((tier) => {
+      const pane = panes?.[tier.id];
+      if (!pane) return;
+      const visible = zoom >= tier.minZoom;
+      pane.style.opacity = visible ? "1" : "0";
+      pane.style.pointerEvents = visible ? "auto" : "none";
+      pane.layer?.setMap?.(visible);
+      this.call("setPinTierVisible", { tierId: tier.id, visible, zoom });
+    });
+  }
+
+  clearLayer(layer) {
+    layer?.clear?.();
+  }
+
+  createDivIcon(options) {
+    return options;
+  }
+
+  addMarker(layer, definition) {
+    return this.addItem(layer, "marker", nativeMarkerPayload(definition), {
+      click: definition.onClick,
+    });
+  }
+
+  addCircleMarker(layer, definition) {
+    return this.addItem(layer, "circle-marker", nativeShapePayload(definition), {
+      click: definition.onClick,
+    });
+  }
+
+  addCircle(layer, definition) {
+    return this.addItem(layer, "circle", nativeShapePayload(definition), {
+      click: definition.onClick,
+    });
+  }
+
+  addPolyline(layer, definition) {
+    return this.addItem(layer, "polyline", nativeShapePayload(definition), {
+      click: definition.onClick,
+    });
+  }
+
+  addPolygon(layer, definition) {
+    return this.addItem(layer, "polygon", nativeShapePayload(definition), {
+      click: definition.onClick,
+    });
+  }
+
+  addItem(layer, type, payload, callbacks = {}) {
+    const item = new NativeMapItem(this, type, payload, callbacks, { deferCreate: !layer });
+    this.items.push(item);
+    layer?.add?.(item);
+    return item;
+  }
+
+  setMarkerPosition(marker, lat, lon) {
+    marker?.update?.({ lat, lon });
+  }
+
+  setMarkerIcon(marker, icon) {
+    marker?.update?.({ icon: nativeDivIconPayload(icon) });
+  }
+
+  setMarkerZIndex(marker, zIndexOffset) {
+    marker?.update?.({ zIndexOffset });
+  }
+
+  setMarkerOpacity(marker, opacity) {
+    marker?.update?.({ opacity });
+  }
+
+  getMarkerElement() {
+    return null;
+  }
+
+  getMarkerTooltip(marker) {
+    return marker?.payload?.tooltip ?? null;
+  }
+
+  setMarkerTooltipContent(marker, content) {
+    marker?.update?.({ tooltip: nativeTooltipPayload({ content }) });
+  }
+
+  ensureMarkerTooltip(marker, tooltip) {
+    marker?.update?.({ tooltip: nativeTooltipPayload(tooltip) });
+  }
+
+  flyTo(lat, lon, zoom) {
+    this.setView(lat, lon, zoom);
+    window.requestAnimationFrame(() => this.emitLocalEvent("moveend"));
+  }
+
+  once(eventName, handler) {
+    let handled = false;
+    const listener = this.on(eventName, (event) => {
+      if (handled) return;
+      handled = true;
+      listener?.remove?.();
+      handler(event);
+    });
+    window.setTimeout(() => {
+      if (handled) return;
+      handled = true;
+      listener?.remove?.();
+      handler({ type: eventName });
+    }, 160);
+  }
+
+  getCenter() {
+    return this.center;
+  }
+
+  getZoom() {
+    return this.zoom;
+  }
+
+  getBounds() {
+    if (!this.center) return null;
+    const span = mapKitCoordinateSpanForZoom(this.zoom, this.center.lat);
+    return {
+      north: this.center.lat + span.latitudeDelta / 2,
+      south: this.center.lat - span.latitudeDelta / 2,
+      east: this.center.lon + span.longitudeDelta / 2,
+      west: this.center.lon - span.longitudeDelta / 2,
+    };
+  }
+
+  setView(lat, lon, zoom = state.mapZoom) {
+    this.center = { lat, lon };
+    this.zoom = zoom;
+    this.call("setView", { center: this.center, zoom });
+  }
+
+  setZoom(zoom) {
+    const center = this.center ?? getMapCenter();
+    this.setView(center.lat, center.lon, zoom);
+  }
+
+  invalidateSize() {
+    this.call("invalidateSize", {
+      width: this.container?.clientWidth ?? 0,
+      height: this.container?.clientHeight ?? 0,
+      containerMetrics: nativeMapContainerMetrics(this.container),
+    });
+  }
+
+  metersPerCssPixel() {
+    const center = this.center ?? getMapCenter();
+    return (Math.cos(toRad(center.lat)) * 40075016.686) / (MAP_TILE_SIZE * 2 ** this.zoom);
+  }
+
+  hasLayer(layer) {
+    return Boolean(layer?.visible);
+  }
+
+  addLayer(layer) {
+    layer?.setMap?.(true);
+  }
+
+  removeLayer(layer) {
+    layer?.setMap?.(false);
+  }
+
+  setLayerVisible(layer, visible) {
+    layer?.setMap?.(visible);
+  }
+
+  disableUiEventPropagation(elements) {
+    elements.filter(Boolean).forEach((element) => {
+      const stop = (event) => event.stopPropagation();
+      element.addEventListener("click", stop);
+      element.addEventListener("pointerdown", stop);
+      element.addEventListener("wheel", stop, { passive: true });
+      this.uiEventCleanups.push(() => {
+        element.removeEventListener("click", stop);
+        element.removeEventListener("pointerdown", stop);
+        element.removeEventListener("wheel", stop);
+      });
+    });
+  }
+
+  stopEvent(event) {
+    event?.originalEvent?.stopPropagation?.();
+    event?.originalEvent?.preventDefault?.();
+  }
+
+  on(eventName, handler) {
+    const events = String(eventName).split(/\s+/).filter(Boolean);
+    const handles = events.map((event) => this.addBridgeListener(event, handler));
+    return {
+      remove: () => handles.forEach((handle) => handle?.remove?.()),
+    };
+  }
+
+  addBridgeListener(eventName, handler) {
+    const normalizedHandler = (payload) => {
+      const normalized = this.normalizeEvent(eventName, payload);
+      if (normalized?.center) this.center = normalized.center;
+      if (isValidNumber(normalized?.zoom)) this.zoom = normalized.zoom;
+      if (normalized?.itemId) this.handleItemEvent(eventName, normalized);
+      handler(normalized);
+    };
+    const bridgeEvent = nativeBridgeEventName(this.id, eventName);
+    const handle = this.bridge?.addListener?.(bridgeEvent, normalizedHandler)
+      ?? this.bridge?.on?.(bridgeEvent, normalizedHandler)
+      ?? null;
+    const listener = {
+      eventName,
+      localEvent: (localEventName, payload = {}) => {
+        if (eventName === localEventName) normalizedHandler(payload);
+      },
+      remove: () => {
+        handle?.remove?.();
+        const localHandlers = this.localListeners.get(eventName);
+        localHandlers?.delete(normalizedHandler);
+        this.listeners = this.listeners.filter((entry) => entry !== listener);
+      },
+    };
+    if (!this.localListeners.has(eventName)) this.localListeners.set(eventName, new Set());
+    this.localListeners.get(eventName).add(normalizedHandler);
+    this.listeners.push(listener);
+    return listener;
+  }
+
+  emitLocalEvent(eventName, payload = {}) {
+    this.localListeners.get(eventName)?.forEach((handler) => handler(payload));
+  }
+
+  registerItemCallbacks(item, callbacks = {}) {
+    const activeCallbacks = Object.fromEntries(
+      Object.entries(callbacks).filter(([, callback]) => typeof callback === "function"),
+    );
+    if (Object.keys(activeCallbacks).length) this.itemCallbacks.set(item.id, activeCallbacks);
+  }
+
+  unregisterItemCallbacks(item) {
+    this.itemCallbacks.delete(item?.id);
+  }
+
+  handleItemEvent(eventName, payload) {
+    const callback = this.itemCallbacks.get(payload.itemId)?.[eventName];
+    if (!callback) return;
+    callback({
+      latlng: payload.latlng ?? this.itemEventLatLng(payload.itemId),
+      originalEvent: payload.originalEvent ?? payload,
+    });
+  }
+
+  itemEventLatLng(itemId) {
+    const item = this.items.find((entry) => entry?.id === itemId);
+    return nativePayloadLatLng(item?.payload);
+  }
+
+  normalizeEvent(eventName, payload = {}) {
+    const itemId = payload.itemId ?? payload.markerId ?? payload.shapeId ?? payload.id;
+    if (eventName === "click") {
+      const lat = payload.lat ?? payload.latitude ?? payload.coordinate?.latitude;
+      const lon = payload.lon ?? payload.lng ?? payload.longitude ?? payload.coordinate?.longitude;
+      return {
+        itemId,
+        latlng: isValidNumber(lat) && isValidNumber(lon) ? { lat, lng: lon } : null,
+        originalEvent: payload,
+      };
+    }
+
+    const center = nativeEventCenter(payload);
+    const zoom = nativeEventZoom(payload);
+    return {
+      itemId,
+      ...payload,
+      ...(center ? { center } : {}),
+      ...(isValidNumber(zoom) ? { zoom } : {}),
+    };
+  }
+
+  call(command, payload = {}, options = {}) {
+    const promise = callNativeMapBridge(this.bridge, command, {
+      providerId: this.id,
+      ...payload,
+    });
+    if (options.strict) return promise;
+    return promise.catch((error) => {
+      const warningKey = `${this.id}:${command}:${error?.message ?? "error"}`;
+      if (!this.commandWarnings.has(warningKey)) {
+        this.commandWarnings.add(warningKey);
+        console.warn(`Native map bridge command failed: ${command}`, error);
+      }
+      return null;
+    });
+  }
+}
+
+class NativeMapLayer {
+  constructor(provider, type, payload = {}) {
+    this.provider = provider;
+    this.type = type;
+    this.payload = payload;
+    this.id = nativeMapHandleId(type);
+    this.items = [];
+    this.visible = false;
+    if (type === "tile-overlay") {
+      this.provider.call("createTileOverlay", {
+        layerId: this.id,
+        ...payload,
+      });
+    }
+  }
+
+  add(item) {
+    if (!item || this.items.includes(item)) return;
+    this.items.push(item);
+    item.layerId = this.id;
+    item.ensureCreated?.();
+    this.provider.call("addToLayer", {
+      layerId: this.id,
+      itemId: item.id,
+      type: item.type,
+      payload: item.payload,
+      isLayer: item instanceof NativeMapLayer,
+    });
+    item.setMap(this.visible);
+  }
+
+  addMany(items = []) {
+    const nativeItems = items.filter((item) => item instanceof NativeMapItem);
+    if (!nativeItems.length) {
+      items.forEach((item) => this.add(item));
+      return;
+    }
+
+    nativeItems.forEach((item) => {
+      if (this.items.includes(item)) return;
+      this.items.push(item);
+      item.layerId = this.id;
+    });
+    this.provider.call("createItems", {
+      layerId: this.id,
+      items: nativeItems.map((item) => item.toBridgePayload()),
+    });
+    nativeItems.forEach((item) => {
+      item.created = true;
+    });
+    this.provider.call("addItemsToLayer", {
+      layerId: this.id,
+      items: nativeItems.map((item) => ({
+        itemId: item.id,
+        type: item.type,
+        isLayer: false,
+      })),
+    });
+    this.setItemsVisible(nativeItems, this.visible);
+  }
+
+  remove(item) {
+    item?.destroy?.();
+    this.provider.call("removeFromLayer", {
+      layerId: this.id,
+      itemId: item?.id,
+    });
+    this.items = this.items.filter((entry) => entry !== item);
+  }
+
+  isEmpty() {
+    return !this.items.length;
+  }
+
+  clear() {
+    this.items.forEach((item) => item.destroy?.());
+    this.provider.call("clearLayer", { layerId: this.id });
+    this.items = [];
+  }
+
+  destroy() {
+    this.setMap(false);
+    this.clear();
+  }
+
+  setMap(visible) {
+    this.visible = Boolean(visible);
+    this.provider.call("setLayerVisible", {
+      layerId: this.id,
+      visible: this.visible,
+      type: this.type,
+      payload: this.payload,
+    });
+    const nativeItems = this.items.filter((item) => item instanceof NativeMapItem);
+    const childLayers = this.items.filter((item) => item instanceof NativeMapLayer);
+    if (nativeItems.length > 0 && nativeItems.length === this.items.length) {
+      this.setItemsVisible(nativeItems, this.visible);
+      return;
+    }
+    if (nativeItems.length > 0) this.setItemsVisible(nativeItems, this.visible);
+    childLayers.forEach((layer) => layer.setMap(this.visible));
+  }
+
+  setItemsVisible(items, visible) {
+    items.forEach((item) => {
+      item.visible = Boolean(visible);
+    });
+    this.provider.call("setItemsVisible", {
+      layerId: this.id,
+      visible: Boolean(visible),
+      itemIds: items.map((item) => item.id),
+    });
+  }
+}
+
+class NativeMapItem {
+  constructor(provider, type, payload = {}, callbacks = {}, options = {}) {
+    this.provider = provider;
+    this.type = type;
+    this.payload = payload;
+    this.id = nativeMapHandleId(type);
+    this.layerId = null;
+    this.visible = false;
+    this.callbacks = callbacks;
+    this.created = false;
+    this.provider.registerItemCallbacks(this, callbacks);
+    if (options.deferCreate) return;
+    this.ensureCreated();
+  }
+
+  toBridgePayload() {
+    return {
+      itemId: this.id,
+      type: this.type,
+      payload: this.payload,
+      events: Object.keys(this.callbacks).filter((eventName) => typeof this.callbacks[eventName] === "function"),
+    };
+  }
+
+  ensureCreated() {
+    if (this.created) return;
+    this.created = true;
+    this.provider.call("createItem", {
+      ...this.toBridgePayload(),
+    });
+  }
+
+  setMap(visible) {
+    this.visible = Boolean(visible);
+    this.provider.call("setItemVisible", {
+      itemId: this.id,
+      visible: this.visible,
+    });
+  }
+
+  update(payload = {}) {
+    const changed = Object.entries(payload).some(([key, value]) => nativePayloadValueSignature(this.payload[key]) !== nativePayloadValueSignature(value));
+    if (!changed) return;
+    this.payload = { ...this.payload, ...payload };
+    if (!this.created) return;
+    this.provider.call("updateItem", {
+      itemId: this.id,
+      type: this.type,
+      payload,
+    });
+  }
+
+  destroy() {
+    this.provider.unregisterItemCallbacks(this);
+    this.provider.call("removeItem", {
+      itemId: this.id,
+      layerId: this.layerId,
+    });
+  }
+}
+
+function nativePayloadValueSignature(value) {
+  if (value === undefined) return "__undefined__";
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function googleDivIconOptions(icon) {
+  return icon?.options ?? icon ?? {};
+}
+
+function googleDivIconHtml(icon) {
+  return googleDivIconOptions(icon).html ?? "";
+}
+
+function googleDivIconClassName(icon) {
+  return googleDivIconOptions(icon).className ?? "";
+}
+
+function googleDivIconAnchor(icon) {
+  const options = googleDivIconOptions(icon);
+  const size = options.iconSize ?? [30, 38];
+  return options.iconAnchor ?? [size[0] / 2, size[1]];
+}
+
+function googleHtmlMarkerDomEventName(eventName) {
+  if (eventName === "mouseover") return "mouseenter";
+  if (eventName === "mouseout") return "mouseleave";
+  return eventName;
+}
+
+function tooltipContentForGoogle(content) {
+  if (typeof content === "string") return content;
+  if (content instanceof HTMLElement) return content.outerHTML;
+  return String(content ?? "");
+}
+
+function mapProviderCoordinatePair(value) {
+  if (Array.isArray(value) && value.length >= 2) {
+    const lat = Number(value[0]);
+    const lon = Number(value[1]);
+    return Number.isFinite(lat) && Number.isFinite(lon) ? [lat, lon] : null;
+  }
+
+  if (value && typeof value === "object") {
+    const lat = Number(value.lat ?? value.latitude);
+    const lon = Number(value.lon ?? value.lng ?? value.longitude);
+    return Number.isFinite(lat) && Number.isFinite(lon) ? [lat, lon] : null;
+  }
+
+  return null;
+}
+
+function mapProviderCoordinatePath(coordinates) {
+  if (!Array.isArray(coordinates)) return [];
+  return coordinates.map(mapProviderCoordinatePair).filter(Boolean);
+}
+
+function mapProviderCoordinateRings(coordinates) {
+  if (!Array.isArray(coordinates)) return [];
+  const directPath = mapProviderCoordinatePath(coordinates);
+  if (directPath.length) return [directPath];
+  return coordinates
+    .map(mapProviderCoordinatePath)
+    .filter((path) => path.length);
+}
+
+function mapProviderGoogleCoordinatePath(coordinates) {
+  return mapProviderCoordinatePath(coordinates).map(([lat, lon]) => ({ lat, lng: lon }));
+}
+
+function mapProviderGooglePolygonPaths(coordinates) {
+  const rings = mapProviderCoordinateRings(coordinates);
+  const paths = rings.map((ring) => ring.map(([lat, lon]) => ({ lat, lng: lon })));
+  return paths.length === 1 ? paths[0] : paths;
+}
+
+function mapProviderShapeCenter(definition = {}) {
+  if (Number.isFinite(Number(definition.lat)) && Number.isFinite(Number(definition.lon))) {
+    return { lat: Number(definition.lat), lng: Number(definition.lon) };
+  }
+
+  const path = mapProviderCoordinateRings(definition.coordinates).flat();
+  if (!path.length) return null;
+  const center = path.reduce(
+    (sum, [lat, lon]) => ({ lat: sum.lat + lat, lng: sum.lng + lon }),
+    { lat: 0, lng: 0 },
+  );
+  return {
+    lat: center.lat / path.length,
+    lng: center.lng / path.length,
+  };
+}
+
+function mapProviderGoogleLatLngLiteral(position) {
+  if (!position) return null;
+  if (typeof position.lat === "function" && typeof position.lng === "function") {
+    return { lat: position.lat(), lng: position.lng() };
+  }
+  if (Number.isFinite(Number(position.lat)) && Number.isFinite(Number(position.lng))) {
+    return { lat: Number(position.lat), lng: Number(position.lng) };
+  }
+  if (Number.isFinite(Number(position.latitude)) && Number.isFinite(Number(position.longitude))) {
+    return { lat: Number(position.latitude), lng: Number(position.longitude) };
+  }
+  return null;
+}
+
+function mapProviderLatLngFromGoogle(position) {
+  const literal = mapProviderGoogleLatLngLiteral(position);
+  return literal ? { lat: literal.lat, lng: literal.lng } : null;
+}
+
+function mapProviderAppleCoordinatePath(mapkit, coordinates) {
+  const rings = mapProviderCoordinateRings(coordinates);
+  const path = rings[0] ?? [];
+  return path.map(([lat, lon]) => new mapkit.Coordinate(lat, lon));
+}
+
+function mapProviderCoordinateNormalizationSamples() {
+  const mixedPath = [[43.1, 5.1], { lat: 43.2, lon: 5.2 }, { lat: 43.3, lng: 5.3 }, { latitude: 43.4, longitude: 5.4 }];
+  const nestedRings = [
+    [[43.1, 5.1], [43.2, 5.2]],
+    [{ lat: 43.3, lng: 5.3 }, { latitude: 43.4, longitude: 5.4 }],
+  ];
+  return {
+    path: mapProviderCoordinatePath(mixedPath),
+    rings: mapProviderCoordinateRings(nestedRings),
+    googlePath: mapProviderGoogleCoordinatePath(mixedPath),
+    googlePolygonPaths: mapProviderGooglePolygonPaths(nestedRings),
+    shapeCenter: mapProviderShapeCenter({ coordinates: nestedRings }),
+  };
+}
+
+function googlePolylineIcons(dashArray, color) {
+  if (!dashArray) return undefined;
+
+  const [dashLength = 6, gapLength = 6] = String(dashArray)
+    .split(/\s+/)
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0);
+
+  return [{
+    icon: {
+      path: "M 0,-1 0,1",
+      strokeColor: color,
+      strokeOpacity: 1,
+      scale: dashLength,
+    },
+    offset: "0",
+    repeat: `${dashLength + gapLength}px`,
+  }];
+}
+
+function googleMarkerIconFromDivIcon(icon) {
+  if (!googleDivIconHtml(icon)) return undefined;
+
+  const options = googleDivIconOptions(icon);
+  const size = options.iconSize ?? [30, 38];
+  const anchor = googleDivIconAnchor(icon);
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="${size[0]}" height="${size[1]}" viewBox="0 0 ${size[0]} ${size[1]}">
+      <foreignObject width="100%" height="100%">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="${escapeHtml(options.className ?? "")}">
+          ${options.html}
+        </div>
+      </foreignObject>
+    </svg>
+  `;
+
+  return {
+    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+    scaledSize: new google.maps.Size(size[0], size[1]),
+    anchor: new google.maps.Point(anchor[0], anchor[1]),
+  };
+}
+
+function googleTrackListener(item, listener) {
+  if (!item || !listener) return;
+  if (!item.__meteoPecheListeners) item.__meteoPecheListeners = [];
+  item.__meteoPecheListeners.push(listener);
+}
+
+function cleanupGoogleMapItem(item) {
+  item?.__meteoPecheTooltip?.close?.();
+  item?.__meteoPechePopup?.close?.();
+  item?.__meteoPecheListeners?.splice?.(0)?.forEach((listener) => listener?.remove?.());
+  item?.removeListeners?.();
+  window.google?.maps?.event?.clearInstanceListeners?.(item);
+}
+
+function resolveNativeMapBridge() {
+  return window.MeteoPecheNativeMap
+    ?? window.Capacitor?.Plugins?.MeteoPecheMap
+    ?? window.Capacitor?.Plugins?.NativeMap
+    ?? null;
+}
+
+function callNativeMapBridge(bridge, command, payload = {}) {
+  if (!bridge) return Promise.reject(new Error("Native map bridge unavailable"));
+  if (typeof bridge[command] === "function") return Promise.resolve(bridge[command](payload));
+  if (typeof bridge.invoke === "function") return Promise.resolve(bridge.invoke({ command, payload }));
+  if (typeof bridge.postMessage === "function") {
+    bridge.postMessage({ command, payload });
+    return Promise.resolve();
+  }
+  return Promise.reject(new Error(`Native map bridge command unavailable: ${command}`));
+}
+
+async function assertNativeMapBridgeReady(bridge, providerId) {
+  const status = await nativeMapBridgeStatus(bridge, providerId);
+  if (!nativeMapBridgeStatusReady(status, providerId)) {
+    throw new Error(`${providerId} native bridge not ready`);
+  }
+  document.documentElement.dataset.nativeMapBridgeReady = providerId;
+}
+
+function nativeMapBridgeStatus(bridge, providerId) {
+  if (!bridge) return Promise.resolve(null);
+  if (typeof bridge.getStatus === "function") return Promise.resolve(bridge.getStatus({ providerId }));
+  if (typeof bridge.isReady === "function") return Promise.resolve(bridge.isReady({ providerId }));
+  if (typeof bridge.invoke === "function") {
+    return Promise.resolve(bridge.invoke({
+      command: "getStatus",
+      payload: { providerId },
+    }));
+  }
+  return Promise.resolve(null);
+}
+
+function nativeMapBridgeDebugState(bridge = resolveNativeMapBridge(), providerId = state.mapProviderId || state.mapProviderPreference) {
+  if (!bridge) return Promise.resolve(null);
+  const payload = { providerId };
+  if (typeof bridge.getDebugState === "function") return Promise.resolve(bridge.getDebugState(payload));
+  if (typeof bridge.invoke === "function") {
+    return Promise.resolve(bridge.invoke({
+      command: "getDebugState",
+      payload,
+    }));
+  }
+  return Promise.resolve(null);
+}
+
+function nativeMapBridgeStatusReady(status, providerId) {
+  delete document.documentElement.dataset.nativeMapBridgeCapabilityError;
+  if (status === true || status === "ready") {
+    document.documentElement.dataset.nativeMapBridgeCapabilityError = "missing-status-object";
+    return false;
+  }
+  if (!status || typeof status !== "object") return false;
+  const supportedProviders = status.supportedProviders ?? status.providers;
+  const providerSupported = Array.isArray(supportedProviders)
+    ? supportedProviders.includes(providerId)
+    : status.providerId === providerId || status.provider === providerId || status.providerId === "all";
+  if (!Boolean((status.ready === true || status.isReady === true) && providerSupported)) return false;
+  const capabilityReport = nativeMapBridgeCapabilityReport(status, providerId);
+  if (!capabilityReport.ready) {
+    document.documentElement.dataset.nativeMapBridgeCapabilityError = capabilityReport.reason;
+    return false;
+  }
+  document.documentElement.dataset.nativeMapBridgeCapabilityReady = providerId;
+  return true;
+}
+
+function nativeMapBridgeCapabilityReport(status, providerId) {
+  if (!status || typeof status !== "object") return { ready: false, reason: "missing-status-object" };
+  const protocolVersion = Number(status.bridgeProtocolVersion ?? status.protocolVersion);
+  if (protocolVersion !== NATIVE_MAP_BRIDGE_PROTOCOL_VERSION) return { ready: false, reason: "protocol-version-mismatch" };
+  const supportedCommands = Array.isArray(status.supportedCommands) ? status.supportedCommands : [];
+  const missingCommands = NATIVE_MAP_BRIDGE_COMMANDS.filter((command) => !supportedCommands.includes(command));
+  if (missingCommands.length) return { ready: false, reason: `missing-commands:${missingCommands.join(",")}` };
+  const supportedEvents = Array.isArray(status.supportedEvents) ? status.supportedEvents : [];
+  const missingEvents = nativeBridgeSupportedEvents(providerId).filter((eventName) => !supportedEvents.includes(eventName));
+  if (missingEvents.length) return { ready: false, reason: `missing-events:${missingEvents.join(",")}` };
+  return { ready: true, reason: "" };
+}
+
+function nativeMapHandleId(prefix) {
+  nativeMapHandleId.counter = (nativeMapHandleId.counter ?? 0) + 1;
+  return `native-${prefix}-${Date.now().toString(36)}-${nativeMapHandleId.counter}`;
+}
+
+function nativeBridgeEventName(providerId, eventName) {
+  return `map:${providerId}:${eventName}`;
+}
+
+function nativeBridgeSupportedEvents(providerId) {
+  return NATIVE_MAP_BRIDGE_EVENTS.map((eventName) => nativeBridgeEventName(providerId, eventName));
+}
+
+function nativeEventCenter(payload = {}) {
+  const candidates = [
+    payload.center,
+    payload.target,
+    payload.camera?.center,
+    payload.camera?.target,
+    payload.region?.center,
+    payload.coordinate,
+  ];
+  for (const candidate of candidates) {
+    const lat = candidate?.lat ?? candidate?.latitude;
+    const lon = candidate?.lon ?? candidate?.lng ?? candidate?.longitude;
+    if (isValidNumber(lat) && isValidNumber(lon)) return { lat, lon };
+  }
+  const lat = payload.lat ?? payload.latitude;
+  const lon = payload.lon ?? payload.lng ?? payload.longitude;
+  return isValidNumber(lat) && isValidNumber(lon) ? { lat, lon } : null;
+}
+
+function nativeEventZoom(payload = {}) {
+  const zoom = payload.zoom ?? payload.zoomLevel ?? payload.camera?.zoom ?? payload.region?.zoom;
+  return isValidNumber(zoom) ? zoom : null;
+}
+
+function nativePayloadLatLng(payload = {}) {
+  const center = mapProviderShapeCenter(payload);
+  return center ? { lat: center.lat, lng: center.lng } : null;
+}
+
+function nativeMapContainerMetrics(container) {
+  const rect = container?.getBoundingClientRect?.();
+  const visualViewport = window.visualViewport;
+  const width = rect?.width ?? container?.clientWidth ?? 0;
+  const height = rect?.height ?? container?.clientHeight ?? 0;
+  return {
+    width,
+    height,
+    left: rect?.left ?? 0,
+    top: rect?.top ?? 0,
+    right: rect?.right ?? width,
+    bottom: rect?.bottom ?? height,
+    scrollX: window.scrollX ?? 0,
+    scrollY: window.scrollY ?? 0,
+    visualViewportOffsetLeft: visualViewport?.offsetLeft ?? 0,
+    visualViewportOffsetTop: visualViewport?.offsetTop ?? 0,
+    visualViewportScale: visualViewport?.scale ?? 1,
+    devicePixelRatio: window.devicePixelRatio ?? 1,
+  };
+}
+
+function nativeTileOverlayPayload(overlay) {
+  return {
+    id: overlay.id,
+    name: overlay.name,
+    type: overlay.type,
+    url: overlay.url,
+    minZoom: overlay.minZoom ?? MAP_MIN_ZOOM,
+    maxZoom: overlay.maxZoom ?? MAP_MAX_ZOOM,
+    maxNativeZoom: overlay.maxNativeZoom,
+    opacity: overlay.opacity ?? 1,
+    layers: overlay.layers,
+    styles: overlay.styles,
+    format: overlay.format,
+    transparent: overlay.transparent,
+    version: overlay.version,
+  };
+}
+
+function nativeMarkerPayload(definition) {
+  return {
+    lat: definition.lat,
+    lon: definition.lon,
+    title: definition.title,
+    keyboard: definition.keyboard,
+    interactive: definition.interactive !== false,
+    opacity: definition.opacity ?? 1,
+    pane: definition.pane,
+    riseOnHover: definition.riseOnHover,
+    zIndexOffset: definition.zIndexOffset,
+    icon: nativeDivIconPayload(definition.icon),
+    tooltip: nativeTooltipPayload(definition.tooltip),
+  };
+}
+
+function nativeShapePayload(definition) {
+  return {
+    lat: definition.lat,
+    lon: definition.lon,
+    coordinates: definition.coordinates,
+    radius: definition.radius,
+    color: definition.color,
+    weight: definition.weight,
+    fillColor: definition.fillColor,
+    fillOpacity: definition.fillOpacity,
+    opacity: definition.opacity,
+    dashArray: definition.dashArray,
+    interactive: definition.interactive !== false,
+    tooltip: nativeTooltipPayload(definition.tooltip),
+    popup: typeof definition.popup === "string" ? definition.popup : "",
+  };
+}
+
+function nativeDivIconPayload(icon) {
+  const options = icon?.options ?? icon ?? {};
+  return {
+    className: options.className ?? "",
+    html: options.html ?? "",
+    iconSize: options.iconSize ?? null,
+    iconAnchor: options.iconAnchor ?? null,
+    popupAnchor: options.popupAnchor ?? null,
+  };
+}
+
+function nativeTooltipPayload(tooltip) {
+  if (!tooltip) return null;
+  return {
+    content: tooltipContentForNative(tooltip.content),
+    options: tooltip.options ?? {},
+  };
+}
+
+function tooltipContentForNative(content) {
+  if (typeof content === "string") return content;
+  if (content instanceof HTMLElement) return content.outerHTML;
+  return String(content ?? "");
+}
+
+function nativeBridgeContract(providerId = MAP_PROVIDER_IDS.APPLE_NATIVE) {
+  const sampleCenter = { lat: 43.2965, lon: 5.3698 };
+  const sampleOverlay = SHARED_MAP_TILE_OVERLAYS.seamarks;
+  const sampleMarker = {
+    lat: sampleCenter.lat,
+    lon: sampleCenter.lon,
+    title: "Sample fishing spot",
+    icon: nativeDivIconPayload({
+      className: "map-pin-marker is-detail-pin",
+      html: pinIcon(),
+      iconSize: [34, 42],
+      iconAnchor: [17, 42],
     }),
-  ]);
-  updateNauticalOverlay();
-  updateCoastalOverlay();
+    tooltip: nativeTooltipPayload({ content: "Sample fishing spot" }),
+    zIndexOffset: 1000,
+  };
+  const sampleShape = {
+    lat: sampleCenter.lat,
+    lon: sampleCenter.lon,
+    radius: 150,
+    color: "#2f7fa3",
+    fillColor: "#2f7fa3",
+    fillOpacity: 0.18,
+    weight: 2,
+  };
 
-  [
-    els.spotControls,
-    els.spotNameSheet,
-    els.mapLayerSheet,
-    els.mapLayerBackdrop,
-    els.fishFilterControl,
-    els.mapOverlayActions,
-    els.safetyBanner,
-    els.mapFavoritesOverlay,
-  ].filter(Boolean).forEach((element) => {
-    L.DomEvent.disableClickPropagation(element);
-    L.DomEvent.disableScrollPropagation(element);
+  return {
+    providerId,
+    bridgeProtocolVersion: NATIVE_MAP_BRIDGE_PROTOCOL_VERSION,
+    bridgeNames: ["window.MeteoPecheNativeMap", "Capacitor.Plugins.MeteoPecheMap", "Capacitor.Plugins.NativeMap"],
+    requiredCommands: NATIVE_MAP_BRIDGE_COMMANDS,
+    eventNames: nativeBridgeSupportedEvents(providerId),
+    commandFailureMode: {
+      getStatus: "strict fallback",
+      getDebugState: "debug inspection only",
+      init: "strict fallback",
+      incrementalCommands: "warn once and continue",
+    },
+    readiness: {
+      command: "getStatus",
+      payload: { providerId },
+      expected: {
+        ready: true,
+        supportedProviders: [providerId],
+      },
+    },
+    commands: {
+      getStatus: { providerId },
+      getDebugState: { providerId },
+      init: {
+        providerId,
+        containerId: "spotMap",
+        containerMetrics: {
+          width: 390,
+          height: 640,
+          left: 0,
+          top: 0,
+          right: 390,
+          bottom: 640,
+          scrollX: 0,
+          scrollY: 0,
+          visualViewportOffsetLeft: 0,
+          visualViewportOffsetTop: 0,
+          visualViewportScale: 1,
+          devicePixelRatio: 3,
+        },
+        center: sampleCenter,
+        zoom: 11,
+        minZoom: MAP_MIN_ZOOM,
+        maxZoom: MAP_MAX_ZOOM,
+      },
+      setView: { providerId, center: sampleCenter, zoom: 12 },
+      invalidateSize: {
+        providerId,
+        width: 390,
+        height: 640,
+        containerMetrics: {
+          width: 390,
+          height: 640,
+          left: 0,
+          top: 0,
+          right: 390,
+          bottom: 640,
+          scrollX: 0,
+          scrollY: 0,
+          visualViewportOffsetLeft: 0,
+          visualViewportOffsetTop: 0,
+          visualViewportScale: 1,
+          devicePixelRatio: 3,
+        },
+      },
+      createTileOverlay: {
+        providerId,
+        layerId: "native-tile-overlay-sample",
+        overlay: nativeTileOverlayPayload(sampleOverlay),
+      },
+      setLayerVisible: {
+        providerId,
+        layerId: "native-layer-sample",
+        visible: true,
+        type: "group",
+      },
+      clearLayer: {
+        providerId,
+        layerId: "native-layer-sample",
+      },
+      configurePinTier: {
+        providerId,
+        layerId: "native-layer-tier-sample",
+        tier: PIN_LAYER_TIERS[2],
+      },
+      createItem: {
+        providerId,
+        itemId: "native-marker-sample",
+        type: "marker",
+        payload: sampleMarker,
+        events: ["click"],
+      },
+      createItems: {
+        providerId,
+        layerId: "native-layer-batch-sample",
+        items: [{
+          itemId: "native-marker-batch-sample",
+          type: "marker",
+          payload: sampleMarker,
+          events: ["click"],
+        }],
+      },
+      addToLayer: {
+        providerId,
+        layerId: "native-layer-sample",
+        itemId: "native-marker-sample",
+        type: "marker",
+        payload: sampleMarker,
+        isLayer: false,
+      },
+      addItemsToLayer: {
+        providerId,
+        layerId: "native-layer-batch-sample",
+        items: [{
+          itemId: "native-marker-batch-sample",
+          type: "marker",
+          isLayer: false,
+        }],
+      },
+      updateItem: {
+        providerId,
+        itemId: "native-marker-sample",
+        type: "marker",
+        payload: { opacity: 1, zIndexOffset: 1100 },
+      },
+      setItemVisible: {
+        providerId,
+        itemId: "native-marker-sample",
+        visible: true,
+      },
+      setItemsVisible: {
+        providerId,
+        layerId: "native-layer-batch-sample",
+        itemIds: ["native-marker-batch-sample"],
+        visible: true,
+      },
+      createShapeItem: {
+        providerId,
+        itemId: "native-circle-sample",
+        type: "circle",
+        payload: sampleShape,
+        events: ["click"],
+      },
+      setPinTierVisible: {
+        providerId,
+        tierId: PIN_LAYER_TIERS[2].id,
+        visible: true,
+        zoom: 12,
+      },
+      removeItem: {
+        providerId,
+        itemId: "native-marker-sample",
+        layerId: "native-layer-sample",
+      },
+      removeFromLayer: {
+        providerId,
+        layerId: "native-layer-sample",
+        itemId: "native-marker-sample",
+      },
+      destroy: { providerId },
+    },
+    callbackPayloads: {
+      click: {
+        itemId: "native-marker-sample",
+        lat: sampleCenter.lat,
+        lon: sampleCenter.lon,
+      },
+      moveend: {
+        center: sampleCenter,
+        zoom: 12,
+      },
+      zoomend: {
+        camera: {
+          target: {
+            latitude: sampleCenter.lat,
+            longitude: sampleCenter.lon,
+          },
+          zoom: 13,
+        },
+      },
+    },
+  };
+}
+
+function mapKitCoordinateSpanForZoom(zoom, lat) {
+  const safeZoom = clamp(zoom ?? state.mapZoom, MAP_MIN_ZOOM, MAP_MAX_ZOOM);
+  const latitudeDelta = 360 / 2 ** safeZoom;
+  const longitudeDelta = latitudeDelta / Math.max(0.2, Math.cos(toRad(lat)));
+  return {
+    latitudeDelta: Math.max(0.001, latitudeDelta),
+    longitudeDelta: Math.max(0.001, longitudeDelta),
+  };
+}
+
+function appleGlyphText(definition) {
+  const explicit = definition.glyphText;
+  if (explicit !== undefined) return String(explicit).slice(0, 3);
+  const label = appleAnnotationText(definition.title ?? definition.tooltip?.content);
+  return label ? label.slice(0, 2).toUpperCase() : "";
+}
+
+function appleAnnotationText(content) {
+  if (!content) return "";
+  if (typeof content === "string") {
+    const div = document.createElement("div");
+    div.innerHTML = content;
+    return (div.textContent || "").trim();
+  }
+  if (content instanceof HTMLElement) return (content.textContent || "").trim();
+  return String(content ?? "").trim();
+}
+
+function appleAnnotationSubtitle(content) {
+  const text = appleAnnotationText(content);
+  if (text.length <= 42) return "";
+  return text.slice(42, 96);
+}
+
+function appleDivIconOptions(icon) {
+  return icon?.options ?? icon ?? {};
+}
+
+function appleDivIconHtml(icon) {
+  return appleDivIconOptions(icon).html ?? "";
+}
+
+function appleDivIconClassName(icon) {
+  return appleDivIconOptions(icon).className ?? "";
+}
+
+function appleDivIconSize(icon) {
+  const size = appleDivIconOptions(icon).iconSize ?? [30, 38];
+  return { width: size[0], height: size[1] };
+}
+
+function appleDivIconAnchorOffset(icon) {
+  const options = appleDivIconOptions(icon);
+  const size = options.iconSize ?? [30, 38];
+  const anchor = options.iconAnchor ?? [size[0] / 2, size[1]];
+  return { x: anchor[0] - size[0] / 2, y: anchor[1] - size[1] / 2 };
+}
+
+function appleShapeStyle(mapkit, definition) {
+  const dash = String(definition.dashArray ?? "")
+    .split(/\s+/)
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0);
+
+  return new mapkit.Style({
+    strokeColor: definition.color ?? "#2f7fa3",
+    strokeOpacity: definition.opacity ?? 1,
+    lineWidth: definition.weight ?? 2,
+    lineDash: dash.length ? dash : undefined,
+    lineJoin: "round",
+    fillColor: definition.fillColor ?? definition.color ?? "#2f7fa3",
+    fillOpacity: definition.fillOpacity ?? 0,
+  });
+}
+
+function resolveRuntimeMapProvider() {
+  state.mapProviderPreference = resolvePreferredMapProvider();
+  state.mapProviderConfigReady = isMapProviderConfigured(state.mapProviderPreference);
+  state.mapProviderFallbackReason = mapProviderFallbackReason(state.mapProviderPreference);
+  state.mapProviderId = resolveSupportedMapProvider(state.mapProviderPreference);
+  state.mapProviderFallbackActive = state.mapProviderId !== state.mapProviderPreference;
+
+  applyRuntimeMapProviderDataset();
+}
+
+function applyRuntimeMapProviderDataset() {
+  document.documentElement.dataset.mapProviderPreference = state.mapProviderPreference;
+  document.documentElement.dataset.mapProvider = state.mapProviderId;
+  document.documentElement.dataset.mapProviderConfigReady = String(state.mapProviderConfigReady);
+  document.documentElement.dataset.mapProviderMountReady = String(isMapProviderMountReady(state.mapProviderId));
+  document.documentElement.dataset.mapProviderFallbackReason = state.mapProviderFallbackReason;
+  document.documentElement.classList.toggle("map-provider-fallback", state.mapProviderFallbackActive);
+}
+
+function resolveSupportedMapProvider(providerId) {
+  return isMapProviderSupported(providerId) && isMapProviderConfigured(providerId) && isMapProviderMountReady(providerId)
+    ? providerId
+    : MAP_PROVIDER_IDS.LEAFLET_OPENMAP;
+}
+
+function mapProviderFallbackReason(providerId) {
+  if (providerId === MAP_PROVIDER_IDS.LEAFLET_OPENMAP) return "";
+  if (!isMapProviderConfigured(providerId)) return "missing-config";
+  if (isNativeMapProvider(providerId) && !isNativeMapBridgeAvailable()) return "bridge-unavailable";
+  if (!isMapProviderSupported(providerId)) return "adapter-not-ready";
+  return "";
+}
+
+function isMapProviderSupported(providerId) {
+  if (MAP_PROVIDER_DEFAULT_SUPPORT[providerId]) return true;
+  return experimentalMapProviders().includes(providerId);
+}
+
+function isMapProviderConfigured(providerId) {
+  if (providerId === MAP_PROVIDER_IDS.LEAFLET_OPENMAP) return true;
+  if (providerId === MAP_PROVIDER_IDS.APPLE_NATIVE || providerId === MAP_PROVIDER_IDS.GOOGLE_NATIVE) return true;
+  if (providerId === MAP_PROVIDER_IDS.APPLE_WEB) return isAppleMapsWebConfigured();
+  if (providerId === MAP_PROVIDER_IDS.GOOGLE_WEB) return isGoogleMapsWebConfigured();
+  return false;
+}
+
+function isMapProviderMountReady(providerId) {
+  if (!isNativeMapProvider(providerId)) return true;
+  return isNativeMapBridgeAvailable();
+}
+
+function mapProviderDescriptor(providerId) {
+  return {
+    id: providerId,
+    supported: isMapProviderSupported(providerId),
+    defaultSupported: Boolean(MAP_PROVIDER_DEFAULT_SUPPORT[providerId]),
+    experimental: experimentalMapProviders().includes(providerId),
+    configured: isMapProviderConfigured(providerId),
+    mountReady: isMapProviderMountReady(providerId),
+    bridgeAvailable: isNativeMapProvider(providerId) ? isNativeMapBridgeAvailable() : null,
+    fallbackReason: mapProviderFallbackReason(providerId),
+    active: state.mapProviderId === providerId,
+    preferred: state.mapProviderPreference === providerId,
+  };
+}
+
+function isNativeMapProvider(providerId) {
+  return providerId === MAP_PROVIDER_IDS.APPLE_NATIVE || providerId === MAP_PROVIDER_IDS.GOOGLE_NATIVE;
+}
+
+function isNativeMapBridgeAvailable() {
+  return Boolean(resolveNativeMapBridge());
+}
+
+function getRuntimeConfig() {
+  return window.METEOPECHE_CONFIG ?? {};
+}
+
+function experimentalMapProviders() {
+  const value = getRuntimeConfig().experimentalMapProviders;
+  const providers = Array.isArray(value)
+    ? value
+    : String(value ?? "").split(",");
+  return [
+    ...providers,
+    ...localExperimentalMapProviders(),
+  ]
+    .map((provider) => String(provider ?? "").trim())
+    .filter((provider) => Object.values(MAP_PROVIDER_IDS).includes(provider));
+}
+
+function localExperimentalMapProviders() {
+  if (!isLocalMapProviderDebugOrigin()) return [];
+  const params = new URLSearchParams(window.location.search);
+  const value = params.get("mapProviderExperimental") ?? params.get("map_provider_experimental") ?? "";
+  return String(value)
+    .split(",")
+    .map((provider) => provider.trim())
+    .filter(Boolean);
+}
+
+function isGoogleMapsWebConfigured() {
+  const config = getRuntimeConfig();
+  return Boolean((config.enableGoogleMapsWeb && googleMapsApiKey()) || localWebMapSdkDebugEnabled("google"));
+}
+
+function googleMapsApiKey() {
+  return String(getRuntimeConfig().googleMapsApiKey ?? "").trim();
+}
+
+function isAppleMapsWebConfigured() {
+  const config = getRuntimeConfig();
+  return Boolean((config.enableAppleMapsWeb && (appleMapKitToken() || appleMapKitTokenUrl())) || localWebMapSdkDebugEnabled("apple"));
+}
+
+function appleMapKitToken() {
+  return String(getRuntimeConfig().appleMapKitToken ?? "").trim();
+}
+
+function appleMapKitTokenUrl() {
+  return String(getRuntimeConfig().appleMapKitTokenUrl ?? "").trim();
+}
+
+function loadGoogleMapsWebSdk() {
+  installLocalWebMapSdkDebug();
+  if (localWebMapSdkDebugFailureEnabled("google")) {
+    return Promise.reject(new Error("Local Google Maps debug SDK failure requested"));
+  }
+  if (window.google?.maps) return Promise.resolve(window.google.maps);
+
+  const apiKey = googleMapsApiKey();
+  if (!apiKey) return Promise.reject(new Error("Google Maps API key missing"));
+
+  if (window.__meteoPecheGoogleMapsPromise) return window.__meteoPecheGoogleMapsPromise;
+
+  window.__meteoPecheGoogleMapsPromise = new Promise((resolve, reject) => {
+    const existingScript = document.getElementById(GOOGLE_MAPS_SCRIPT_ID);
+    if (existingScript) {
+      existingScript.addEventListener("load", () => resolve(window.google.maps), { once: true });
+      existingScript.addEventListener("error", () => reject(new Error("Google Maps SDK failed to load")), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = GOOGLE_MAPS_SCRIPT_ID;
+    script.async = true;
+    script.defer = true;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&v=weekly`;
+    script.addEventListener("load", () => resolve(window.google.maps), { once: true });
+    script.addEventListener("error", () => reject(new Error("Google Maps SDK failed to load")), { once: true });
+    document.head.append(script);
   });
 
-  state.knownFishingLayer = L.layerGroup();
-  updateKnownFishingOverlay();
+  return window.__meteoPecheGoogleMapsPromise;
+}
 
-  state.emodnetBathymetryLayer = L.tileLayer.wms(BATHYMETRY_WMS, {
-    layers: "emodnet:contours",
-    styles: "contours",
-    format: "image/png",
-    transparent: true,
-    version: "1.3.0",
-    opacity: 0.82,
-    minZoom: MAP_MIN_ZOOM,
-    maxZoom: MAP_MAX_ZOOM,
-    attribution: "EMODnet Bathymetry",
+function loadAppleMapKitWebSdk() {
+  installLocalWebMapSdkDebug();
+  if (localWebMapSdkDebugFailureEnabled("apple")) {
+    return Promise.reject(new Error("Local Apple MapKit debug SDK failure requested"));
+  }
+  if (!isAppleMapsWebConfigured()) return Promise.reject(new Error("Apple MapKit JS config missing"));
+  if (window.mapkit?.Map) return initializeAppleMapKitWeb();
+
+  if (window.__meteoPecheAppleMapKitPromise) return window.__meteoPecheAppleMapKitPromise;
+
+  window.__meteoPecheAppleMapKitPromise = new Promise((resolve, reject) => {
+    const existingScript = document.getElementById(APPLE_MAPKIT_SCRIPT_ID);
+    if (existingScript) {
+      existingScript.addEventListener("load", () => initializeAppleMapKitWeb().then(resolve).catch(reject), { once: true });
+      existingScript.addEventListener("error", () => reject(new Error("Apple MapKit JS failed to load")), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = APPLE_MAPKIT_SCRIPT_ID;
+    script.async = true;
+    script.defer = true;
+    script.src = APPLE_MAPKIT_JS_URL;
+    script.addEventListener("load", () => initializeAppleMapKitWeb().then(resolve).catch(reject), { once: true });
+    script.addEventListener("error", () => reject(new Error("Apple MapKit JS failed to load")), { once: true });
+    document.head.append(script);
   });
-  state.bathymetryLayer = L.layerGroup();
-  renderBathymetryLayer();
-  updateBathymetryOverlay();
 
-  state.regulationLayer = L.layerGroup();
-  updateRegulationOverlay();
+  return window.__meteoPecheAppleMapKitPromise;
+}
 
-  state.marineOverlayLayer = L.layerGroup().addTo(state.leafletMap);
-  state.anchorLayer = L.layerGroup().addTo(state.leafletMap);
-  state.leafletPinLayer = L.layerGroup().addTo(state.leafletMap);
-  state.leafletMarkers = L.layerGroup().addTo(state.leafletMap);
-  state.leafletMap.on("click", selectLeafletMapPoint);
-  state.leafletMap.on("moveend zoomend", syncLeafletState);
-  state.leafletMap.on("moveend zoomend", scheduleOverpassSpotFetch);
-  state.leafletMap.on("zoomend", updateLeafletPinVisibility);
+function initializeAppleMapKitWeb() {
+  if (!window.mapkit?.Map) return Promise.reject(new Error("Apple MapKit JS unavailable"));
+  if (window.__meteoPecheAppleMapKitReady) return Promise.resolve(window.mapkit);
+
+  const staticToken = appleMapKitToken();
+  const tokenUrl = appleMapKitTokenUrl();
+  window.mapkit.init({
+    authorizationCallback(done) {
+      if (staticToken) {
+        done(staticToken);
+        return;
+      }
+      fetch(tokenUrl)
+        .then((response) => {
+          if (!response.ok) throw new Error(`Apple MapKit token request failed: ${response.status}`);
+          return response.text();
+        })
+        .then((body) => {
+          const token = parseAppleMapKitTokenResponse(body);
+          if (!token) throw new Error("Apple MapKit token response missing token");
+          done(token);
+        })
+        .catch((error) => {
+          console.warn("Apple MapKit token fetch failed", error);
+          done("");
+        });
+    },
+  });
+  window.__meteoPecheAppleMapKitReady = true;
+  return Promise.resolve(window.mapkit);
+}
+
+function parseAppleMapKitTokenResponse(body) {
+  const text = String(body ?? "").trim();
+  if (!text) return "";
+  try {
+    const parsed = JSON.parse(text);
+    return String(parsed.token ?? parsed.mapkitToken ?? "").trim();
+  } catch {
+    return text;
+  }
+}
+
+function resolvePreferredMapProvider() {
+  const override = mapProviderOverride();
+  if (override) return override;
+
+  const platform = getCapacitorPlatform();
+  if (isNativeRuntime() && platform === "ios") return MAP_PROVIDER_IDS.APPLE_NATIVE;
+  if (isNativeRuntime() && platform === "android") return MAP_PROVIDER_IDS.GOOGLE_NATIVE;
+  if (isSafariBrowser()) return MAP_PROVIDER_IDS.APPLE_WEB;
+  if (isChromeBrowser()) return MAP_PROVIDER_IDS.GOOGLE_WEB;
+  return MAP_PROVIDER_IDS.LEAFLET_OPENMAP;
+}
+
+function mapProviderOverride() {
+  const params = new URLSearchParams(window.location.search);
+  const value = params.get("mapProviderOverride") ?? params.get("map_provider_override");
+  return Object.values(MAP_PROVIDER_IDS).includes(value) ? value : "";
+}
+
+function isLocalMapProviderDebugOrigin() {
+  if (window.location.protocol === "file:") return true;
+  return ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+}
+
+function localWebMapSdkDebugEnabled(provider) {
+  if (!isLocalMapProviderDebugOrigin()) return false;
+  const params = new URLSearchParams(window.location.search);
+  const value = params.get("mapProviderDebugSdk") ?? params.get("map_provider_debug_sdk") ?? "";
+  const providers = String(value).split(",").map((entry) => entry.trim().toLowerCase()).filter(Boolean);
+  if (providers.includes("all") || providers.includes(provider)) return true;
+  if (provider === "google") return params.get("googleMapsDebugSdk") === "1";
+  if (provider === "apple") return params.get("appleMapKitDebugSdk") === "1";
+  return false;
+}
+
+function localWebMapSdkDebugFailureEnabled(provider) {
+  if (!isLocalMapProviderDebugOrigin()) return false;
+  const params = new URLSearchParams(window.location.search);
+  const value = params.get("mapProviderDebugSdkFail") ?? params.get("map_provider_debug_sdk_fail") ?? "";
+  const providers = String(value).split(",").map((entry) => entry.trim().toLowerCase()).filter(Boolean);
+  return providers.includes("all") || providers.includes(provider);
+}
+
+function installLocalWebMapSdkDebug() {
+  if (localWebMapSdkDebugEnabled("google") && !localWebMapSdkDebugFailureEnabled("google") && !window.google?.maps) {
+    window.google = { ...(window.google ?? {}), maps: createLocalGoogleMapsDebugSdk() };
+    document.documentElement.dataset.webMapSdkDebugGoogle = "active";
+  }
+
+  if (localWebMapSdkDebugEnabled("apple") && !localWebMapSdkDebugFailureEnabled("apple") && !window.mapkit?.Map) {
+    window.mapkit = createLocalAppleMapKitDebugSdk();
+    document.documentElement.dataset.webMapSdkDebugApple = "active";
+  }
+}
+
+function createLocalGoogleMapsDebugSdk() {
+  const debugItems = new Set();
+  const debugEventTypes = new Set();
+
+  const updateDebugItemCount = () => {
+    document.documentElement.dataset.webMapSdkDebugGoogleItemCount = String(debugItems.size);
+  };
+
+  const updateDebugEventTypes = () => {
+    document.documentElement.dataset.webMapSdkDebugGoogleEventTypes = [...debugEventTypes].join(",");
+  };
+
+  class DebugEventTarget {
+    constructor() {
+      this.__debugListeners = new Map();
+    }
+
+    addListener(eventName, handler) {
+      if (!this.__debugListeners.has(eventName)) this.__debugListeners.set(eventName, new Set());
+      this.__debugListeners.get(eventName).add(handler);
+      debugEventTypes.add(eventName);
+      updateDebugEventTypes();
+      return {
+        remove: () => this.__debugListeners.get(eventName)?.delete(handler),
+      };
+    }
+
+    emit(eventName, payload) {
+      this.__debugListeners.get(eventName)?.forEach((handler) => handler(payload));
+    }
+
+    clearListeners() {
+      this.__debugListeners.clear();
+    }
+  }
+
+  class DebugLatLng {
+    constructor(lat, lng) {
+      this._lat = lat;
+      this._lng = lng;
+    }
+
+    lat() {
+      return this._lat;
+    }
+
+    lng() {
+      return this._lng;
+    }
+  }
+
+  class DebugOverlayArray {
+    constructor() {
+      this.items = [];
+    }
+
+    updateDataset() {
+      document.documentElement.dataset.webMapSdkDebugGoogleOverlayCount = String(this.items.length);
+    }
+
+    getArray() {
+      return this.items;
+    }
+
+    push(item) {
+      this.items.push(item);
+      this.updateDataset();
+      return this.items.length;
+    }
+
+    removeAt(index) {
+      const item = this.items.splice(index, 1)[0];
+      this.updateDataset();
+      return item;
+    }
+  }
+
+  class DebugMap extends DebugEventTarget {
+    constructor(container, options = {}) {
+      super();
+      this.container = container;
+      this.center = new DebugLatLng(options.center?.lat ?? 0, options.center?.lng ?? 0);
+      this.zoom = options.zoom ?? state.mapZoom;
+      this.overlayMapTypes = new DebugOverlayArray();
+      this.__debugOverlayPane = document.createElement("div");
+      this.__debugOverlayPane.className = "google-map-debug-pane";
+      this.__debugOverlayPane.style.position = "absolute";
+      this.__debugOverlayPane.style.inset = "0";
+      this.__debugOverlayPane.style.pointerEvents = "none";
+      container.append(this.__debugOverlayPane);
+      document.documentElement.dataset.webMapSdkDebugGoogleMap = "mounted";
+    }
+
+    getCenter() {
+      return this.center;
+    }
+
+    setCenter(center) {
+      this.center = new DebugLatLng(center.lat, center.lng);
+      this.emit("idle", { center: this.center });
+    }
+
+    getZoom() {
+      return this.zoom;
+    }
+
+    setZoom(zoom) {
+      this.zoom = zoom;
+      this.emit("idle", { zoom });
+    }
+
+    getBounds() {
+      const span = mapKitCoordinateSpanForZoom(this.zoom, this.center.lat());
+      return {
+        getNorthEast: () => new DebugLatLng(this.center.lat() + span.latitudeDelta / 2, this.center.lng() + span.longitudeDelta / 2),
+        getSouthWest: () => new DebugLatLng(this.center.lat() - span.latitudeDelta / 2, this.center.lng() - span.longitudeDelta / 2),
+      };
+    }
+  }
+
+  class DebugGoogleItem extends DebugEventTarget {
+    constructor(options = {}) {
+      super();
+      this.options = options;
+      this.map = options.map ?? null;
+      this.position = options.position ? new DebugLatLng(options.position.lat, options.position.lng) : null;
+      this.center = options.center ? new DebugLatLng(options.center.lat, options.center.lng) : null;
+      this.opacity = options.opacity ?? 1;
+      this.zIndex = options.zIndex ?? 0;
+    }
+
+    setMap(map) {
+      if (map) {
+        debugItems.add(this);
+      } else {
+        debugItems.delete(this);
+      }
+      updateDebugItemCount();
+      this.map = map;
+    }
+
+    setPosition(position) {
+      this.position = new DebugLatLng(position.lat, position.lng);
+    }
+
+    getPosition() {
+      return this.position ?? this.center;
+    }
+
+    getCenter() {
+      return this.center ?? this.position;
+    }
+
+    setIcon(icon) {
+      this.icon = icon;
+    }
+
+    setZIndex(zIndex) {
+      this.zIndex = zIndex;
+    }
+
+    setOpacity(opacity) {
+      this.opacity = opacity;
+    }
+  }
+
+  class DebugOverlayView {
+    setMap(map) {
+      if (this.map && !map) this.onRemove?.();
+      this.map = map;
+      if (map) {
+        debugItems.add(this);
+        updateDebugItemCount();
+        this.onAdd?.();
+        this.draw?.();
+      } else {
+        debugItems.delete(this);
+        updateDebugItemCount();
+      }
+    }
+
+    getPanes() {
+      return { overlayMouseTarget: this.map?.__debugOverlayPane ?? document.body };
+    }
+
+    getProjection() {
+      return {
+        fromLatLngToDivPixel: (latLng) => ({
+          x: ((latLng.lng() + 180) / 360) * (this.map?.container?.clientWidth ?? 390),
+          y: ((90 - latLng.lat()) / 180) * (this.map?.container?.clientHeight ?? 640),
+        }),
+      };
+    }
+  }
+
+  class DebugInfoWindow {
+    constructor(options = {}) {
+      this.content = options.content ?? "";
+    }
+
+    setContent(content) {
+      this.content = content;
+    }
+
+    setPosition(position) {
+      this.position = position;
+    }
+
+    open() {
+      this.opened = true;
+    }
+
+    close() {
+      this.opened = false;
+    }
+  }
+
+  return {
+    Map: DebugMap,
+    ImageMapType: class {
+      constructor(options = {}) {
+        Object.assign(this, options);
+      }
+    },
+    Size: class {
+      constructor(width, height) {
+        this.width = width;
+        this.height = height;
+      }
+    },
+    Point: class {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+      }
+    },
+    LatLng: DebugLatLng,
+    Marker: DebugGoogleItem,
+    Circle: DebugGoogleItem,
+    Polyline: DebugGoogleItem,
+    Polygon: DebugGoogleItem,
+    InfoWindow: DebugInfoWindow,
+    OverlayView: DebugOverlayView,
+    event: {
+      addListener: (target, eventName, handler) => target?.addListener?.(eventName, handler) ?? { remove() {} },
+      trigger: (target, eventName, payload) => target?.emit?.(eventName, payload),
+      clearInstanceListeners: (target) => target?.clearListeners?.(),
+    },
+  };
+}
+
+function createLocalAppleMapKitDebugSdk() {
+  const debugEventTypes = new Set();
+
+  const updateDebugEventTypes = () => {
+    document.documentElement.dataset.webMapSdkDebugAppleEventTypes = [...debugEventTypes].join(",");
+  };
+
+  class DebugAppleEventTarget {
+    constructor() {
+      this.listeners = new Map();
+    }
+
+    addEventListener(eventName, handler) {
+      if (!this.listeners.has(eventName)) this.listeners.set(eventName, new Set());
+      this.listeners.get(eventName).add(handler);
+      debugEventTypes.add(eventName);
+      updateDebugEventTypes();
+    }
+
+    removeEventListener(eventName, handler) {
+      this.listeners.get(eventName)?.delete(handler);
+    }
+
+    dispatchEvent(event) {
+      const eventName = typeof event === "string" ? event : event?.type;
+      this.listeners.get(eventName)?.forEach((handler) => handler(event));
+    }
+  }
+
+  class DebugCoordinate {
+    constructor(latitude, longitude) {
+      this.latitude = latitude;
+      this.longitude = longitude;
+    }
+  }
+
+  class DebugMap extends DebugAppleEventTarget {
+    constructor(container) {
+      super();
+      this.container = container;
+      this.annotations = [];
+      this.overlays = [];
+      this.tileOverlays = [];
+      document.documentElement.dataset.webMapSdkDebugAppleMap = "mounted";
+    }
+
+    addTileOverlay(overlay) {
+      this.tileOverlays.push(overlay);
+      document.documentElement.dataset.webMapSdkDebugAppleTileOverlayCount = String(this.tileOverlays.length);
+    }
+
+    removeTileOverlay(overlay) {
+      this.tileOverlays = this.tileOverlays.filter((item) => item !== overlay);
+      document.documentElement.dataset.webMapSdkDebugAppleTileOverlayCount = String(this.tileOverlays.length);
+    }
+
+    addAnnotation(annotation) {
+      this.annotations.push(annotation);
+      document.documentElement.dataset.webMapSdkDebugAppleAnnotationCount = String(this.annotations.length);
+      annotation.element ??= annotation.factory?.();
+      if (annotation.element) {
+        annotation.element.style.position = "absolute";
+        annotation.element.style.left = "50%";
+        annotation.element.style.top = "50%";
+        annotation.element.style.transform = "translate(-50%, -50%)";
+        this.container.append(annotation.element);
+      }
+    }
+
+    removeAnnotation(annotation) {
+      this.annotations = this.annotations.filter((item) => item !== annotation);
+      document.documentElement.dataset.webMapSdkDebugAppleAnnotationCount = String(this.annotations.length);
+      annotation.element?.remove?.();
+    }
+
+    addOverlay(overlay) {
+      this.overlays.push(overlay);
+      document.documentElement.dataset.webMapSdkDebugAppleOverlayCount = String(this.overlays.length);
+    }
+
+    removeOverlay(overlay) {
+      this.overlays = this.overlays.filter((item) => item !== overlay);
+      document.documentElement.dataset.webMapSdkDebugAppleOverlayCount = String(this.overlays.length);
+    }
+
+    destroy() {
+      this.annotations = [];
+      this.overlays = [];
+      this.tileOverlays = [];
+      document.documentElement.dataset.webMapSdkDebugAppleAnnotationCount = "0";
+      document.documentElement.dataset.webMapSdkDebugAppleOverlayCount = "0";
+      document.documentElement.dataset.webMapSdkDebugAppleTileOverlayCount = "0";
+    }
+  }
+
+  class DebugAnnotation extends DebugAppleEventTarget {
+    constructor(coordinate, factory, options = {}) {
+      super();
+      this.coordinate = coordinate;
+      this.factory = factory;
+      this.element = factory?.();
+      Object.assign(this, options);
+    }
+  }
+
+  class DebugShapeOverlay extends DebugAppleEventTarget {
+    constructor(first, second, options = {}) {
+      super();
+      if (Array.isArray(first)) {
+        this.points = first;
+      } else {
+        this.coordinate = first;
+        this.radius = second;
+      }
+      Object.assign(this, options);
+    }
+  }
+
+  return {
+    FeatureVisibility: { Hidden: "hidden" },
+    Map: DebugMap,
+    Coordinate: DebugCoordinate,
+    CoordinateSpan: class {
+      constructor(latitudeDelta, longitudeDelta) {
+        this.latitudeDelta = latitudeDelta;
+        this.longitudeDelta = longitudeDelta;
+      }
+    },
+    CoordinateRegion: class {
+      constructor(center, span) {
+        this.center = center;
+        this.span = span;
+      }
+    },
+    TileOverlay: class {
+      constructor(urlTemplate, options = {}) {
+        this.urlTemplate = urlTemplate;
+        Object.assign(this, options);
+      }
+    },
+    Style: class {
+      constructor(options = {}) {
+        Object.assign(this, options);
+      }
+    },
+    Annotation: DebugAnnotation,
+    MarkerAnnotation: class extends DebugAnnotation {
+      constructor(coordinate, options = {}) {
+        super(coordinate, () => {
+          const element = document.createElement("span");
+          element.className = "apple-map-debug-marker";
+          element.textContent = options.glyphText || "";
+          return element;
+        }, options);
+      }
+    },
+    CircleOverlay: DebugShapeOverlay,
+    PolygonOverlay: DebugShapeOverlay,
+    PolylineOverlay: DebugShapeOverlay,
+    init() {},
+  };
+}
+
+const NATIVE_MAP_BRIDGE_PROTOCOL_VERSION = 1;
+const NATIVE_MAP_BRIDGE_COMMANDS = [
+  "getStatus",
+  "isReady",
+  "getDebugState",
+  "init",
+  "setView",
+  "invalidateSize",
+  "createTileOverlay",
+  "setLayerVisible",
+  "clearLayer",
+  "configurePinTier",
+  "createItem",
+  "createItems",
+  "addToLayer",
+  "addItemsToLayer",
+  "updateItem",
+  "setItemVisible",
+  "setItemsVisible",
+  "createShapeItem",
+  "setPinTierVisible",
+  "removeItem",
+  "removeFromLayer",
+  "destroy",
+];
+const NATIVE_MAP_BRIDGE_EVENTS = ["click", "moveend", "zoomend"];
+
+function installLocalNativeMapBridgeDebug() {
+  if (!isLocalMapProviderDebugOrigin()) return;
+  const params = new URLSearchParams(window.location.search);
+  const enabled = params.get("mapProviderDebugBridge") === "1" || params.get("nativeMapBridgeDebug") === "1";
+  if (!enabled || resolveNativeMapBridge()) return;
+  installMapProviderDebugInspector();
+
+  const commands = [];
+  const events = [];
+  const listeners = new Map();
+  const layerMembership = new Map();
+  const itemLayers = new Map();
+  const itemVisibility = new Map();
+  const itemTypes = new Map();
+  const itemPayloads = new Map();
+  const itemClassNames = new Map();
+  const pinTiers = new Map();
+  const pinTierVisibility = new Map();
+  const unsupportedValue = params.get("mapProviderDebugBridgeUnsupported") ?? params.get("native_map_bridge_debug_unsupported") ?? "";
+  const capabilityFailure = (params.get("mapProviderDebugBridgeCapabilityFail") ?? "").trim().toLowerCase();
+  const unsupportedProviders = String(unsupportedValue)
+    .split(",")
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean);
+  const providerUnsupported = (providerId) => (
+    unsupportedProviders.includes("all")
+    || unsupportedProviders.includes(providerId)
+    || (providerId === MAP_PROVIDER_IDS.APPLE_NATIVE && unsupportedProviders.includes("apple"))
+    || (providerId === MAP_PROVIDER_IDS.GOOGLE_NATIVE && unsupportedProviders.includes("google"))
+  );
+  const supportedProviders = [MAP_PROVIDER_IDS.APPLE_NATIVE, MAP_PROVIDER_IDS.GOOGLE_NATIVE]
+    .filter((providerId) => !providerUnsupported(providerId));
+  const bridgeProtocolVersion = () => capabilityFailure === "protocol" ? 0 : NATIVE_MAP_BRIDGE_PROTOCOL_VERSION;
+  const bridgeSupportedCommands = () => capabilityFailure === "commands"
+    ? NATIVE_MAP_BRIDGE_COMMANDS.filter((command) => command !== "createItems")
+    : NATIVE_MAP_BRIDGE_COMMANDS;
+  const bridgeSupportedEvents = (providerId) => capabilityFailure === "events"
+    ? nativeBridgeSupportedEvents(providerId).filter((eventName) => !eventName.endsWith(":zoomend"))
+    : nativeBridgeSupportedEvents(providerId);
+  const recordCapabilities = (providerId) => {
+    const supportedEvents = bridgeSupportedEvents(providerId);
+    const supportedCommands = bridgeSupportedCommands();
+    document.documentElement.dataset.nativeMapBridgeDebugProtocolVersion = String(bridgeProtocolVersion());
+    document.documentElement.dataset.nativeMapBridgeDebugSupportedCommandCount = String(supportedCommands.length);
+    document.documentElement.dataset.nativeMapBridgeDebugSupportedEventCount = String(supportedEvents.length);
+    return { supportedCommands, supportedEvents };
+  };
+  const commandTypeCounts = () => commands.reduce((counts, entry) => {
+    counts[entry.command] = (counts[entry.command] ?? 0) + 1;
+    return counts;
+  }, {});
+  const lastContainerMetrics = () => [...commands]
+    .reverse()
+    .find((entry) => entry.payload?.containerMetrics)
+    ?.payload
+    ?.containerMetrics ?? null;
+  const eventTypeCounts = () => events.reduce((counts, entry) => {
+    counts[entry.eventName] = (counts[entry.eventName] ?? 0) + 1;
+    return counts;
+  }, {});
+  const layerMembershipState = () => Object.fromEntries(
+    [...layerMembership.entries()].map(([layerId, itemIds]) => [layerId, [...itemIds].sort()]),
+  );
+  const itemVisibilityState = () => Object.fromEntries(itemVisibility.entries());
+  const itemTypeCountsState = () => [...itemTypes.values()].reduce((counts, type) => {
+    counts[type] = (counts[type] ?? 0) + 1;
+    return counts;
+  }, {});
+  const markerPayloadCount = (key) => [...itemPayloads.values()].filter((payload) => {
+    if (key === "iconAnchor") {
+      return Array.isArray(payload?.icon?.iconAnchor) && Array.isArray(payload?.icon?.iconSize);
+    }
+    return payload?.[key] !== undefined;
+  }).length;
+  const shapePayloadCount = (key) => [...itemPayloads.entries()].filter(([itemId, payload]) => {
+    const type = itemTypes.get(itemId) ?? "";
+    if (!["circle", "circle-marker", "polyline", "polygon", "shape"].includes(type)) return false;
+    const value = payload?.[key];
+    if (typeof value === "string") return value.trim().length > 0;
+    if (value && typeof value === "object") return String(value.content ?? "").trim().length > 0;
+    return false;
+  }).length;
+  const markerClassNamesState = () => [...new Set(itemClassNames.values())].sort();
+  const pinTierVisibilityState = () => Object.fromEntries(pinTierVisibility.entries());
+  const debugRendererState = (providerId) => ({
+    kind: providerId,
+    providerId,
+    implemented: false,
+    ready: supportedProviders.includes(providerId),
+    layerCount: layerMembership.size,
+    layerMembership: layerMembershipState(),
+    itemVisibility: itemVisibilityState(),
+    itemTypeCounts: itemTypeCountsState(),
+    markerClassNames: markerClassNamesState(),
+    markerAnchorCount: markerPayloadCount("iconAnchor"),
+    markerOpacityCount: markerPayloadCount("opacity"),
+    markerZIndexCount: markerPayloadCount("zIndexOffset"),
+    shapePopupCount: shapePayloadCount("popup"),
+    shapeTooltipCount: shapePayloadCount("tooltip"),
+    pinTierCount: pinTiers.size,
+    pinTierIds: [...pinTiers.keys()].sort(),
+    pinTierVisibility: pinTierVisibilityState(),
+  });
+  const rememberItemPayload = (itemId, type, payload = {}) => {
+    if (!itemId) return;
+    if (type) itemTypes.set(itemId, type);
+    itemPayloads.set(itemId, {
+      ...(itemPayloads.get(itemId) ?? {}),
+      ...(payload ?? {}),
+    });
+    const className = payload?.icon?.className ?? payload?.className ?? "";
+    if (className) itemClassNames.set(itemId, className);
+  };
+  const addLayerMembership = (layerId, itemId) => {
+    if (!layerId || !itemId) return;
+    if (!layerMembership.has(layerId)) layerMembership.set(layerId, new Set());
+    layerMembership.get(layerId).add(itemId);
+    itemLayers.set(itemId, layerId);
+  };
+  const removeLayerMembership = (layerId, itemId) => {
+    if (!layerId || !itemId) return;
+    layerMembership.get(layerId)?.delete(itemId);
+    if (layerMembership.get(layerId)?.size === 0) layerMembership.delete(layerId);
+    if (itemLayers.get(itemId) === layerId) itemLayers.delete(itemId);
+  };
+  const removeItemFromMemberships = (itemId) => {
+    if (!itemId) return;
+    const layerId = itemLayers.get(itemId);
+    if (layerId) removeLayerMembership(layerId, itemId);
+    [...layerMembership.keys()].forEach((currentLayerId) => removeLayerMembership(currentLayerId, itemId));
+  };
+  const clearLayerMembership = (layerId) => {
+    if (!layerId) return;
+    layerMembership.get(layerId)?.forEach((itemId) => {
+      itemLayers.delete(itemId);
+      itemVisibility.delete(itemId);
+      itemTypes.delete(itemId);
+      itemPayloads.delete(itemId);
+      itemClassNames.delete(itemId);
+    });
+    layerMembership.delete(layerId);
+  };
+  const recordLayerAndTierState = (command, payload = {}) => {
+    if (command === "configurePinTier") {
+      const tier = payload.tier ?? {};
+      const tierId = tier.id ?? payload.tierId ?? payload.id;
+      if (tierId) pinTiers.set(tierId, tier);
+    }
+    if (command === "setPinTierVisible") {
+      const tierId = payload.tierId ?? payload.id;
+      if (tierId) pinTierVisibility.set(tierId, payload.visible !== false);
+    }
+    if (command === "addToLayer") {
+      addLayerMembership(payload.layerId, payload.itemId);
+    }
+    if (command === "addItemsToLayer") {
+      (payload.items ?? []).forEach((item) => addLayerMembership(payload.layerId, item?.itemId));
+    }
+    if (command === "createItem") {
+      const itemId = payload.itemId ?? payload.id;
+      if (itemId && !itemVisibility.has(itemId)) itemVisibility.set(itemId, true);
+      rememberItemPayload(itemId, payload.type, payload.payload);
+    }
+    if (command === "createItems") {
+      (payload.items ?? []).forEach((item) => {
+        const itemId = item?.itemId ?? item?.id;
+        if (itemId && !itemVisibility.has(itemId)) itemVisibility.set(itemId, true);
+        rememberItemPayload(itemId, item?.type, item?.payload);
+      });
+    }
+    if (command === "updateItem") {
+      const itemId = payload.itemId ?? payload.id;
+      rememberItemPayload(itemId, payload.type ?? itemTypes.get(itemId), payload.payload);
+    }
+    if (command === "setItemVisible") {
+      const itemId = payload.itemId ?? payload.id;
+      if (itemId) itemVisibility.set(itemId, payload.visible !== false);
+    }
+    if (command === "setItemsVisible") {
+      (payload.itemIds ?? []).forEach((itemId) => {
+        if (itemId) itemVisibility.set(itemId, payload.visible !== false);
+      });
+    }
+    if (command === "removeFromLayer") {
+      removeLayerMembership(payload.layerId, payload.itemId);
+    }
+    if (command === "clearLayer") {
+      clearLayerMembership(payload.layerId ?? payload.overlayId ?? payload.id);
+    }
+    if (command === "removeItem") {
+      const itemId = payload.itemId ?? payload.id;
+      itemVisibility.delete(itemId);
+      itemTypes.delete(itemId);
+      itemPayloads.delete(itemId);
+      itemClassNames.delete(itemId);
+      removeItemFromMemberships(itemId);
+    }
+    if (command === "destroy") {
+      layerMembership.clear();
+      itemLayers.clear();
+      itemVisibility.clear();
+      itemTypes.clear();
+      itemPayloads.clear();
+      itemClassNames.clear();
+      pinTiers.clear();
+      pinTierVisibility.clear();
+    }
+  };
+  const bridge = {
+    __meteoPecheDebugBridge: true,
+    commands,
+    supportedProviders,
+    getStatus({ providerId } = {}) {
+      document.documentElement.dataset.nativeMapBridgeDebugStatus = "ready";
+      const { supportedCommands, supportedEvents } = recordCapabilities(providerId);
+      return Promise.resolve({
+        ready: supportedProviders.includes(providerId),
+        providerId,
+        supportedProviders,
+        bridgeProtocolVersion: bridgeProtocolVersion(),
+        supportedCommands,
+        supportedEvents,
+      });
+    },
+    isReady({ providerId } = {}) {
+      return Promise.resolve(supportedProviders.includes(providerId));
+    },
+    getDebugState({ providerId } = {}) {
+      document.documentElement.dataset.nativeMapBridgeDebugStatus = "ready";
+      const { supportedCommands, supportedEvents } = recordCapabilities(providerId);
+      return Promise.resolve({
+        ready: supportedProviders.includes(providerId),
+        reason: "local-native-map-debug-bridge",
+        providerId,
+        supportedProviders,
+        bridgeProtocolVersion: bridgeProtocolVersion(),
+        supportedCommands,
+        supportedEvents,
+        commandCount: commands.length,
+        commandTypeCounts: commandTypeCounts(),
+        lastContainerMetrics: lastContainerMetrics(),
+        renderer: debugRendererState(providerId),
+        eventCount: events.length,
+        eventTypeCounts: eventTypeCounts(),
+        events: events.slice(-40),
+        commands: commands.slice(-80),
+      });
+    },
+    invoke({ command, payload } = {}) {
+      return this.record(command, payload);
+    },
+    postMessage({ command, payload } = {}) {
+      this.record(command, payload);
+    },
+    addListener(eventName, handler) {
+      if (!listeners.has(eventName)) listeners.set(eventName, new Set());
+      listeners.get(eventName).add(handler);
+      return {
+        remove: () => listeners.get(eventName)?.delete(handler),
+      };
+    },
+    emit(eventName, payload = {}) {
+      events.push({ eventName, payload, timestamp: Date.now() });
+      const handlers = listeners.get(eventName) ?? new Set();
+      document.documentElement.dataset.nativeMapBridgeDebugEventCount = String(events.length);
+      document.documentElement.dataset.nativeMapBridgeDebugLastEvent = eventName;
+      document.documentElement.dataset.nativeMapBridgeDebugEventTypes = Object.keys(eventTypeCounts()).join(",");
+      document.documentElement.dataset.nativeMapBridgeDebugEventDeliveredCount = String(
+        Number(document.documentElement.dataset.nativeMapBridgeDebugEventDeliveredCount || 0) + handlers.size,
+      );
+      handlers.forEach((handler) => handler(payload));
+    },
+    emitMapEvent({ providerId, eventName, payload = {} } = {}) {
+      if (!providerId || !eventName) return Promise.resolve(null);
+      this.emit(nativeBridgeEventName(providerId, eventName), payload);
+      return Promise.resolve({ ok: true, providerId, eventName, payload });
+    },
+    simulateMove({ providerId, center, zoom } = {}) {
+      return this.emitMapEvent({
+        providerId,
+        eventName: "moveend",
+        payload: { center, zoom },
+      });
+    },
+    simulateItemClick({ providerId, itemId, lat, lon } = {}) {
+      const fallback = nativePayloadLatLng(itemPayloads.get(itemId));
+      return this.emitMapEvent({
+        providerId,
+        eventName: "click",
+        payload: {
+          itemId,
+          lat: isValidNumber(lat) ? lat : fallback?.lat,
+          lon: isValidNumber(lon) ? lon : fallback?.lng,
+        },
+      });
+    },
+    record(command, payload = {}) {
+      if (!command) return Promise.resolve(null);
+      recordLayerAndTierState(command, payload);
+      commands.push({ command, payload });
+      const commandNames = commands.map((entry) => entry.command);
+      const commandTypes = [...new Set(commandNames)];
+      document.documentElement.dataset.nativeMapBridgeDebug = "active";
+      document.documentElement.dataset.nativeMapBridgeDebugCommandCount = String(commands.length);
+      document.documentElement.dataset.nativeMapBridgeDebugLastCommand = command;
+      document.documentElement.dataset.nativeMapBridgeDebugCommands = commandNames.slice(-24).join(",");
+      document.documentElement.dataset.nativeMapBridgeDebugCommandTypes = commandTypes.join(",");
+      document.documentElement.dataset.nativeMapBridgeDebugCommandTypeCounts = commandTypes
+        .map((type) => `${type}:${commandNames.filter((name) => name === type).length}`)
+        .join(",");
+      if (payload?.containerMetrics) {
+        document.documentElement.dataset.nativeMapBridgeDebugContainerMetrics = JSON.stringify(payload.containerMetrics);
+      }
+      document.documentElement.dataset.nativeMapBridgeDebugLayerCount = String(layerMembership.size);
+      document.documentElement.dataset.nativeMapBridgeDebugLayerMembership = JSON.stringify(layerMembershipState());
+      document.documentElement.dataset.nativeMapBridgeDebugItemVisibility = JSON.stringify(itemVisibilityState());
+      document.documentElement.dataset.nativeMapBridgeDebugItemTypeCounts = JSON.stringify(itemTypeCountsState());
+      document.documentElement.dataset.nativeMapBridgeDebugMarkerClassNames = markerClassNamesState().join("|");
+      document.documentElement.dataset.nativeMapBridgeDebugMarkerAnchorCount = String(markerPayloadCount("iconAnchor"));
+      document.documentElement.dataset.nativeMapBridgeDebugMarkerOpacityCount = String(markerPayloadCount("opacity"));
+      document.documentElement.dataset.nativeMapBridgeDebugMarkerZIndexCount = String(markerPayloadCount("zIndexOffset"));
+      document.documentElement.dataset.nativeMapBridgeDebugShapePopupCount = String(shapePayloadCount("popup"));
+      document.documentElement.dataset.nativeMapBridgeDebugShapeTooltipCount = String(shapePayloadCount("tooltip"));
+      document.documentElement.dataset.nativeMapBridgeDebugPinTierCount = String(pinTiers.size);
+      document.documentElement.dataset.nativeMapBridgeDebugPinTierVisibility = JSON.stringify(pinTierVisibilityState());
+      document.documentElement.dataset.nativeMapBridgeDebugBatchSizes = commands
+        .filter((entry) => ["createItems", "addItemsToLayer", "setItemsVisible"].includes(entry.command))
+        .map((entry) => {
+          const size = entry.payload?.items?.length ?? entry.payload?.itemIds?.length ?? 0;
+          return `${entry.command}:${size}`;
+        })
+        .slice(-24)
+        .join(",");
+      return Promise.resolve({ ok: true, command, payload });
+    },
+  };
+
+  NATIVE_MAP_BRIDGE_COMMANDS
+    .filter((command) => !["getStatus", "isReady", "getDebugState"].includes(command))
+    .forEach((command) => {
+    bridge[command] = (payload = {}) => bridge.record(command, payload);
+  });
+
+  window.MeteoPecheNativeMap = bridge;
+  installMapProviderDebugInspector();
+  if (params.get("mapProviderDebugSimulateEvents") === "1") {
+    window.setTimeout(() => {
+      const providerId = mapProviderOverride() || supportedProviders[0] || MAP_PROVIDER_IDS.APPLE_NATIVE;
+      const firstCreatedItem = commands.find((entry) => entry.command === "createItem" && entry.payload?.itemId);
+      const firstBatchItem = commands.find((entry) => entry.command === "createItems" && entry.payload?.items?.[0]?.itemId);
+      const itemId = firstCreatedItem?.payload?.itemId ?? firstBatchItem?.payload?.items?.[0]?.itemId;
+      bridge.simulateMove({
+        providerId,
+        center: { lat: 43.2965, lon: 5.3698 },
+        zoom: 12,
+      });
+      bridge.emitMapEvent({
+        providerId,
+        eventName: "zoomend",
+        payload: {
+          camera: {
+            target: { latitude: 43.2965, longitude: 5.3698 },
+            zoom: 13,
+          },
+        },
+      });
+      if (itemId) {
+        bridge.simulateItemClick({
+          providerId,
+          itemId,
+        });
+      }
+    }, 2200);
+  }
+}
+
+function getCapacitorPlatform() {
+  return window.Capacitor?.getPlatform?.() ?? "web";
+}
+
+function isNativeRuntime() {
+  return Boolean(window.Capacitor?.isNativePlatform?.());
+}
+
+function isSafariBrowser() {
+  const userAgent = navigator.userAgent ?? "";
+  const vendor = navigator.vendor ?? "";
+  const isAppleBrowser = vendor.includes("Apple");
+  const hasSafari = /\bSafari\b/.test(userAgent);
+  const hasOtherEngine = /\b(CriOS|FxiOS|EdgiOS|OPR|Chrome|Chromium|SamsungBrowser)\b/.test(userAgent);
+  return isAppleBrowser && hasSafari && !hasOtherEngine;
+}
+
+function isChromeBrowser() {
+  const userAgent = navigator.userAgent ?? "";
+  const hasChrome = /\b(Chrome|Chromium|CriOS)\b/.test(userAgent);
+  const hasOtherChromiumBrand = /\b(Edg|EdgiOS|OPR|SamsungBrowser)\b/.test(userAgent);
+  return hasChrome && !hasOtherChromiumBrand;
+}
+
+function debounce(fn, delay) {
+  let timer = null;
+  return (...args) => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(() => fn(...args), delay);
+  };
+}
+
+function setupMapPinLayers() {
+  if (!state.mapProvider) return;
+
+  const pinLayers = state.mapProvider.createPinTierLayers(PIN_LAYER_TIERS);
+  state.mapPinPanes = pinLayers.panes;
+  state.mapPinLayers = pinLayers.layers;
+  state.mapPinLayer = pinLayers.layer;
+  updateMapPinPaneVisibility();
+}
+
+function setMapProviderLoading(loading) {
+  if (!els.spotMap) return;
+  window.clearTimeout(state.mapLoadingTimer);
+  if (loading) {
+    els.spotMap.classList.add("map-loading");
+    return;
+  }
+  state.mapLoadingTimer = window.setTimeout(() => els.spotMap.classList.remove("map-loading"), 120);
 }
 
 function populateSpots() {
@@ -2618,6 +6943,8 @@ function restoreState() {
   state.theme = normalizeTheme(saved.theme);
   state.language = normalizeLanguage(saved.language);
   document.documentElement.lang = state.language;
+  state.isPro = Boolean(saved.isPro);
+  applySubscriptionState();
   state.profile = normalizeProfile(saved.profile);
   state.onboardingCompleted = Boolean(saved.onboardingCompleted);
   state.privacyAccepted = Boolean(saved.privacyAccepted);
@@ -2632,6 +6959,14 @@ function applyTheme(options = {}) {
   if (options.render) {
     renderAll();
   }
+}
+
+function isProUser() {
+  return Boolean(state.isPro);
+}
+
+function applySubscriptionState() {
+  document.documentElement.dataset.plan = isProUser() ? "pro" : "free";
 }
 
 function initNativeAppShell() {
@@ -3098,17 +7433,19 @@ function setWaterMode(mode, options = {}) {
   }
 
   state.osmSpotsLastFetchedBounds = null;
-  renderLeafletPins();
+  renderMapPins();
   scheduleOverpassSpotFetch({ force: true });
 }
 
 function normalizeMobileView(view) {
   if (view === "forecast") return "weather";
   if (view === "tides" || view === "astro") return "weather";
+  if (view === "rigging" || view === "preferences" || view === "settings") return "more";
   return MOBILE_VIEWS.includes(view) ? view : "map";
 }
 
 function normalizeWeatherSubtab(tab) {
+  if (tab === "tides") return "sun";
   return WEATHER_SUBTABS.includes(tab) ? tab : "overview";
 }
 
@@ -3117,7 +7454,7 @@ function normalizeAtmosphereChart(chart) {
 }
 
 function weatherSubtabFromMobileView(view) {
-  if (view === "tides") return "tides";
+  if (view === "tides") return "sun";
   if (view === "astro") return "sun";
   return "overview";
 }
@@ -3148,7 +7485,7 @@ function sectionSupportsMobileView(section, view) {
 
 function applyMobileNavigationUI() {
   const mobile = isMobileLayout();
-  const standaloneView = state.activeMobileView === "preferences";
+  const standaloneView = state.activeMobileView === "more";
   document.documentElement.dataset.currentMobileView = state.activeMobileView;
   document.documentElement.dataset.currentWeatherSubtab = state.activeWeatherSubtab;
 
@@ -3159,7 +7496,7 @@ function applyMobileNavigationUI() {
   });
 
   els.mobileViewSections.forEach((section) => {
-    const preferenceSection = sectionSupportsMobileView(section, "preferences");
+    const preferenceSection = sectionSupportsMobileView(section, "more");
     const supportsActiveView = sectionSupportsMobileView(section, state.activeMobileView);
     section.hidden = standaloneView ? !supportsActiveView : preferenceSection || (mobile && !supportsActiveView);
   });
@@ -3181,8 +7518,15 @@ function applyWeatherSubviewUI() {
   if (!weatherVisible) return;
 
   els.weatherSubviewSections.forEach((section) => {
-    section.hidden = section.dataset.weatherSubview !== state.activeWeatherSubtab;
+    section.hidden = !sectionSupportsWeatherSubtab(section, state.activeWeatherSubtab);
   });
+}
+
+function sectionSupportsWeatherSubtab(section, tab) {
+  return String(section.dataset.weatherSubview ?? "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .includes(tab);
 }
 
 function scrollAppToTop(options = {}) {
@@ -3193,7 +7537,7 @@ function scrollAppToTop(options = {}) {
 
 function refreshVisibleView() {
   window.requestAnimationFrame(() => {
-    state.leafletMap?.invalidateSize(false);
+    state.mapProvider?.invalidateSize?.();
     updateMapScale();
     drawCompass();
     renderActivity(getSelectedDay());
@@ -3213,7 +7557,7 @@ function setMobileView(view) {
   state.activeMobileView = normalizeMobileView(view);
   applyDefaultWeatherChart();
   applyMobileNavigationUI();
-  if (isMobileLayout() || state.activeMobileView === "preferences") {
+  if (isMobileLayout() || state.activeMobileView === "more") {
     scrollAppToTop();
   }
   refreshVisibleView();
@@ -3300,7 +7644,7 @@ function setMapFullscreen(open) {
   }
 
   window.requestAnimationFrame(() => {
-    state.leafletMap?.invalidateSize(false);
+    state.mapProvider?.invalidateSize?.();
     updateMapScale();
   });
 }
@@ -3358,7 +7702,7 @@ function updateSpotPanel() {
 
   if (els.spotPanelButton) {
     els.spotPanelButton.setAttribute("aria-expanded", String(state.spotPanelOpen));
-    els.spotPanelButton.textContent = state.spotPanelOpen ? t("Masquer") : t("Modifier");
+    els.spotPanelButton.textContent = state.spotPanelOpen ? t("Masquer") : t("Changer spot");
   }
 
   if (els.spotForm) {
@@ -3530,14 +7874,9 @@ function updateNauticalOverlay() {
     els.mapNauticalToggle.setAttribute("aria-pressed", String(nauticalEnabled));
   }
 
-  if (!state.leafletMap || !state.nauticalLayer) return;
+  if (!state.mapProvider || !state.nauticalLayer) return;
 
-  const hasLayer = state.leafletMap.hasLayer(state.nauticalLayer);
-  if (nauticalEnabled && !hasLayer) {
-    state.nauticalLayer.addTo(state.leafletMap);
-  } else if (!nauticalEnabled && hasLayer) {
-    state.leafletMap.removeLayer(state.nauticalLayer);
-  }
+  state.mapProvider.setLayerVisible(state.nauticalLayer, nauticalEnabled);
 
   updateMapAttribution();
 }
@@ -3550,14 +7889,9 @@ function updateCoastalOverlay() {
     els.mapCoastalToggle.setAttribute("aria-pressed", String(enabled));
   }
 
-  if (!state.leafletMap || !state.coastalLayer) return;
+  if (!state.mapProvider || !state.coastalLayer) return;
 
-  const hasLayer = state.leafletMap.hasLayer(state.coastalLayer);
-  if (enabled && !hasLayer) {
-    state.coastalLayer.addTo(state.leafletMap);
-  } else if (!enabled && hasLayer) {
-    state.leafletMap.removeLayer(state.coastalLayer);
-  }
+  state.mapProvider.setLayerVisible(state.coastalLayer, enabled);
 
   updateMapAttribution();
 }
@@ -3570,23 +7904,35 @@ function updateBathymetryOverlay() {
     els.mapBathymetryToggle.setAttribute("aria-pressed", String(enabled));
   }
 
-  if (!state.leafletMap || !state.bathymetryLayer) return;
+  if (!state.mapProvider || !state.bathymetryLayer) return;
 
-  const hasEmodnetLayer = state.emodnetBathymetryLayer && state.leafletMap.hasLayer(state.emodnetBathymetryLayer);
-  if (enabled && state.emodnetBathymetryLayer && !hasEmodnetLayer) {
-    state.emodnetBathymetryLayer.addTo(state.leafletMap);
-  } else if (!enabled && state.emodnetBathymetryLayer && hasEmodnetLayer) {
-    state.leafletMap.removeLayer(state.emodnetBathymetryLayer);
-  }
-
-  const hasVectorLayer = state.leafletMap.hasLayer(state.bathymetryLayer);
-  if (enabled && !hasVectorLayer) {
-    state.bathymetryLayer.addTo(state.leafletMap);
-  } else if (!enabled && hasVectorLayer) {
-    state.leafletMap.removeLayer(state.bathymetryLayer);
-  }
+  markMapProviderMountStep("bathymetry-tile-visible");
+  setProviderLayerVisible(state.emodnetBathymetryLayer, enabled, "bathymetry-tile");
+  markMapProviderMountStep("bathymetry-markers-visible");
+  setProviderLayerVisible(state.bathymetryLayer, enabled, "bathymetry-markers");
 
   updateMapAttribution();
+}
+
+function markMapProviderMountStep(step) {
+  if ("mapProviderMountStep" in document.documentElement.dataset) {
+    document.documentElement.dataset.mapProviderMountStep = step;
+  }
+}
+
+function setProviderLayerVisible(layer, enabled, label) {
+  if (!state.mapProvider || !layer) return false;
+  try {
+    state.mapProvider.setLayerVisible(layer, enabled);
+    if (document.documentElement.dataset.mapProviderLayerError?.startsWith(`${label}:`)) {
+      delete document.documentElement.dataset.mapProviderLayerError;
+    }
+    return true;
+  } catch (error) {
+    console.warn(`Map layer ${label} failed to update.`, error);
+    document.documentElement.dataset.mapProviderLayerError = `${label}: ${String(error?.message ?? error ?? "layer failed").slice(0, 120)}`;
+    return false;
+  }
 }
 
 function updateMapAttribution() {
@@ -3609,14 +7955,9 @@ function updateKnownFishingOverlay() {
     els.fishFilterControl.classList.toggle("is-hidden", !state.knownFishingEnabled);
   }
 
-  if (!state.leafletMap || !state.knownFishingLayer) return;
+  if (!state.mapProvider || !state.knownFishingLayer) return;
 
-  const hasLayer = state.leafletMap.hasLayer(state.knownFishingLayer);
-  if (state.knownFishingEnabled && !hasLayer) {
-    state.knownFishingLayer.addTo(state.leafletMap);
-  } else if (!state.knownFishingEnabled && hasLayer) {
-    state.leafletMap.removeLayer(state.knownFishingLayer);
-  }
+  state.mapProvider.setLayerVisible(state.knownFishingLayer, state.knownFishingEnabled);
 }
 
 function updateRegulationOverlay() {
@@ -3633,27 +7974,22 @@ function updateRegulationOverlay() {
     els.mapSensitiveButton.hidden = !isSeaMode();
   }
 
-  if (!state.leafletMap || !state.regulationLayer) return;
+  if (!state.mapProvider || !state.regulationLayer) return;
 
-  const hasLayer = state.leafletMap.hasLayer(state.regulationLayer);
-  if (enabled && !hasLayer) {
-    state.regulationLayer.addTo(state.leafletMap);
-  } else if (!enabled && hasLayer) {
-    state.leafletMap.removeLayer(state.regulationLayer);
-  }
+  state.mapProvider.setLayerVisible(state.regulationLayer, enabled);
 }
 
 function renderBathymetryLayer() {
-  if (!state.bathymetryLayer) return;
+  if (!state.bathymetryLayer || !state.mapProvider) return;
 
-  state.bathymetryLayer.clearLayers();
+  state.mapProvider.clearLayer(state.bathymetryLayer);
   if (!state.bathymetryEnabled || !isSeaMode()) return;
 
   renderBathymetryFocusLabel();
 }
 
 function renderBathymetryFocusLabel() {
-  const center = getLeafletFocusPoint();
+  const center = getMapFocusPoint();
   const estimate = currentBathymetryFocusEstimate(center);
   if (!estimate) return;
   const isEmodnet = estimate.source === "emodnet";
@@ -3665,38 +8001,34 @@ function renderBathymetryFocusLabel() {
       ? "Profondeur EMODnet indisponible pour ce point"
       : "Chargement de la profondeur EMODnet au centre de la carte";
 
-  const marker = L.marker([center.lat, center.lon], {
-    icon: L.divIcon({
+  state.mapProvider.addMarker(state.bathymetryLayer, {
+    lat: center.lat,
+    lon: center.lon,
+    icon: state.mapProvider.createDivIcon({
       className: `bathymetry-label bathymetry-focus-label${statusClass}`,
-      html: `<span>Fond EMODnet</span><strong>${depthLabel}</strong>`,
+      html: `<span title="${escapeHtml(detail)}">Fond EMODnet</span><strong>${depthLabel}</strong>`,
       iconSize: [104, 36],
       iconAnchor: [52, 44],
       tooltipAnchor: [0, -42],
     }),
     interactive: false,
+    title: detail,
     zIndexOffset: 175,
   });
-
-  marker.bindTooltip(detail, {
-    direction: "top",
-    offset: [0, -38],
-    opacity: 0.96,
-  });
-  marker.addTo(state.bathymetryLayer);
 }
 
 function scheduleBathymetryFocusRefresh() {
   window.clearTimeout(state.bathymetryPointTimer);
   renderBathymetryLayer();
 
-  if (!state.bathymetryEnabled || !isSeaMode() || !state.leafletMap) return;
+  if (!state.bathymetryEnabled || !isSeaMode() || !state.mapProvider) return;
   state.bathymetryPointTimer = window.setTimeout(loadBathymetryFocusDepth, 360);
 }
 
 async function loadBathymetryFocusDepth() {
-  if (!state.bathymetryEnabled || !isSeaMode() || !state.leafletMap) return;
+  if (!state.bathymetryEnabled || !isSeaMode() || !state.mapProvider) return;
 
-  const point = getLeafletFocusPoint();
+  const point = getMapFocusPoint();
   const key = bathymetryPointKey(point);
   const cached = state.bathymetryPointCache.get(key);
   if (cached) {
@@ -3778,33 +8110,35 @@ function bathymetryPointKey(point) {
 }
 
 function renderRegulationZones() {
-  if (!state.regulationLayer) return;
+  if (!state.regulationLayer || !state.mapProvider) return;
 
-  state.regulationLayer.clearLayers();
+  state.mapProvider.clearLayer(state.regulationLayer);
   if (!state.regulationEnabled || !isSeaMode()) return;
 
   regulationZones.forEach((zone) => {
-    const polygon = L.polygon(zone.coordinates, {
+    state.mapProvider.addPolygon(state.regulationLayer, {
+      coordinates: zone.coordinates,
       color: zone.level === "danger" ? colors.gust : colors.wind,
       fillColor: zone.level === "danger" ? colors.gust : colors.wind,
       fillOpacity: zone.level === "danger" ? 0.18 : 0.12,
       weight: 2,
       dashArray: zone.level === "danger" ? "" : "7 6",
       interactive: true,
+      tooltip: {
+        content: zone.name,
+        options: {
+          direction: "top",
+          opacity: 0.96,
+          sticky: true,
+        },
+      },
+      popup: `
+        <strong>${escapeHtml(zone.name)}</strong>
+        <span>${escapeHtml(zone.area)}</span>
+        <small>${zone.level === "danger" ? "Alerte réglementation" : "Vigilance réglementation"}</small>
+        <em>${escapeHtml(zone.rule)}</em>
+      `,
     });
-
-    polygon.bindTooltip(zone.name, {
-      direction: "top",
-      opacity: 0.96,
-      sticky: true,
-    });
-    polygon.bindPopup(`
-      <strong>${escapeHtml(zone.name)}</strong>
-      <span>${escapeHtml(zone.area)}</span>
-      <small>${zone.level === "danger" ? "Alerte réglementation" : "Vigilance réglementation"}</small>
-      <em>${escapeHtml(zone.rule)}</em>
-    `);
-    polygon.addTo(state.regulationLayer);
   });
 }
 
@@ -4038,21 +8372,25 @@ function renderAnchorWatch() {
     els.anchorWatchBtn.setAttribute("aria-label", els.anchorWatchBtn.title);
   }
 
-  if (!state.anchorLayer) return;
+  if (!state.anchorLayer || !state.mapProvider) return;
 
-  state.anchorLayer.clearLayers();
+  state.mapProvider.clearLayer(state.anchorLayer);
   if (!state.anchorWatch.anchor) return;
 
-  L.circle([state.anchorWatch.anchor.lat, state.anchorWatch.anchor.lon], {
+  state.mapProvider.addCircle(state.anchorLayer, {
+    lat: state.anchorWatch.anchor.lat,
+    lon: state.anchorWatch.anchor.lon,
     radius: ANCHOR_DRIFT_LIMIT_METERS,
     color: state.anchorWatch.status === "alert" ? colors.gust : colors.current,
     fillColor: state.anchorWatch.status === "alert" ? colors.gust : colors.current,
     fillOpacity: 0.12,
     weight: 2,
-  }).addTo(state.anchorLayer);
+  });
 
-  L.marker([state.anchorWatch.anchor.lat, state.anchorWatch.anchor.lon], {
-    icon: L.divIcon({
+  state.mapProvider.addMarker(state.anchorLayer, {
+    lat: state.anchorWatch.anchor.lat,
+    lon: state.anchorWatch.anchor.lon,
+    icon: state.mapProvider.createDivIcon({
       className: "anchor-watch-marker",
       html: anchorIcon(),
       iconSize: [30, 30],
@@ -4060,22 +8398,22 @@ function renderAnchorWatch() {
     }),
     keyboard: false,
     title: "Ancre",
-  })
-    .bindTooltip("Ancre", { direction: "top", offset: [0, -12], opacity: 0.96 })
-    .addTo(state.anchorLayer);
+    tooltip: {
+      content: "Ancre",
+      options: { direction: "top", offset: [0, -12], opacity: 0.96 },
+    },
+  });
 
   if (state.anchorWatch.position && state.anchorWatch.drift > 2) {
-    L.polyline(
-      [
+    state.mapProvider.addPolyline(state.anchorLayer, {
+      coordinates: [
         [state.anchorWatch.anchor.lat, state.anchorWatch.anchor.lon],
         [state.anchorWatch.position.lat, state.anchorWatch.position.lon],
       ],
-      {
-        color: state.anchorWatch.status === "alert" ? colors.gust : colors.current,
-        dashArray: "5 5",
-        weight: 2,
-      },
-    ).addTo(state.anchorLayer);
+      color: state.anchorWatch.status === "alert" ? colors.gust : colors.current,
+      dashArray: "5 5",
+      weight: 2,
+    });
   }
 }
 
@@ -4145,14 +8483,14 @@ function scheduleMarineOverlayRefresh() {
 }
 
 function canShowMarineOverlay() {
-  return isSeaMode() && state.marineOverlayMode !== "none" && Boolean(state.leafletMap && state.marineOverlayLayer);
+  return isSeaMode() && state.marineOverlayMode !== "none" && Boolean(state.mapProvider && state.marineOverlayLayer);
 }
 
 function renderMarineOverlay() {
   updateMarineOverlayControls();
-  if (!state.marineOverlayLayer) return;
+  if (!state.marineOverlayLayer || !state.mapProvider) return;
 
-  state.marineOverlayLayer.clearLayers();
+  state.mapProvider.clearLayer(state.marineOverlayLayer);
   if (!canShowMarineOverlay()) return;
 
   const samples = regionalMarineSamplePoints();
@@ -4221,11 +8559,11 @@ function buildRegionalMarineUrl(samples) {
 }
 
 function regionalMarineSamplePoints() {
-  const center = state.leafletMap?.getCenter() ?? { lat: getActiveSpot().lat, lng: getActiveSpot().lon };
-  const bounds = state.leafletMap?.getBounds();
-  const rawLatSpan = bounds ? Math.abs(bounds.getNorth() - bounds.getSouth()) : 0.55;
-  const rawLonSpan = bounds ? Math.abs(bounds.getEast() - bounds.getWest()) : 0.75;
-  const zoom = state.leafletMap?.getZoom() ?? state.mapZoom;
+  const center = state.mapProvider?.getCenter?.() ?? { lat: getActiveSpot().lat, lon: getActiveSpot().lon };
+  const bounds = state.mapProvider?.getBounds?.();
+  const rawLatSpan = bounds ? Math.abs(bounds.north - bounds.south) : 0.55;
+  const rawLonSpan = bounds ? Math.abs(bounds.east - bounds.west) : 0.75;
+  const zoom = state.mapProvider?.getZoom?.() ?? state.mapZoom;
   const minSpan = zoom >= 16 ? 0 : zoom >= 13 ? 0.05 : 0.18;
   const latSpan = Math.min(Math.max(rawLatSpan || 0.002, minSpan), 2.4);
   const lonSpan = Math.min(Math.max(rawLonSpan || 0.002, minSpan), 3.2);
@@ -4242,12 +8580,12 @@ function regionalMarineSamplePoints() {
     samples.push({ lat, lon });
   }
 
-  pushSample(center.lat, center.lng);
+  pushSample(center.lat, center.lon);
 
   for (let row = 0; row < rows; row += 1) {
     for (let col = 0; col < cols; col += 1) {
       const lat = center.lat + latSpan * (0.5 - (row + 0.5) / rows);
-      const lon = center.lng + lonSpan * ((col + 0.5) / cols - 0.5);
+      const lon = center.lon + lonSpan * ((col + 0.5) / cols - 0.5);
       pushSample(lat, lon);
     }
   }
@@ -4304,9 +8642,9 @@ function parseRegionalMarinePoint(payload, sample) {
 }
 
 function drawMarineOverlayMarkers(data) {
-  if (!state.marineOverlayLayer || !canShowMarineOverlay()) return;
+  if (!state.marineOverlayLayer || !state.mapProvider || !canShowMarineOverlay()) return;
 
-  state.marineOverlayLayer.clearLayers();
+  state.mapProvider.clearLayer(state.marineOverlayLayer);
   const day = getSelectedDay();
   const selectedDate = day?.date ?? state.selectedDate;
   let markerCount = 0;
@@ -4316,8 +8654,10 @@ function drawMarineOverlayMarkers(data) {
     const metric = marineOverlayMetric(dayData);
     if (!metric || !isValidNumber(metric.value) || !isValidNumber(metric.direction)) return;
 
-    const marker = L.marker([point.lat, point.lon], {
-      icon: L.divIcon({
+    state.mapProvider.addMarker(state.marineOverlayLayer, {
+      lat: point.lat,
+      lon: point.lon,
+      icon: state.mapProvider.createDivIcon({
         className: `marine-overlay-icon marine-overlay-${state.marineOverlayMode}`,
         html: marineOverlayMarkerHtml(metric),
         iconSize: [84, 68],
@@ -4327,15 +8667,16 @@ function drawMarineOverlayMarkers(data) {
       keyboard: false,
       interactive: false,
       zIndexOffset: 180,
+      tooltip: {
+        content: metric.tooltip,
+        options: {
+          direction: "top",
+          offset: [0, -18],
+          opacity: 0.96,
+          sticky: true,
+        },
+      },
     });
-
-    marker.bindTooltip(metric.tooltip, {
-      direction: "top",
-      offset: [0, -18],
-      opacity: 0.96,
-      sticky: true,
-    });
-    marker.addTo(state.marineOverlayLayer);
     markerCount += 1;
   });
 
@@ -4386,9 +8727,11 @@ function drawFocusedMarineOverlayMarker() {
   const metric = marineOverlayMetric(getSelectedDay());
   if (!metric || !isValidNumber(metric.value) || !isValidNumber(metric.direction)) return;
 
-  const point = getLeafletFocusPoint();
-  L.marker([point.lat, point.lon], {
-    icon: L.divIcon({
+  const point = getMapFocusPoint();
+  state.mapProvider.addMarker(state.marineOverlayLayer, {
+    lat: point.lat,
+    lon: point.lon,
+    icon: state.mapProvider.createDivIcon({
       className: `marine-overlay-icon marine-overlay-${state.marineOverlayMode} marine-overlay-focus`,
       html: marineOverlayMarkerHtml(metric),
       iconSize: [92, 74],
@@ -4398,14 +8741,16 @@ function drawFocusedMarineOverlayMarker() {
     keyboard: false,
     interactive: false,
     zIndexOffset: 210,
-  })
-    .bindTooltip(`Centre carte · ${metric.tooltip}`, {
-      direction: "top",
-      offset: [0, -20],
-      opacity: 0.96,
-      sticky: true,
-    })
-    .addTo(state.marineOverlayLayer);
+    tooltip: {
+      content: `Centre carte · ${metric.tooltip}`,
+      options: {
+        direction: "top",
+        offset: [0, -20],
+        opacity: 0.96,
+        sticky: true,
+      },
+    },
+  });
 }
 
 function marineOverlayMarkerHtml(metric) {
@@ -4513,7 +8858,7 @@ function formatFishTargets(fish = []) {
 }
 
 function renderKnownFishingMarkers() {
-  renderLeafletPins();
+  renderMapPins();
 }
 
 function selectKnownFishingSpot(spot) {
@@ -4522,8 +8867,8 @@ function selectKnownFishingSpot(spot) {
 }
 
 function renderMapTiles() {
-  if (state.leafletMap) {
-    syncLeafletMapView();
+  if (state.mapProvider) {
+    syncProviderMapView();
     return;
   }
 
@@ -4616,20 +8961,20 @@ function pruneStaleMapTiles(neededTiles) {
   }, MAP_TILE_STALE_MS);
 }
 
-function syncLeafletMapView() {
-  const map = state.leafletMap;
+function syncProviderMapView() {
+  const map = state.mapProvider;
   if (!map) return;
 
-  map.invalidateSize(false);
+  map.invalidateSize?.();
   const center = getMapCenter();
   const currentCenter = map.getCenter();
   const shouldMove =
     map.getZoom() !== state.mapZoom ||
     Math.abs(currentCenter.lat - center.lat) > 0.00001 ||
-    Math.abs(currentCenter.lng - center.lon) > 0.00001;
+    Math.abs(currentCenter.lon - center.lon) > 0.00001;
 
   if (shouldMove) {
-    map.setView([center.lat, center.lon], state.mapZoom, { animate: false });
+    map.setView(center.lat, center.lon, state.mapZoom);
   }
 }
 
@@ -4653,7 +8998,7 @@ function getOsmCachedSpots() {
   return cache ? [...cache.values()] : [];
 }
 
-function leafletBoundsToOverpassBounds(bounds) {
+function mapBoundsToOverpassBounds(bounds) {
   if (!bounds) return null;
 
   const north = Number(bounds.getNorth?.() ?? bounds.north);
@@ -4666,7 +9011,7 @@ function leafletBoundsToOverpassBounds(bounds) {
 }
 
 function scheduleOverpassSpotFetch(options = {}) {
-  if (!state.leafletMap || state.mapZoom < OVERPASS_MIN_ZOOM) {
+  if (!state.mapProvider || state.mapZoom < OVERPASS_MIN_ZOOM) {
     window.clearTimeout(state.osmSpotsFetchTimer);
     state.osmSpotsFetchTimer = null;
     if (state.osmSpotsLoading) state.osmSpotsRequestId += 1;
@@ -4675,7 +9020,7 @@ function scheduleOverpassSpotFetch(options = {}) {
     return;
   }
 
-  const bounds = leafletBoundsToOverpassBounds(state.leafletMap.getBounds());
+  const bounds = mapBoundsToOverpassBounds(state.mapProvider.getBounds());
   if (!bounds || (!options.force && !shouldFetchOverpassBounds(bounds))) return;
   if (state.osmSpotsLoading) return;
 
@@ -4721,9 +9066,9 @@ function boundsMetrics(bounds) {
 
 async function fetchOverpassSpotsForCurrentBounds() {
   const service = getOverpassService();
-  if (!service || !state.leafletMap || state.osmSpotsLoading || state.mapZoom < OVERPASS_MIN_ZOOM) return;
+  if (!service || !state.mapProvider || state.osmSpotsLoading || state.mapZoom < OVERPASS_MIN_ZOOM) return;
 
-  const bounds = leafletBoundsToOverpassBounds(state.leafletMap.getBounds());
+  const bounds = mapBoundsToOverpassBounds(state.mapProvider.getBounds());
   if (!bounds || !shouldFetchOverpassBounds(bounds)) return;
 
   const requestId = state.osmSpotsRequestId + 1;
@@ -4738,7 +9083,7 @@ async function fetchOverpassSpotsForCurrentBounds() {
 
     cacheOsmSpots(spots.filter((spot) => isOsmSpotAllowedForWaterMode(spot, state.waterMode)));
     state.osmSpotsLastFetchedBounds = bounds;
-    renderLeafletPins();
+    renderMapPins();
   } catch (error) {
     state.osmSpotsBlockedUntil = Date.now() + OVERPASS_RETRY_DELAY_MS;
     showToast(t("Spots OSM indisponibles — réessai dans 30s"));
@@ -4957,85 +9302,137 @@ function pinZoomThreshold(zoomLevel) {
   return 5;
 }
 
+function pinTierForZoomLevel(zoomLevel) {
+  const threshold = pinZoomThreshold(zoomLevel);
+  if (threshold >= 14) return PIN_LAYER_TIERS[3];
+  if (threshold >= 11) return PIN_LAYER_TIERS[2];
+  if (threshold >= 8) return PIN_LAYER_TIERS[1];
+  return PIN_LAYER_TIERS[0];
+}
+
+function pinTierId(pin) {
+  return pinTierForZoomLevel(pin?.zoomLevel).id;
+}
+
 function isPinVisibleAtZoom(pin, zoomLevel) {
   const zoom = Number(zoomLevel);
   return isValidNumber(zoom) && pin.zoomLevel <= zoom;
 }
 
-function renderLeafletPins() {
-  if (!state.leafletMap || !state.leafletPinLayer || !window.L) return;
+function renderMapPins() {
+  if (!state.mapProvider || !state.mapPinLayers) return;
 
   const pins = getMapPinCatalog();
   const nextIds = new Set(pins.map((pin) => pin.id));
+  const newMarkersByTier = PIN_LAYER_TIERS.reduce((acc, tier) => {
+    acc[tier.id] = [];
+    return acc;
+  }, {});
+  const newMarkers = [];
 
   pins.forEach((pin) => {
-    const existing = state.leafletPinMarkers.get(pin.id);
+    const tierId = pinTierId(pin);
+    let existing = state.mapPinMarkers.get(pin.id);
+    if (existing && existing.__pinTier !== tierId) {
+      removeMapPinMarker(existing);
+      state.mapPinMarkers.delete(pin.id);
+      existing = null;
+    }
+
     if (existing) {
       existing.__pinData = pin;
-      existing.setLatLng([pin.lat, pin.lon]);
-      existing.setZIndexOffset(pinZIndex(pin));
-      syncLeafletPinIcon(existing, pin);
-      syncLeafletPinTooltip(existing, pin);
-      updateLeafletPinElement(existing, pin);
+      state.mapProvider.setMarkerPosition(existing, pin.lat, pin.lon);
+      state.mapProvider.setMarkerZIndex(existing, pinZIndex(pin));
+      syncMapPinIcon(existing, pin);
+      syncMapPinTooltip(existing, pin);
+      updateMapPinElement(existing, pin);
       return;
     }
 
-    const marker = L.marker([pin.lat, pin.lon], {
-      icon: createLeafletPinIcon(pin),
+    const marker = state.mapProvider.addMarker(null, {
+      lat: pin.lat,
+      lon: pin.lon,
+      icon: createMapPinIcon(pin),
       keyboard: true,
       opacity: 0,
+      pane: pinTierForZoomLevel(pin.zoomLevel).pane,
       riseOnHover: true,
       title: pin.name,
       zIndexOffset: pinZIndex(pin),
+      onClick: (event) => {
+        state.mapProvider.stopEvent(event);
+        handleMapPinClick(marker.__pinData, marker);
+      },
     });
     marker.__pinData = pin;
-    marker.__iconSignature = leafletPinIconSignature(pin);
-    marker.on("click", (event) => {
-      if (event.originalEvent) L.DomEvent.stop(event.originalEvent);
-      selectMapPin(marker.__pinData);
-    });
-    syncLeafletPinTooltip(marker, pin);
-    marker.addTo(state.leafletPinLayer);
-    state.leafletPinMarkers.set(pin.id, marker);
+    marker.__pinTier = tierId;
+    marker.__iconSignature = mapPinIconSignature(pin);
+    syncMapPinTooltip(marker, pin);
+    state.mapPinMarkers.set(pin.id, marker);
+    newMarkersByTier[tierId].push(marker);
+    newMarkers.push(marker);
+  });
 
+  Object.entries(newMarkersByTier).forEach(([tierId, markers]) => {
+    if (!markers.length) return;
+    const batchGroup = state.mapProvider.addMarkerBatch(state.mapPinLayers[tierId], markers);
+    markers.forEach((marker) => {
+      marker.__pinBatchGroup = batchGroup;
+    });
+  });
+
+  newMarkers.forEach((marker) => {
     window.requestAnimationFrame(() => {
-      updateLeafletPinElement(marker, pin);
-      updateLeafletPinVisibilityForMarker(marker, pin);
+      updateMapPinElement(marker, marker.__pinData);
+      updateMapPinVisibilityForMarker(marker, marker.__pinData);
+      fadeInMapMarker(marker);
     });
   });
 
-  state.leafletPinMarkers.forEach((marker, id) => {
+  state.mapPinMarkers.forEach((marker, id) => {
     if (nextIds.has(id)) return;
-    marker.setOpacity(0);
-    window.clearTimeout(state.leafletPinFadeTimers.get(id));
+    state.mapProvider.setMarkerOpacity(marker, 0);
+    window.clearTimeout(state.mapPinFadeTimers.get(id));
     const timer = window.setTimeout(() => {
-      state.leafletPinLayer?.removeLayer(marker);
-      state.leafletPinMarkers.delete(id);
-      state.leafletPinFadeTimers.delete(id);
-    }, 180);
-    state.leafletPinFadeTimers.set(id, timer);
+      removeMapPinMarker(marker);
+      state.mapPinMarkers.delete(id);
+      state.mapPinFadeTimers.delete(id);
+    }, 260);
+    state.mapPinFadeTimers.set(id, timer);
   });
 
-  updateLeafletPinVisibility();
+  updateMapPinVisibility();
 }
 
-function updateLeafletPinVisibility() {
-  if (!state.leafletMap || !state.leafletPinMarkers) return;
+function updateMapPinVisibility() {
+  if (!state.mapProvider || !state.mapPinMarkers) return;
 
-  state.mapZoom = state.leafletMap.getZoom();
+  state.mapZoom = state.mapProvider.getZoom();
+  updateMapPinPaneVisibility();
   const visibleIds = new Set(filterPinsByZoom(state.mapZoom).map((pin) => pin.id));
-  state.leafletPinMarkers.forEach((marker, id) => {
-    updateLeafletPinVisibilityForMarker(marker, marker.__pinData, visibleIds.has(id));
+  state.mapPinMarkers.forEach((marker, id) => {
+    updateMapPinVisibilityForMarker(marker, marker.__pinData, visibleIds.has(id));
   });
 }
 
-function updateLeafletPinVisibilityForMarker(marker, pin, forceVisible = null) {
+function updateMapPinPaneVisibility() {
+  if (!state.mapProvider || !state.mapPinPanes) return;
+
+  const zoom = state.mapProvider.getZoom();
+  state.mapZoom = zoom;
+  state.mapProvider.setPinPaneVisibility(state.mapPinPanes, PIN_LAYER_TIERS, zoom);
+}
+
+function updateMapPinVisibilityForMarker(marker, pin, forceVisible = null) {
   if (!marker || !pin) return;
 
   const visible = forceVisible ?? isPinVisibleAtZoom(pin, state.mapZoom);
-  marker.setOpacity(visible ? 1 : 0);
-  const element = marker.getElement();
-  if (!element) return;
+  marker.__pinVisible = visible;
+  const element = state.mapProvider?.getMarkerElement?.(marker);
+  if (!element) {
+    state.mapProvider?.setMarkerOpacity?.(marker, visible ? 1 : 0);
+    return;
+  }
   element.classList.toggle("is-visible", visible);
   element.classList.toggle("is-hidden", !visible);
   element.dataset.zoomLevel = String(pin.zoomLevel);
@@ -5044,32 +9441,47 @@ function updateLeafletPinVisibilityForMarker(marker, pin, forceVisible = null) {
   element.classList.toggle("is-label-enabled", pinHasHoverLabel(pin) && state.mapZoom >= 14);
 }
 
-function syncLeafletPinIcon(marker, pin) {
-  const signature = leafletPinIconSignature(pin);
-  if (marker.__iconSignature === signature) return;
-  marker.setIcon(createLeafletPinIcon(pin));
-  marker.__iconSignature = signature;
-  window.requestAnimationFrame(() => updateLeafletPinElement(marker, pin));
-}
-
-function syncLeafletPinTooltip(marker, pin) {
-  const html = leafletPinTooltipHtml(pin);
-  if (marker.getTooltip()) {
-    marker.setTooltipContent(html);
+function fadeInMapMarker(marker) {
+  const element = state.mapProvider?.getMarkerElement?.(marker);
+  if (!element) {
+    state.mapProvider?.setMarkerOpacity?.(marker, marker.__pinVisible === false ? 0 : 1);
     return;
   }
 
-  marker.bindTooltip(html, {
-    className: "map-pin-tooltip",
-    direction: "top",
-    offset: [0, -16],
-    opacity: 0.96,
-    sticky: true,
+  element.style.opacity = "0";
+  element.style.transition = "opacity 250ms ease-out, transform 180ms ease, filter 180ms ease";
+  window.requestAnimationFrame(() => state.mapProvider?.setMarkerOpacity?.(marker, 1));
+}
+
+function removeMapPinMarker(marker) {
+  if (!marker) return;
+  state.mapProvider?.removeMarkerFromBatch?.(marker, state.mapPinLayers);
+}
+
+function syncMapPinIcon(marker, pin) {
+  const signature = mapPinIconSignature(pin);
+  if (marker.__iconSignature === signature) return;
+  state.mapProvider.setMarkerIcon(marker, createMapPinIcon(pin));
+  marker.__iconSignature = signature;
+  window.requestAnimationFrame(() => updateMapPinElement(marker, pin));
+}
+
+function syncMapPinTooltip(marker, pin) {
+  const html = mapPinTooltipHtml(pin);
+  state.mapProvider.ensureMarkerTooltip(marker, {
+    content: html,
+    options: {
+      className: "map-pin-tooltip",
+      direction: "top",
+      offset: [0, -16],
+      opacity: 0.96,
+      sticky: true,
+    },
   });
 }
 
-function updateLeafletPinElement(marker, pin) {
-  const element = marker.getElement();
+function updateMapPinElement(marker, pin) {
+  const element = state.mapProvider?.getMarkerElement?.(marker);
   if (!element) return;
 
   element.dataset.zoomLevel = String(pin.zoomLevel);
@@ -5082,22 +9494,22 @@ function updateLeafletPinElement(marker, pin) {
   element.classList.toggle("is-label-enabled", pinHasHoverLabel(pin) && state.mapZoom >= 14);
 }
 
-function createLeafletPinIcon(pin) {
-  const size = leafletPinSize(pin);
+function createMapPinIcon(pin) {
+  const size = mapPinSize(pin);
   const anchor = pin.source === "favorite"
     ? [size[0] / 2, size[1] / 2]
     : [size[0] / 2, Math.max(30, size[1] - 4)];
 
-  return L.divIcon({
-    className: leafletPinClassName(pin),
-    html: leafletPinHtml(pin),
+  return state.mapProvider.createDivIcon({
+    className: mapPinClassName(pin),
+    html: mapPinHtml(pin),
     iconSize: size,
     iconAnchor: anchor,
     tooltipAnchor: [0, -Math.round(size[1] / 2)],
   });
 }
 
-function leafletPinClassName(pin) {
+function mapPinClassName(pin) {
   const classes = [
     "map-progressive-marker",
     `is-${pin.source}`,
@@ -5117,7 +9529,7 @@ function leafletPinClassName(pin) {
   return classes.join(" ");
 }
 
-function leafletPinHtml(pin) {
+function mapPinHtml(pin) {
   const icon = pin.source === "favorite"
     ? starIcon()
     : pin.source === "known"
@@ -5127,7 +9539,7 @@ function leafletPinHtml(pin) {
   return `${icon}${label}`;
 }
 
-function leafletPinIconSignature(pin) {
+function mapPinIconSignature(pin) {
   return `${pin.source}:${pin.type}:${pin.zoomLevel}:${pin.named !== false}:${isMapPinActive(pin)}:${markerFishForSpot({ fish: pin.species })}`;
 }
 
@@ -5136,7 +9548,7 @@ function pinHasHoverLabel(pin) {
   return pin.zoomLevel >= 14;
 }
 
-function leafletPinSize(pin) {
+function mapPinSize(pin) {
   if (pin.source === "osm" && pin.named === false) {
     return isMapPinActive(pin) ? [28, 34] : [22, 28];
   }
@@ -5162,7 +9574,7 @@ function pinZIndex(pin) {
   return 390;
 }
 
-function leafletPinTooltipHtml(pin) {
+function mapPinTooltipHtml(pin) {
   const detail = [
     pin.area,
     pin.type === WATER_MODES.FRESHWATER ? t("Eau douce") : t("Mer"),
@@ -5189,6 +9601,34 @@ function hasCatalogPinForActive(active) {
     const distance = distanceMeters({ lat: pin.lat, lon: pin.lon }, active);
     return isValidNumber(distance) && distance < 40;
   });
+}
+
+function handleMapPinClick(pin, marker) {
+  if (!pin) return;
+
+  const currentZoom = state.mapProvider?.getZoom?.() ?? state.mapZoom;
+  const targetZoom = Math.min(MAP_MAX_ZOOM, Math.max(14, pin.zoomLevel));
+
+  if (state.mapProvider && currentZoom < 12) {
+    pulseMapMarker(marker);
+    state.mapProvider.once("moveend", () => selectMapPin(pin));
+    state.mapProvider.flyTo(pin.lat, pin.lon, targetZoom, {
+      animate: true,
+      duration: 0.8,
+      easeLinearity: 0.5,
+    });
+    return;
+  }
+
+  selectMapPin(pin);
+}
+
+function pulseMapMarker(marker) {
+  const element = state.mapProvider?.getMarkerElement?.(marker);
+  if (!element || !state.mapProvider) return;
+
+  element.classList.add("marker-pulse");
+  state.mapProvider.once("moveend", () => element.classList.remove("marker-pulse"));
 }
 
 function selectMapPin(pin) {
@@ -5230,34 +9670,40 @@ function selectMapPin(pin) {
   setSpotPanelOpen(false);
 }
 
-function renderLeafletMarkers() {
-  if (!state.leafletMarkers) return;
+function renderProviderMarkers() {
+  if (!state.mapMarkers || !state.mapProvider) return;
 
-  renderLeafletPins();
-  state.leafletMarkers.clearLayers();
+  renderMapPins();
+  state.mapProvider.clearLayer(state.mapMarkers);
   const active = getActiveSpot();
 
   if (active.custom && !hasFavorite(active.id) && !hasCatalogPinForActive(active) && isValidNumber(active.lat) && isValidNumber(active.lon)) {
-    L.circleMarker([active.lat, active.lon], {
+    state.mapProvider.addCircleMarker(state.mapMarkers, {
+      lat: active.lat,
+      lon: active.lon,
       radius: 8,
       color: "#fff",
       weight: 3,
       fillColor: colors.depth,
       fillOpacity: 1,
       bubblingMouseEvents: false,
-    })
-      .bindTooltip(active.name, {
-        direction: "top",
-        offset: [0, -10],
-        opacity: 0.96,
-        permanent: true,
-      })
-      .addTo(state.leafletMarkers);
+      tooltip: {
+        content: textTooltip(active.name),
+        options: {
+          direction: "top",
+          offset: [0, -10],
+          opacity: 0.96,
+          permanent: true,
+        },
+      },
+    });
   }
 
   if (state.pendingSpot) {
-    L.marker([state.pendingSpot.lat, state.pendingSpot.lon], {
-      icon: L.divIcon({
+    state.mapProvider.addMarker(state.mapMarkers, {
+      lat: state.pendingSpot.lat,
+      lon: state.pendingSpot.lon,
+      icon: state.mapProvider.createDivIcon({
         className: "pending-spot-marker",
         html: pinIcon(),
         iconSize: [34, 42],
@@ -5265,22 +9711,22 @@ function renderLeafletMarkers() {
       }),
       keyboard: false,
       interactive: false,
-    }).addTo(state.leafletMarkers);
+    });
   }
 }
 
-function selectLeafletMapPoint(event) {
+function selectProviderMapPoint(event) {
   const lat = event.latlng.lat;
   const lon = event.latlng.lng;
   openSpotNameSheet(lat, lon);
 }
 
-function syncLeafletState() {
-  if (!state.leafletMap) return;
+function syncProviderMapState() {
+  if (!state.mapProvider) return;
 
-  const center = state.leafletMap.getCenter();
-  state.mapZoom = state.leafletMap.getZoom();
-  state.mapCenter = { lat: center.lat, lon: center.lng };
+  const center = state.mapProvider.getCenter();
+  state.mapZoom = state.mapProvider.getZoom();
+  if (center) state.mapCenter = center;
   updateMapZoomControls();
   updateMapScale();
   scheduleBathymetryFocusRefresh();
@@ -5288,8 +9734,8 @@ function syncLeafletState() {
 }
 
 function renderMapMarkers() {
-  if (state.leafletMap) {
-    renderLeafletMarkers();
+  if (state.mapProvider) {
+    renderProviderMarkers();
     return;
   }
 
@@ -5307,7 +9753,10 @@ function renderMapMarkers() {
     marker.style.top = `${point.y * 100}%`;
     marker.title = spot.name;
     marker.setAttribute("aria-label", `Sélectionner ${spot.name}`);
-    marker.innerHTML = `<span class="map-marker-label">${spot.name}</span>`;
+    const label = document.createElement("span");
+    label.className = "map-marker-label";
+    label.textContent = spot.name;
+    marker.append(label);
     marker.addEventListener("click", (event) => {
       event.stopPropagation();
       selectSpot(index, { load: true });
@@ -5376,15 +9825,17 @@ function renderMapMarkers() {
   }
 }
 
-function renderLeafletDiscoveryMarkers(active) {
-  if (!state.leafletMarkers || !window.L) return;
+function renderProviderDiscoveryMarkers(active) {
+  if (!state.mapMarkers || !state.mapProvider) return;
 
   getMapDiscoveryResults().forEach((result) => {
     const isActive = isDiscoveryResultActive(result, active);
     const name = discoveryResultName(result);
     const detail = discoveryResultDetail(result);
-    const marker = L.marker([result.lat, result.lon], {
-      icon: L.divIcon({
+    state.mapProvider.addMarker(state.mapMarkers, {
+      lat: result.lat,
+      lon: result.lon,
+      icon: state.mapProvider.createDivIcon({
         className: `discovery-spot-marker is-${result.source}${isActive ? " is-active" : ""}`,
         html: pinIcon(),
         iconSize: isActive ? [36, 46] : [30, 38],
@@ -5395,22 +9846,20 @@ function renderLeafletDiscoveryMarkers(active) {
       riseOnHover: true,
       title: name,
       zIndexOffset: isActive ? 1150 : result.source === "nearby" ? 760 : 720,
-    });
-
-    marker.bindTooltip(
-      `<strong>${escapeHtml(name)}</strong><small>${escapeHtml(detail)}</small>`,
-      {
-        direction: "top",
-        offset: [0, -16],
-        opacity: 0.96,
-        sticky: true,
+      tooltip: {
+        content: `<strong>${escapeHtml(name)}</strong><small>${escapeHtml(detail)}</small>`,
+        options: {
+          direction: "top",
+          offset: [0, -16],
+          opacity: 0.96,
+          sticky: true,
+        },
       },
-    );
-    marker.on("click", (event) => {
-      if (event.originalEvent) L.DomEvent.stop(event.originalEvent);
-      selectDiscoveryMapResult(result);
+      onClick: (event) => {
+        state.mapProvider.stopEvent(event);
+        selectDiscoveryMapResult(result);
+      },
     });
-    marker.addTo(state.leafletMarkers);
   });
 }
 
@@ -5501,25 +9950,14 @@ function selectDiscoveryMapResult(result) {
 }
 
 function changeMapZoom(delta, options = {}) {
-  const currentZoom = state.leafletMap ? state.leafletMap.getZoom() : state.mapZoom;
+  const currentZoom = state.mapProvider?.getZoom?.() ?? state.mapZoom;
   const nextZoom = clamp(currentZoom + delta, MAP_MIN_ZOOM, MAP_MAX_ZOOM);
   if (nextZoom === state.mapZoom) return;
 
-  if (state.leafletMap) {
+  if (state.mapProvider) {
     state.mapZoom = nextZoom;
-
-    if (options.anchorPoint) {
-      const rect = els.spotMap.getBoundingClientRect();
-      state.leafletMap.setZoomAround(
-        L.point(options.anchorPoint.x * rect.width, options.anchorPoint.y * rect.height),
-        nextZoom,
-        { animate: false },
-      );
-    } else {
-      state.leafletMap.setZoom(nextZoom, { animate: false });
-    }
-
-    syncLeafletState();
+    state.mapProvider.setZoom(nextZoom, options);
+    syncProviderMapState();
     return;
   }
 
@@ -5532,7 +9970,7 @@ function changeMapZoom(delta, options = {}) {
 }
 
 function updateMapZoomControls() {
-  const zoom = state.leafletMap ? state.leafletMap.getZoom() : state.mapZoom;
+  const zoom = state.mapProvider?.getZoom?.() ?? state.mapZoom;
   els.spotMap.dataset.zoom = String(zoom);
   els.mapZoomOut.disabled = zoom <= MAP_MIN_ZOOM;
   els.mapZoomIn.disabled = zoom >= MAP_MAX_ZOOM;
@@ -5552,9 +9990,9 @@ function updateMapScale() {
 function centerMapOn(lat, lon) {
   if (!isValidNumber(lat) || !isValidNumber(lon)) return;
 
-  if (state.leafletMap) {
+  if (state.mapProvider) {
     state.mapCenter = { lat, lon };
-    state.leafletMap.setView([lat, lon], state.mapZoom, { animate: false });
+    state.mapProvider.setView(lat, lon, state.mapZoom);
     return;
   }
 
@@ -5969,6 +10407,9 @@ function bindEvents() {
   els.languageSelect?.addEventListener("change", () => {
     setLanguagePreference(els.languageSelect.value);
   });
+  els.proToggle?.addEventListener("change", () => {
+    setProStatus(els.proToggle.checked);
+  });
 
   els.spotPanelButton.addEventListener("click", () => setSpotPanelOpen(!state.spotPanelOpen));
   els.spotPanelClose.addEventListener("click", () => setSpotPanelOpen(false));
@@ -6083,7 +10524,7 @@ function bindEvents() {
   els.spotNameCancel.addEventListener("click", closeSpotNameSheet);
   els.spotNameFavorite.addEventListener("click", () => confirmPendingSpot({ favorite: true }));
 
-  if (!state.leafletMap) {
+  if (!state.mapProvider) {
     els.spotMap.addEventListener("click", selectMapPoint);
     els.spotMap.addEventListener("pointerdown", startMapDrag);
     els.spotMap.addEventListener("mousedown", rememberMapClickStart);
@@ -6755,6 +11196,9 @@ function applyResolvedWaterMode(resolution) {
 }
 
 async function loadForecast() {
+  const requestId = state.forecastRequestId + 1;
+  state.forecastRequestId = requestId;
+  const isCurrentForecast = () => requestId === state.forecastRequestId;
   const lat = Number(els.latitude.value);
   const lon = Number(els.longitude.value);
 
@@ -6771,11 +11215,15 @@ async function loadForecast() {
     state.riverForecastAvailable = false;
     state.riverForecastError = "";
     await resolveSpotContext(lat, lon);
+    if (!isCurrentForecast()) return;
+
     const [weatherResult, marineResult, riverResult] = await Promise.allSettled([
       loadWeatherPayload(lat, lon),
       loadMarinePayload(lat, lon),
       loadRiverForecast(lat, lon),
     ]);
+    if (!isCurrentForecast()) return;
+
     const weather = weatherResult.status === "fulfilled" ? weatherResult.value : null;
     const marine = marineResult.status === "fulfilled" ? marineResult.value : null;
     const river = riverResult.status === "fulfilled" ? riverResult.value : null;
@@ -6804,10 +11252,13 @@ async function loadForecast() {
     renderAll();
     const preliminaryStatus = forecastStatusLabel({ weather, marine, river, weatherError, marineError, riverError, realDepthApplied: false });
     setStatus(preliminaryStatus.label, preliminaryStatus.mode);
-    const realDepthApplied = isSeaMode() ? await loadRealDepthCurrents(lat, lon) : false;
+    const realDepthApplied = isSeaMode() ? await loadRealDepthCurrents(lat, lon, requestId) : false;
+    if (!isCurrentForecast()) return;
+
     const status = forecastStatusLabel({ weather, marine, river, weatherError, marineError, riverError, realDepthApplied });
     setStatus(status.label, status.mode);
   } catch (error) {
+    if (!isCurrentForecast()) return;
     console.error(error);
     setStatus("Erreur", "error");
     els.metricGrid.innerHTML = `<article class="metric-card metric-card-wide"><strong class="metric-value">Données indisponibles</strong><span class="metric-detail">${escapeHtml(error.message)}</span></article>`;
@@ -6934,12 +11385,14 @@ async function fetchJson(url, options = {}) {
       : await response.text();
 
     if (!response.ok) {
-      const reason = typeof payload === "object" && payload?.reason ? payload.reason : `Erreur API ${response.status}`;
+      const reason = typeof payload === "object" && (payload?.error || payload?.reason)
+        ? payload.error || payload.reason
+        : `Erreur API ${response.status}`;
       throw new Error(reason);
     }
 
     if (payload?.error) {
-      throw new Error(payload.reason || `Erreur API ${response.status}`);
+      throw new Error(payload.error || payload.reason || `Erreur API ${response.status}`);
     }
 
     return payload;
@@ -7081,13 +11534,15 @@ function apiErrorSummary(endpoint, error) {
   return `${host}: ${error.message}`;
 }
 
-async function loadRealDepthCurrents(lat, lon) {
+async function loadRealDepthCurrents(lat, lon, forecastRequestId = state.forecastRequestId) {
+  const isCurrentForecast = () => forecastRequestId === state.forecastRequestId;
   if (!isSeaMode() || !state.hours.length) return false;
 
   try {
     const url = buildDepthCurrentUrl(lat, lon);
     const response = await fetch(url);
     const payload = await response.json().catch(() => null);
+    if (!isCurrentForecast()) return false;
 
     if (!response.ok) {
       state.realDepthAvailable = false;
@@ -7110,6 +11565,7 @@ async function loadRealDepthCurrents(lat, lon) {
     renderAll();
     return true;
   } catch (error) {
+    if (!isCurrentForecast()) return false;
     console.info("Courant profondeur Copernicus indisponible.", error);
     state.realDepthAvailable = false;
     state.realDepthError = error?.message || "Copernicus Marine indisponible.";
@@ -7443,6 +11899,16 @@ function renderPreferenceControls(day = getSelectedDay()) {
     els.languageSelect.value = currentLanguage();
   }
 
+  if (els.proToggle) {
+    els.proToggle.checked = isProUser();
+    els.proToggle.setAttribute("aria-checked", String(isProUser()));
+  }
+
+  if (els.proStatusLabel) {
+    els.proStatusLabel.textContent = isProUser() ? t("Pro actif") : t("Gratuit");
+    els.proStatusLabel.classList.toggle("is-pro", isProUser());
+  }
+
   if (els.preferenceSpecies) {
     if (!els.preferenceSpecies.options.length) populatePreferenceSpecies();
     els.preferenceSpecies.value = species;
@@ -7474,6 +11940,7 @@ function preferenceSummaryChips(day, profile, species) {
     `${t("Cible")} ${getFishLabel(species)}`,
     profileOptionLabel("approach", profile.approach),
     profileOptionLabel("experience", profile.experience),
+    isProUser() ? t("Pro actif") : t("Gratuit"),
     state.theme === "dark" ? t("Mode sombre") : t("Mode clair"),
     isSeaMode() ? `${state.depth} m` : null,
     preferenceFocusChip(day, profile.priority),
@@ -7543,6 +12010,19 @@ function setThemePreference(theme) {
 
   state.theme = nextTheme;
   applyTheme({ render: true });
+  renderPreferenceControls(getSelectedDay());
+  saveSettings();
+}
+
+function setProStatus(isPro) {
+  const nextValue = Boolean(isPro);
+  if (state.isPro === nextValue) {
+    renderPreferenceControls(getSelectedDay());
+    return;
+  }
+
+  state.isPro = nextValue;
+  applySubscriptionState();
   renderPreferenceControls(getSelectedDay());
   saveSettings();
 }
@@ -7626,7 +12106,7 @@ function renderDayTabs() {
       <span class="day-tab-stats">
         ${forecastConditionRows(day).map((row) => `
           <span>
-            <b>${escapeHtml(state.forecastExpanded ? row.label : row.short)}</b>
+            <b>${escapeHtml(row.label)}</b>
             <em>${escapeHtml(row.value)}</em>
           </span>
         `).join("")}
@@ -10495,10 +14975,10 @@ function getMapCenter() {
   };
 }
 
-function getLeafletFocusPoint() {
-  const center = state.leafletMap?.getCenter();
-  if (center && isValidNumber(center.lat) && isValidNumber(center.lng)) {
-    return { lat: center.lat, lon: center.lng };
+function getMapFocusPoint() {
+  const providerCenter = state.mapProvider?.getCenter?.();
+  if (providerCenter && isValidNumber(providerCenter.lat) && isValidNumber(providerCenter.lon)) {
+    return providerCenter;
   }
 
   return getMapCenter();
@@ -10506,12 +14986,8 @@ function getLeafletFocusPoint() {
 
 function mapMetersPerCssPixel() {
   const rect = els.spotMap.getBoundingClientRect();
-  if (state.leafletMap) {
-    const midpointY = rect.height / 2;
-    const start = state.leafletMap.containerPointToLatLng([0, midpointY]);
-    const end = state.leafletMap.containerPointToLatLng([100, midpointY]);
-    return state.leafletMap.distance(start, end) / 100;
-  }
+  const providerMetersPerPixel = state.mapProvider?.metersPerCssPixel?.();
+  if (isValidNumber(providerMetersPerPixel)) return providerMetersPerPixel;
 
   const bounds = getMapPixelBounds();
   const center = getMapCenter();
@@ -10574,6 +15050,58 @@ function unprojectLatLon(x, y, zoom) {
   const n = Math.PI - (2 * Math.PI * y) / scale;
   const lat = (180 / Math.PI) * Math.atan(Math.sinh(n));
   return { lat, lon };
+}
+
+function mapOverlayTileUrl(overlay, x, y, zoom) {
+  if (!overlay) return "";
+  if (overlay.type === "xyz") return xyzTileUrl(overlay.url, x, y, zoom);
+  if (overlay.type === "wms") return wmsTileUrl(overlay, x, y, zoom);
+  return "";
+}
+
+function xyzTileUrl(template, x, y, zoom) {
+  const worldTileCount = 2 ** zoom;
+  return String(template)
+    .replace("{z}", String(zoom))
+    .replace("{x}", String(wrapTileX(x, worldTileCount)))
+    .replace("{y}", String(y));
+}
+
+function wmsTileUrl(overlay, x, y, zoom) {
+  const bbox = tileBbox4326(x, y, zoom);
+  const params = new URLSearchParams({
+    service: "WMS",
+    request: "GetMap",
+    version: overlay.version ?? "1.3.0",
+    layers: overlay.layers,
+    styles: overlay.styles ?? "",
+    format: overlay.format ?? "image/png",
+    transparent: String(overlay.transparent !== false),
+    width: String(MAP_TILE_SIZE),
+    height: String(MAP_TILE_SIZE),
+    crs: "EPSG:4326",
+    bbox: [bbox.south, bbox.west, bbox.north, bbox.east].map((value) => value.toFixed(6)).join(","),
+  });
+  return `${overlay.url}?${params.toString()}`;
+}
+
+function tileBbox4326(x, y, zoom) {
+  const worldTileCount = 2 ** zoom;
+  const westNorth = unprojectLatLon(wrapTileX(x, worldTileCount) * MAP_TILE_SIZE, y * MAP_TILE_SIZE, zoom);
+  const eastSouth = unprojectLatLon((wrapTileX(x, worldTileCount) + 1) * MAP_TILE_SIZE, (y + 1) * MAP_TILE_SIZE, zoom);
+  return {
+    west: westNorth.lon,
+    north: westNorth.lat,
+    east: eastSouth.lon,
+    south: eastSouth.lat,
+  };
+}
+
+function removeGoogleOverlay(map, layer) {
+  if (!map || !layer) return;
+  const overlays = map.overlayMapTypes;
+  const index = overlays.getArray().indexOf(layer);
+  if (index >= 0) overlays.removeAt(index);
 }
 
 function wrapTileX(x, worldTileCount) {
@@ -10949,6 +15477,7 @@ function saveSettings() {
     activityFish: state.activityFish,
     theme: normalizeTheme(state.theme),
     language: normalizeLanguage(state.language),
+    isPro: isProUser(),
     profile: normalizeProfile(state.profile),
     onboardingCompleted: Boolean(state.onboardingCompleted),
     privacyAccepted: Boolean(state.privacyAccepted),
@@ -11133,6 +15662,7 @@ function normalizeSettings(settings) {
     activityFish: typeof settings.activityFish === "string" ? settings.activityFish : "",
     theme: normalizeTheme(settings.theme),
     language: normalizeLanguage(settings.language),
+    isPro: Boolean(settings.isPro),
     profile: normalizeProfile(settings.profile),
     onboardingCompleted: Boolean(settings.onboardingCompleted),
     privacyAccepted: Boolean(settings.privacyAccepted),
@@ -11241,6 +15771,12 @@ function escapeHtml(value) {
   return div.innerHTML;
 }
 
+function textTooltip(value) {
+  const span = document.createElement("span");
+  span.textContent = value;
+  return span;
+}
+
 function currentIcon() {
   return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h14"/><path d="m13 7 5 5-5 5"/><path d="M4 6h8"/><path d="M4 18h8"/></svg>`;
 }
@@ -11320,5 +15856,148 @@ function pinIcon() {
   return `<svg viewBox="0 0 28 36" aria-hidden="true"><path d="M14 34S3 22.7 3 13.8C3 7.5 7.9 3 14 3s11 4.5 11 10.8C25 22.7 14 34 14 34Z"/><circle cx="14" cy="14" r="4.6"/></svg>`;
 }
 
+function mapProviderSmokeRoutes(baseUrl = window.location.href) {
+  const base = String(baseUrl || window.location.href).split("?")[0];
+  const route = (label, params, expected) => {
+    const search = new URLSearchParams(params);
+    return { label, url: `${base}?${search.toString()}`, expected };
+  };
+
+  return [
+    {
+      label: "default",
+      url: base,
+      expected: {
+        provider: MAP_PROVIDER_IDS.LEAFLET_OPENMAP,
+        note: "Default builds keep Apple/Google providers disabled and fall back to Leaflet/OpenMap.",
+      },
+    },
+    route("google-web-debug", {
+      mapProviderOverride: MAP_PROVIDER_IDS.GOOGLE_WEB,
+      mapProviderExperimental: MAP_PROVIDER_IDS.GOOGLE_WEB,
+      mapProviderDebugSdk: "google",
+    }, {
+      provider: MAP_PROVIDER_IDS.GOOGLE_WEB,
+      fallbackReason: "",
+    }),
+    route("apple-web-debug", {
+      mapProviderOverride: MAP_PROVIDER_IDS.APPLE_WEB,
+      mapProviderExperimental: MAP_PROVIDER_IDS.APPLE_WEB,
+      mapProviderDebugSdk: "apple",
+    }, {
+      provider: MAP_PROVIDER_IDS.APPLE_WEB,
+      fallbackReason: "",
+    }),
+    route("google-web-debug-fail", {
+      mapProviderOverride: MAP_PROVIDER_IDS.GOOGLE_WEB,
+      mapProviderExperimental: MAP_PROVIDER_IDS.GOOGLE_WEB,
+      mapProviderDebugSdk: "google",
+      mapProviderDebugSdkFail: "google",
+    }, {
+      provider: MAP_PROVIDER_IDS.LEAFLET_OPENMAP,
+      preference: MAP_PROVIDER_IDS.GOOGLE_WEB,
+      fallbackReason: "mount-failed",
+    }),
+    route("apple-web-debug-fail", {
+      mapProviderOverride: MAP_PROVIDER_IDS.APPLE_WEB,
+      mapProviderExperimental: MAP_PROVIDER_IDS.APPLE_WEB,
+      mapProviderDebugSdk: "apple",
+      mapProviderDebugSdkFail: "apple",
+    }, {
+      provider: MAP_PROVIDER_IDS.LEAFLET_OPENMAP,
+      preference: MAP_PROVIDER_IDS.APPLE_WEB,
+      fallbackReason: "mount-failed",
+    }),
+    route("apple-native-debug-bridge", {
+      mapProviderOverride: MAP_PROVIDER_IDS.APPLE_NATIVE,
+      mapProviderExperimental: MAP_PROVIDER_IDS.APPLE_NATIVE,
+      mapProviderDebugBridge: "1",
+    }, {
+      provider: MAP_PROVIDER_IDS.APPLE_NATIVE,
+      fallbackReason: "",
+    }),
+    route("apple-native-debug-bridge-not-ready", {
+      mapProviderOverride: MAP_PROVIDER_IDS.APPLE_NATIVE,
+      mapProviderExperimental: MAP_PROVIDER_IDS.APPLE_NATIVE,
+      mapProviderDebugBridge: "1",
+      mapProviderDebugBridgeUnsupported: "apple",
+    }, {
+      provider: MAP_PROVIDER_IDS.LEAFLET_OPENMAP,
+      preference: MAP_PROVIDER_IDS.APPLE_NATIVE,
+      fallbackReason: "mount-failed",
+    }),
+    route("google-native-debug-bridge", {
+      mapProviderOverride: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
+      mapProviderExperimental: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
+      mapProviderDebugBridge: "1",
+    }, {
+      provider: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
+      fallbackReason: "",
+    }),
+    route("google-native-debug-bridge-not-ready", {
+      mapProviderOverride: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
+      mapProviderExperimental: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
+      mapProviderDebugBridge: "1",
+      mapProviderDebugBridgeUnsupported: "google",
+    }, {
+      provider: MAP_PROVIDER_IDS.LEAFLET_OPENMAP,
+      preference: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
+      fallbackReason: "mount-failed",
+    }),
+  ];
+}
+
+function installMapProviderDebugInspector() {
+  const inspector = {
+    mapOverlayTileUrl,
+    tileBbox4326,
+    xyzTileUrl,
+    wmsTileUrl,
+    coordinateNormalizationSamples: mapProviderCoordinateNormalizationSamples,
+    nativeBridgeContract,
+    mapProviderSmokeRoutes,
+    nativeBridgeDebugState: (providerId = state.mapProviderId || state.mapProviderPreference) => nativeMapBridgeDebugState(resolveNativeMapBridge(), providerId),
+    nativePayloadSamples: () => ({
+      tileOverlay: nativeTileOverlayPayload(SHARED_MAP_TILE_OVERLAYS.seamarks),
+      marker: nativeMarkerPayload({
+        lat: 43.2965,
+        lon: 5.3698,
+        title: "Sample marker",
+        icon: {
+          className: "map-pin-marker",
+          html: pinIcon(),
+          iconSize: [34, 42],
+          iconAnchor: [17, 42],
+        },
+        tooltip: { content: "Sample marker" },
+        zIndexOffset: 1000,
+      }),
+      circle: nativeShapePayload({
+        lat: 43.2965,
+        lon: 5.3698,
+        radius: 150,
+        color: "#2f7fa3",
+        fillColor: "#2f7fa3",
+        fillOpacity: 0.18,
+        weight: 2,
+        tooltip: { content: "Sample circle" },
+      }),
+    }),
+    providerMatrix: () => Object.values(MAP_PROVIDER_IDS).map(mapProviderDescriptor),
+    providerState: () => ({
+      provider: state.mapProviderId,
+      preferred: state.mapProviderPreference,
+      override: mapProviderOverride(),
+      configReady: state.mapProviderConfigReady,
+      fallbackActive: state.mapProviderFallbackActive,
+      fallbackReason: state.mapProviderFallbackReason,
+    }),
+  };
+
+  window.METEOPECHE_MAP_PROVIDER_DEBUG = Object.freeze(inspector);
+  document.documentElement.dataset.mapProviderDebugInspector = "ready";
+}
+
+installMapProviderDebugInspector();
 init();
 window.addEventListener("load", () => scheduleHideAppSplash(250), { once: true });

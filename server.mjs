@@ -11,6 +11,7 @@ const root = fileURLToPath(new URL(".", import.meta.url));
 const port = Number(process.env.PORT ?? process.argv[2] ?? 8080);
 const host = "127.0.0.1";
 const pythonPath = existsSync(join(root, ".venv", "bin", "python3")) ? join(root, ".venv", "bin", "python3") : "python3";
+const maxDepthWindowHours = 24 * 8;
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -49,6 +50,12 @@ async function handleDepthCurrent(url, response) {
     return;
   }
 
+  const dateError = validateDepthWindow(payload.start, payload.end);
+  if (dateError) {
+    sendJson(response, 400, { ok: false, error: dateError });
+    return;
+  }
+
   try {
     const script = join(root, "scripts", "copernicus_depth.py");
     const { stdout } = await execFileAsync(pythonPath, [script, JSON.stringify(payload)], {
@@ -59,10 +66,10 @@ async function handleDepthCurrent(url, response) {
     const result = JSON.parse(stdout);
     sendJson(response, result.ok ? 200 : 503, result);
   } catch (error) {
+    console.error("Copernicus depth request failed", error);
     sendJson(response, 503, {
       ok: false,
       error: "Impossible de récupérer Copernicus Marine.",
-      detail: error.stderr || error.message,
     });
   }
 }
@@ -107,4 +114,18 @@ function sendText(response, status, text) {
 
 function isFiniteNumber(value) {
   return typeof value === "number" && Number.isFinite(value);
+}
+
+function validateDepthWindow(start, end) {
+  const startDate = parseApiDate(start);
+  const endDate = parseApiDate(end);
+  if (!startDate || !endDate) return "Dates Copernicus invalides.";
+  if (endDate <= startDate) return "La fin Copernicus doit suivre le début.";
+  if ((endDate - startDate) / 36e5 > maxDepthWindowHours) return "Fenêtre Copernicus trop large.";
+  return "";
+}
+
+function parseApiDate(value) {
+  const time = Date.parse(value);
+  return Number.isFinite(time) ? new Date(time) : null;
 }
