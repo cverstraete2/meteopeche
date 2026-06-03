@@ -365,6 +365,9 @@ expectIncludes(contents.nativeBridgeDocs, "apple-native-debug-bridge-events", "n
 expectIncludes(contents.nativeBridgeDocs, "google-native-debug-bridge-events", "native bridge contract doc documents Google native event simulation smoke route");
 expectIncludes(contents.nativeBridgeDocs, "nativeEventCountMin", "native bridge contract doc documents event smoke route count expectation");
 expectIncludes(contents.nativeBridgeDocs, "nativeDebugDatasets", "native bridge contract doc documents event smoke route debug dataset expectations");
+expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-route-count", "native bridge contract doc documents smoke route count data attribute");
+expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-route-labels", "native bridge contract doc documents smoke route labels data attribute");
+expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-event-route-labels", "native bridge contract doc documents event smoke route labels data attribute");
 expectIncludes(contents.nativeBridgeDocs, "data-web-map-sdk-debug-google-overlay-count", "native bridge contract doc documents Google web debug overlay count");
 expectIncludes(contents.nativeBridgeDocs, "data-web-map-sdk-debug-apple-annotation-count", "native bridge contract doc documents Apple web debug annotation count");
 expectIncludes(contents.source, "document.documentElement.dataset.nativeMapBridgeDebugCommandCount", "source records debug native command count");
@@ -488,6 +491,9 @@ expectIncludes(contents.source, "nativeEventTypes: [\"map:google-native:moveend\
 expectIncludes(contents.source, "optionalNativeEventTypes: [\"map:apple-native:click\"]", "source Apple event simulation smoke route documents optional click event");
 expectIncludes(contents.source, "optionalNativeEventTypes: [\"map:google-native:click\"]", "source Google event simulation smoke route documents optional click event");
 expectIncludes(contents.source, "nativeDebugDatasets: [", "source event simulation smoke routes expose native debug dataset expectations");
+expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmokeRouteCount", "source records smoke route count dataset");
+expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmokeRouteLabels", "source records smoke route labels dataset");
+expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmokeEventRouteLabels", "source records event smoke route labels dataset");
 expectIncludes(contents.source, "nativeEventCenter(payload)", "source normalizes native event centers");
 expectIncludes(contents.source, "nativeEventZoom(payload)", "source normalizes native event zoom");
 expectIncludes(contents.source, "nativePayloadLatLng", "source derives fallback native item-click coordinates from item payloads");
