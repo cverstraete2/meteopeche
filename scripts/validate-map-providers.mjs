@@ -646,11 +646,15 @@ expectIncludes(contents.androidNativeMapPlugin, "private final Map<String, JSObj
 expectIncludes(contents.androidNativeMapPlugin, "configureGooglePinTier(call)", "Android native map plugin handles pin-tier configuration");
 expectIncludes(contents.androidNativeMapPlugin, "addGoogleItemToLayer(call)", "Android native map plugin handles layer membership");
 expectIncludes(contents.androidNativeMapPlugin, "addGoogleItemsToLayer(call)", "Android native map plugin handles batch layer membership");
+expectIncludes(contents.androidNativeMapPlugin, "JSArray items = call.getArray(\"items\")", "Android native map plugin reads batch item arrays through JSArray");
+expectIncludes(contents.androidNativeMapPlugin, "JSONObject item = items.optJSONObject(i)", "Android native map plugin safely skips malformed batch layer items");
 expectIncludes(contents.androidNativeMapPlugin, "setGooglePinTierVisible(call)", "Android native map plugin handles pin-tier visibility");
 expectIncludes(contents.androidNativeMapPlugin, "createGoogleItem(call)", "Android native map plugin handles marker creation");
 expectIncludes(contents.androidNativeMapPlugin, "createGoogleItems(call)", "Android native map plugin handles marker batch creation");
+expectIncludes(contents.androidNativeMapPlugin, "JSONObject rawItem = items.optJSONObject(i)", "Android native map plugin safely skips malformed batch marker items");
 expectIncludes(contents.androidNativeMapPlugin, "updateGoogleItem(call)", "Android native map plugin handles item updates");
 expectIncludes(contents.androidNativeMapPlugin, "setGoogleItemsVisible(call)", "Android native map plugin handles batch item visibility");
+expectIncludes(contents.androidNativeMapPlugin, "String itemId = itemIds.optString(i, \"\")", "Android native map plugin safely skips malformed batch visibility ids");
 expectIncludes(contents.androidNativeMapPlugin, "createGoogleShapeItem(call)", "Android native map plugin handles shape creation");
 expectIncludes(contents.androidNativeMapPlugin, "removeGoogleItem(call)", "Android native map plugin handles item removal");
 expectIncludes(contents.androidNativeMapPlugin, "itemVisibility.putIfAbsent(itemId, true)", "Android native map plugin preserves hidden item visibility on create/update");
