@@ -37,7 +37,7 @@ try {
 
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
 <link rel="stylesheet" href="vendor/tabler/tabler-icons.min.css" />
-<link rel="stylesheet" href="styles.css?v=20260528-overpass-spots-v1" />
+<link rel="stylesheet" href="styles.css?v=20260603-native-layer-visibility-apply" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon-v2.png" />
 </head>
@@ -66,8 +66,8 @@ try {
       </button>
     </div>
     <div class="onboarding-hero">
-      <h2 id="onboardingTitle">Prépare tes sorties comme une vraie app de terrain</h2>
-      <p>Position précise pour choisir le spot, rappels locaux, journal photo et accès hors ligne aux écrans essentiels.</p>
+      <h2 id="onboardingTitle">Choisis un spot, trouve le bon créneau</h2>
+      <p>Commence avec un spot de démonstration. Le GPS, les notifications et les photos sont proposés seulement quand ils deviennent utiles.</p>
     </div>
     <div class="onboarding-grid">
       <article class="native-card">
@@ -135,18 +135,18 @@ try {
       </div>
     </div>
     <div class="topbar-actions">
-      <button class="ghost-button preferences-nav-button" type="button" data-mobile-tab="preferences">Préférences</button>
+      <button class="ghost-button preferences-nav-button" type="button" data-mobile-tab="more">Plus</button>
     </div>
   </header>
 
   <main>
 
-    <section class="preferences-panel preferences-page" id="preferencesPage"
-      data-mobile-view="preferences" aria-label="Préférences pêche" hidden>
+    <section class="preferences-panel preferences-page more-page" id="preferencesPage"
+      data-mobile-view="more" aria-label="Plus et préférences pêche" hidden>
       <div class="section-head">
         <div>
-          <span class="eyebrow">Profil</span>
-          <h2>Préférences</h2>
+          <span class="eyebrow">Profil & app</span>
+          <h2>Plus</h2>
         </div>
         <div class="preference-head-actions">
           <div class="preference-summary" id="preferenceSummary" aria-live="polite"></div>
@@ -185,6 +185,19 @@ try {
             <option value="pt">Português</option>
           </select>
         </label>
+
+        <div class="preference-control pro-preference more-subscription-card">
+          <div class="pro-preference-copy">
+            <span>Abonnement</span>
+            <strong>MeteoCatch Pro</strong>
+            <small>Statut d'abonnement local pour valider l'expérience Pro avant mise en production.</small>
+          </div>
+          <label class="pro-toggle">
+            <span id="proStatusLabel">Gratuit</span>
+            <input id="proToggle" type="checkbox" role="switch" aria-label="Mode test Pro" />
+            <i aria-hidden="true"></i>
+          </label>
+        </div>
 
         <div class="preference-control">
           <span>Niveau</span>
@@ -228,7 +241,7 @@ try {
         </label>
 
         <div class="preference-control native-preferences">
-          <span>App native & confidentialité</span>
+          <span>Données, app native & confidentialité</span>
           <div class="native-status-grid">
             <article class="native-status-card">
               <strong>GPS</strong>
@@ -458,20 +471,20 @@ try {
                 </span>
                 <i aria-hidden="true"></i>
               </button>
-            </div>
 
-            <div class="marine-overlay-control" id="marineOverlayControl"
-              aria-label="Overlay conditions marines">
-              <span>Conditions marines</span>
-              <div class="marine-overlay-options">
-                <button class="marine-overlay-option is-active" type="button"
-                  data-marine-overlay="none" aria-pressed="true">Off</button>
-                <button class="marine-overlay-option" type="button"
-                  data-marine-overlay="surface" aria-pressed="false">Surface</button>
-                <button class="marine-overlay-option" type="button"
-                  data-marine-overlay="depth" aria-pressed="false">Profondeur</button>
-                <button class="marine-overlay-option" type="button"
-                  data-marine-overlay="wave" aria-pressed="false">Houle</button>
+              <div class="marine-overlay-control" id="marineOverlayControl"
+                aria-label="Overlay conditions marines">
+                <span>Conditions marines</span>
+                <div class="marine-overlay-options">
+                  <button class="marine-overlay-option is-active" type="button"
+                    data-marine-overlay="none" aria-pressed="true">Off</button>
+                  <button class="marine-overlay-option" type="button"
+                    data-marine-overlay="surface" aria-pressed="false">Surface</button>
+                  <button class="marine-overlay-option" type="button"
+                    data-marine-overlay="depth" aria-pressed="false">Profondeur</button>
+                  <button class="marine-overlay-option" type="button"
+                    data-marine-overlay="wave" aria-pressed="false">Houle</button>
+                </div>
               </div>
             </div>
           </div>
@@ -570,16 +583,14 @@ try {
       data-mobile-view="activity weather"
       aria-label="Prévisions 6 jours"></section>
 
-    <section class="weather-top-tools" data-mobile-view="weather" aria-label="Sélecteur météo">
+    <section class="weather-top-tools" data-mobile-view="weather" aria-label="Sélecteur prévision">
       <div class="weather-subtabs" id="weatherSubtabs" role="tablist" aria-label="Sous-vues météo">
         <button class="weather-subtab is-active" type="button" role="tab"
-          data-weather-tab="overview" aria-selected="true">Décision rapide</button>
+          data-weather-tab="overview" aria-selected="true">Résumé</button>
         <button class="weather-subtab" type="button" role="tab"
-          data-weather-tab="forces" aria-selected="false">Rosace</button>
+          data-weather-tab="forces" aria-selected="false">Forces</button>
         <button class="weather-subtab" type="button" role="tab"
-          data-weather-tab="sun" aria-selected="false">Soleil</button>
-        <button class="weather-subtab" type="button" role="tab"
-          data-weather-tab="tides" aria-selected="false">Marées</button>
+          data-weather-tab="sun" aria-selected="false">Soleil / marées</button>
       </div>
 
       <div class="day-timeline weather-timeline" id="dayTimeline">
@@ -633,7 +644,7 @@ try {
       </div>
     </section>
 
-    <section class="tide-panel" data-mobile-view="weather tides" data-weather-subview="tides" aria-label="Marées">
+    <section class="tide-panel" data-mobile-view="weather tides" data-weather-subview="sun tides" aria-label="Marées">
       <div class="section-head">
         <div>
           <span class="eyebrow">Marées</span>
@@ -723,7 +734,7 @@ try {
       <div class="chart-legend" id="atmosphereChartLegend"></div>
     </section>
 
-    <section class="rigging-panel" data-mobile-view="rigging" aria-label="Lestage">
+    <section class="rigging-panel more-tool-panel" data-mobile-view="more rigging" aria-label="Lestage">
       <div class="section-head">
         <div>
           <span class="eyebrow">Outil terrain</span>
@@ -827,44 +838,19 @@ try {
       </svg>
       <span>Carte</span>
     </button>
+    <button class="mobile-tab" type="button" data-mobile-tab="weather">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M5 17h14"/><path d="M7 13h10"/>
+        <path d="M9 9h6"/><path d="M4 21c3-3 4-8 8-8s5 5 8 8"/>
+      </svg>
+      <span>Prévision</span>
+    </button>
     <button class="mobile-tab" type="button" data-mobile-tab="activity">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M4 13c3.2-4 8.7-5 14-2.4l3-2.2v7.2l-3-2.2C12.7 16 7.2 15 4 11Z"/>
         <path d="M4 13 2 16"/><circle cx="15.5" cy="11.2" r="0.7"/>
       </svg>
       <span>Activité</span>
-    </button>
-    <button class="mobile-tab" type="button" data-mobile-tab="tides">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 16c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2S19.4 16 22 16"/>
-        <path d="M4 11c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2S19.4 11 22 11"/>
-        <path d="M7 20h10"/>
-      </svg>
-      <span>Marées</span>
-    </button>
-    <button class="mobile-tab" type="button" data-mobile-tab="weather">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M5 17h14"/><path d="M7 13h10"/>
-        <path d="M9 9h6"/><path d="M4 21c3-3 4-8 8-8s5 5 8 8"/>
-      </svg>
-      <span>Météo</span>
-    </button>
-    <button class="mobile-tab" type="button" data-mobile-tab="astro">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 4v2"/><path d="M12 18v2"/>
-        <path d="M4 12h2"/><path d="M18 12h2"/>
-        <path d="m6.5 6.5 1.4 1.4"/><path d="m16.1 16.1 1.4 1.4"/>
-        <path d="m17.5 6.5-1.4 1.4"/><path d="m7.9 16.1-1.4 1.4"/>
-        <circle cx="12" cy="12" r="3.5"/>
-      </svg>
-      <span>Soleil</span>
-    </button>
-    <button class="mobile-tab" type="button" data-mobile-tab="rigging">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 3v5"/><path d="M9 8h6"/>
-        <path d="m8 11 4 9 4-9Z"/><path d="M8 11h8"/>
-      </svg>
-      <span>Lestage</span>
     </button>
     <button class="mobile-tab" type="button" data-mobile-tab="journal">
       <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -874,12 +860,12 @@ try {
       </svg>
       <span>Journal</span>
     </button>
-    <button class="mobile-tab" type="button" data-mobile-tab="preferences">
+    <button class="mobile-tab" type="button" data-mobile-tab="more">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="12" cy="12" r="3"/>
         <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.2 2.2-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21h-3.2v-.6a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1-2.2-2.2.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H4v-3.2h.6a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1 2.2-2.2.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V3h3.2v.6a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1 2.2 2.2-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.6v3.2h-.6a1.7 1.7 0 0 0-1.6 1Z"/>
       </svg>
-      <span>Prefs</span>
+      <span>Plus</span>
     </button>
   </nav>
 
@@ -906,9 +892,9 @@ try {
 <script src="mobile-runtime.js" defer></script>
 <script src="vendor/leaflet/leaflet.js" defer></script>
 <script src="config.js" defer></script>
-<script src="spots-db.js?v=20260528-overpass-spots-v1" defer></script>
-<script src="overpass-spots.js?v=20260528-overpass-spots-v1" defer></script>
-<script src="app.js?v=20260528-overpass-spots-v1" defer></script>
+<script src="spots-db.js?v=20260603-native-layer-visibility-apply" defer></script>
+<script src="overpass-spots.js?v=20260528-global-spots-v2" defer></script>
+<script src="app.js?v=20260603-native-layer-visibility-apply" defer></script>
 
 </body>
 </html>

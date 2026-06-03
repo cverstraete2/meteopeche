@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
+    "map-provider:validate": "node scripts/validate-map-providers.mjs",
     "deploy": "npm run build && npx wrangler pages deploy dist --project-name meteopeche --branch main",
     "mobile:sync": "npm run build && npx cap sync",
     "mobile:add:ios": "npm run build && npx cap add ios",

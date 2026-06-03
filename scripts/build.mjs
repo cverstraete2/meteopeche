@@ -7,6 +7,7 @@ const dist = join(root, "dist");
 const localVendor = join(root, "vendor");
 const files = ["index.html", "privacy.html", "styles.css", "app.js", "spots-db.js", "overpass-spots.js", "mobile-runtime.js", "config.js", "manifest.webmanifest", "sw.js", "_headers"];
 const defaultApiBaseUrl = "https://meteopeche-copernicus-977572434171.europe-west1.run.app";
+const validMapProviderIds = new Set(["leaflet-openmap", "apple-web", "apple-native", "google-web", "google-native"]);
 
 await rm(dist, { force: true, recursive: true });
 await rm(localVendor, { force: true, recursive: true });
@@ -20,8 +21,34 @@ await Promise.all([copyVendor(join(dist, "vendor")), copyVendor(localVendor)]);
 
 async function writeGeneratedConfig(target) {
   const apiBaseUrl = process.env.METEOPECHE_API_BASE_URL ?? defaultApiBaseUrl;
-  const payload = JSON.stringify({ apiBaseUrl });
+  const googleMapsApiKey = process.env.METEOPECHE_GOOGLE_MAPS_API_KEY ?? "";
+  const enableGoogleMapsWeb = parseBooleanEnv(process.env.METEOPECHE_ENABLE_GOOGLE_MAPS_WEB);
+  const appleMapKitToken = process.env.METEOPECHE_APPLE_MAPKIT_TOKEN ?? "";
+  const appleMapKitTokenUrl = process.env.METEOPECHE_APPLE_MAPKIT_TOKEN_URL ?? "";
+  const enableAppleMapsWeb = parseBooleanEnv(process.env.METEOPECHE_ENABLE_APPLE_MAPS_WEB);
+  const experimentalMapProviders = parseListEnv(process.env.METEOPECHE_EXPERIMENTAL_MAP_PROVIDERS)
+    .filter((provider) => validMapProviderIds.has(provider));
+  const payload = JSON.stringify({
+    apiBaseUrl,
+    enableGoogleMapsWeb,
+    googleMapsApiKey,
+    enableAppleMapsWeb,
+    appleMapKitToken,
+    appleMapKitTokenUrl,
+    experimentalMapProviders,
+  });
   await writeFile(target, `window.METEOPECHE_CONFIG = ${payload};\n`);
+}
+
+function parseBooleanEnv(value) {
+  return ["1", "true", "yes", "on"].includes(String(value ?? "").trim().toLowerCase());
+}
+
+function parseListEnv(value) {
+  return String(value ?? "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
 }
 
 async function copyVendor(target) {

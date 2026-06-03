@@ -52,7 +52,8 @@
 
   /* Topbar & tabbar heights */
   --topbar-h: 58px;
-  --tabbar-h: 64px;
+  --tabbar-h: 78px;
+  --tabbar-gap: 12px;
 
   /* Safe area */
   --safe-top:    env(safe-area-inset-top, 0px);
@@ -346,7 +347,7 @@ main {
   overflow-y: auto;
   overflow-x: hidden;
   padding-top: calc(var(--topbar-h) + var(--safe-top));
-  padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + var(--sp-4));
+  padding-bottom: calc(var(--tabbar-h) + var(--tabbar-gap) + var(--safe-bottom) + var(--sp-4));
   padding-left: var(--safe-left);
   padding-right: var(--safe-right);
   overscroll-behavior: contain;
@@ -756,21 +757,22 @@ footer {
 /* ── 5. BOTTOM TABBAR ─────────────────────────────────────── */
 .mobile-tabbar {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: calc(var(--tabbar-h) + var(--safe-bottom));
-  padding-bottom: var(--safe-bottom);
-  padding-left: var(--safe-left);
-  padding-right: var(--safe-right);
-  background: var(--tab-bg);
-  box-shadow: var(--tab-shadow);
+  bottom: calc(var(--safe-bottom) + var(--tabbar-gap));
+  left: calc(var(--safe-left) + var(--sp-4));
+  right: calc(var(--safe-right) + var(--sp-4));
+  height: var(--tabbar-h);
+  padding: 7px;
+  border: 1px solid var(--glass-border);
+  border-radius: calc(var(--tabbar-h) / 2);
+  background: color-mix(in srgb, var(--tab-bg) 88%, transparent);
+  box-shadow: 0 18px 44px rgba(0, 30, 90, 0.18), 0 4px 12px rgba(0, 30, 90, 0.08);
   display: flex;
   align-items: stretch;
   z-index: var(--z-tabbar, 1000);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  transition: transform var(--dur-md) var(--ease-out), opacity var(--dur-sm) var(--ease-out);
+  overflow: hidden;
+  backdrop-filter: blur(22px) saturate(1.2);
+  -webkit-backdrop-filter: blur(22px) saturate(1.2);
+  transition: transform var(--dur-md) var(--ease-out), opacity var(--dur-sm) var(--ease-out), box-shadow var(--dur-sm) var(--ease-out);
 }
 
 body.is-spot-name-open .mobile-tabbar {
@@ -785,10 +787,11 @@ body.is-spot-name-open .mobile-tabbar {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 4px;
   padding: var(--sp-2) var(--sp-1);
+  border-radius: calc((var(--tabbar-h) - 14px) / 2);
   color: var(--tab-text);
-  transition: color var(--dur-sm) var(--ease-out);
+  transition: background var(--dur-sm) var(--ease-out), color var(--dur-sm) var(--ease-out), box-shadow var(--dur-sm) var(--ease-out), transform var(--dur-sm) var(--ease-out);
   position: relative;
   min-width: 0;
   -webkit-tap-highlight-color: transparent;
@@ -813,8 +816,8 @@ body.is-spot-name-open .mobile-tabbar {
 }
 
 .mobile-tab span {
-  font-size: 0.6rem;
-  font-weight: 500;
+  font-size: 0.64rem;
+  font-weight: 700;
   letter-spacing: 0.01em;
   white-space: nowrap;
   overflow: hidden;
@@ -823,24 +826,17 @@ body.is-spot-name-open .mobile-tabbar {
 }
 
 .mobile-tab.is-active {
+  background: var(--accent-soft);
   color: var(--tab-active);
+  box-shadow: inset 0 0 0 1px var(--border), 0 8px 20px rgba(0, 88, 204, 0.10);
 }
 
 .mobile-tab.is-active svg {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 .mobile-tab.is-active::after {
-  content: '';
-  position: absolute;
-  top: 6px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 28px;
-  height: 3px;
-  border-radius: var(--r-pill);
-  background: var(--tab-dot);
-  animation: tabDot var(--dur-md) var(--ease-spring);
+  display: none;
 }
 
 @keyframes tabDot {
@@ -1375,6 +1371,35 @@ input[type="range"]::-moz-range-thumb {
   border-radius: 0;
 }
 
+.spot-map.is-native-map {
+  background: transparent;
+}
+
+.spot-map.map-loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.06) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: mapShimmer 1.4s ease infinite;
+}
+
+@keyframes mapShimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
 .map-panel > .section-head {
   padding-left: var(--sp-4);
   padding-right: var(--sp-4);
@@ -1433,6 +1458,11 @@ body.is-map-fullscreen-active .mobile-tabbar {
   inset: 0;
 }
 
+.spot-map.has-map-provider .map-tiles,
+.spot-map.has-map-provider .map-markers {
+  display: none;
+}
+
 .spot-map.is-leaflet .map-tiles,
 .spot-map.is-leaflet .map-markers {
   pointer-events: none;
@@ -1489,6 +1519,7 @@ body.is-map-fullscreen-active .mobile-tabbar {
   flex-direction: column;
   gap: var(--sp-2);
   z-index: 700;
+  touch-action: manipulation;
 }
 
 .map-control {
@@ -1576,6 +1607,7 @@ body.is-map-fullscreen-active .mobile-tabbar {
   top: calc(var(--safe-top) + 100px);
   left: var(--sp-3);
   z-index: 700;
+  touch-action: manipulation;
 }
 
 .fish-filter-trigger {
@@ -1714,7 +1746,7 @@ body.is-map-fullscreen-active .mobile-tabbar {
 .map-layer-list {
   flex: 1;
   overflow-y: auto;
-  padding: var(--sp-2) var(--sp-3);
+  padding: var(--sp-2) var(--sp-3) calc(var(--tabbar-h) + var(--safe-bottom) + var(--sp-4));
   display: flex;
   flex-direction: column;
   gap: var(--sp-1);
@@ -1792,6 +1824,7 @@ body.is-map-fullscreen-active .mobile-tabbar {
 }
 
 .marine-overlay-control {
+  margin-top: var(--sp-2);
   padding: var(--sp-3) var(--sp-4);
   border-top: 1px solid var(--border);
 }
@@ -1891,6 +1924,7 @@ body.is-map-fullscreen-active .mobile-tabbar {
   flex-direction: column;
   gap: var(--sp-4);
   animation: slideUp var(--dur-md) var(--ease-out);
+  touch-action: manipulation;
 }
 
 .spot-name-sheet[aria-hidden="true"] {
@@ -1939,6 +1973,7 @@ body.is-map-fullscreen-active .mobile-tabbar {
   background: var(--bg-elevated);
   border-top: 1px solid var(--border);
   flex-wrap: wrap;
+  touch-action: manipulation;
 }
 
 .spot-dock-main {
@@ -2647,7 +2682,7 @@ body.is-map-fullscreen-active .mobile-tabbar {
 
 .weather-subtabs {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: 1fr 1fr 1.25fr;
   gap: var(--sp-2);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
@@ -2942,6 +2977,38 @@ body.is-map-fullscreen-active .mobile-tabbar {
   gap: var(--sp-2);
 }
 
+.journal-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.journal-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 5px 8px;
+  line-height: 1;
+}
+
+.journal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.journal-meta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border-radius: var(--r-pill);
+  background: var(--surface-chip);
+  padding: 4px 7px;
+}
+
 /* ── 21. PREFERENCES PANEL ────────────────────────────────── */
 .preferences-panel {
   padding-bottom: var(--sp-6);
@@ -3004,6 +3071,37 @@ body.is-map-fullscreen-active .mobile-tabbar {
   align-items: stretch;
 }
 
+.more-page .section-head {
+  padding-bottom: var(--sp-2);
+}
+
+.more-page .section-head h2 {
+  font-size: 1.9rem;
+}
+
+.more-page .preference-grid::before {
+  content: "Fishing profile";
+  color: var(--text-3);
+  font-family: var(--f-display);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.more-subscription-card {
+  order: 20;
+}
+
+.native-preferences {
+  order: 30;
+}
+
+.more-tool-panel {
+  border-top: 1px solid var(--border);
+  margin-top: var(--sp-2);
+}
+
 .preference-grid {
   display: flex;
   flex-direction: column;
@@ -3063,6 +3161,102 @@ body.is-map-fullscreen-active .mobile-tabbar {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-3);
+}
+
+.pro-preference {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--bg-card);
+}
+
+.pro-preference-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pro-preference-copy > span {
+  font-family: var(--f-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.pro-preference-copy strong {
+  color: var(--text-1);
+  font-size: 0.98rem;
+}
+
+.pro-preference-copy small {
+  color: var(--text-3);
+  line-height: 1.35;
+}
+
+.pro-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--text-3);
+  font-family: var(--f-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pro-toggle span.is-pro {
+  color: var(--accent);
+}
+
+.pro-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pro-toggle i {
+  position: relative;
+  width: 48px;
+  height: 28px;
+  border-radius: var(--r-pill);
+  background: var(--surface-control);
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 2px rgba(4, 17, 34, 0.08);
+  transition: background var(--dur-sm), border-color var(--dur-sm);
+}
+
+.pro-toggle i::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--dur-sm);
+}
+
+.pro-toggle input:checked + i {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.pro-toggle input:checked + i::after {
+  transform: translateX(20px);
+}
+
+.pro-toggle input:focus-visible + i {
+  outline: 3px solid var(--border-focus);
+  outline-offset: 2px;
 }
 
 .native-preferences {
@@ -3482,14 +3676,15 @@ body.is-map-fullscreen-active .mobile-tabbar {
   place-items: center;
   border: 0;
   border-radius: var(--r-pill);
-  background: var(--surface-control);
-  box-shadow: var(--shadow-md);
+  background: transparent;
+  box-shadow: none;
 }
 
 .fish-filter-icon {
   width: 30px;
   height: 30px;
   background: var(--accent-soft);
+  box-shadow: var(--shadow-md);
 }
 
 .fish-filter-icon svg,
@@ -3506,10 +3701,11 @@ body.is-map-fullscreen-active .mobile-tabbar {
 
 .map-progressive-marker {
   position: relative;
+  filter: drop-shadow(0 5px 8px rgba(4, 17, 34, 0.22));
   transition:
     opacity 180ms ease,
     transform 180ms ease,
-    box-shadow 180ms ease;
+    filter 180ms ease;
 }
 
 .map-progressive-marker.is-hidden {
@@ -3517,15 +3713,35 @@ body.is-map-fullscreen-active .mobile-tabbar {
 }
 
 .map-progressive-marker.is-active {
+  filter: drop-shadow(0 8px 12px rgba(4, 17, 34, 0.28));
   transform: scale(1.2);
 }
 
 .map-progressive-marker.is-zoom-5 {
-  box-shadow: 0 10px 24px rgba(4, 17, 34, 0.24), 0 0 0 4px rgba(0, 88, 204, 0.16);
+  filter: drop-shadow(0 8px 12px rgba(4, 17, 34, 0.24));
 }
 
 .map-progressive-marker.is-zoom-8 {
-  box-shadow: 0 8px 18px rgba(4, 17, 34, 0.2);
+  filter: drop-shadow(0 6px 10px rgba(4, 17, 34, 0.22));
+}
+
+.map-progressive-marker.is-active {
+  filter: drop-shadow(0 8px 12px rgba(4, 17, 34, 0.28));
+}
+
+.marker-pulse {
+  animation: markerPulse 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes markerPulse {
+  from {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  to {
+    transform: scale(1.35);
+    filter: brightness(1.4);
+  }
 }
 
 .map-db-pin-marker svg {
@@ -3562,23 +3778,22 @@ body.is-map-fullscreen-active .mobile-tabbar {
 }
 
 .osm-spot-marker.is-active {
-  background: var(--acc);
-  box-shadow: 0 0 0 4px rgba(0, 88, 204, 0.22), var(--shadow-md);
+  background: transparent;
+  box-shadow: none;
 }
 
 .osm-spot-marker.is-active svg {
-  fill: var(--text-inv);
-  stroke: var(--acc);
+  fill: var(--t2);
+  stroke: var(--bg-card);
 }
 
 .map-db-pin-marker.is-active {
-  background: var(--accent);
-  box-shadow: 0 0 0 4px rgba(0, 88, 204, 0.22), var(--shadow-md);
+  background: transparent;
+  box-shadow: none;
 }
 
 .map-db-pin-marker.is-active svg {
-  fill: var(--text-inv);
-  stroke: var(--accent);
+  stroke: var(--bg-card);
 }
 
 .map-pin-label {
@@ -3629,13 +3844,13 @@ body.is-map-fullscreen-active .mobile-tabbar {
 }
 
 .favorite-star-marker.is-active {
-  background: var(--acc);
-  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.24), var(--shadow-md);
+  background: transparent;
+  box-shadow: none;
 }
 
 .favorite-star-marker.is-active svg {
-  fill: var(--text-inv);
-  stroke: var(--acc);
+  fill: var(--acc);
+  stroke: var(--bg-card);
 }
 
 .discovery-spot-marker svg {
@@ -3656,13 +3871,12 @@ body.is-map-fullscreen-active .mobile-tabbar {
 }
 
 .discovery-spot-marker.is-active {
-  background: var(--accent);
-  box-shadow: 0 0 0 4px rgba(0, 88, 204, 0.22), var(--shadow-md);
+  background: transparent;
+  box-shadow: none;
 }
 
 .discovery-spot-marker.is-active svg {
-  fill: var(--text-inv);
-  stroke: var(--accent);
+  stroke: var(--bg-card);
 }
 
 .map-markers > .favorite-star-marker {
@@ -3827,13 +4041,13 @@ body.is-map-fullscreen-active .mobile-tabbar {
     padding-top: var(--safe-top);
   }
 
-  html[data-current-mobile-view="preferences"] .topbar {
+html[data-current-mobile-view="more"] .topbar {
     opacity: 1;
     pointer-events: auto;
     transform: none;
   }
 
-  html[data-current-mobile-view="preferences"] main {
+html[data-current-mobile-view="more"] main {
     padding-top: calc(var(--topbar-h) + var(--safe-top));
   }
 
@@ -3933,11 +4147,6 @@ body.is-map-fullscreen-active .mobile-tabbar {
 
   .map-sensitive-card {
     bottom: calc(var(--safe-bottom) + var(--tabbar-h) + var(--sp-3));
-  }
-
-  .mobile-tab[data-mobile-tab="tides"],
-  .mobile-tab[data-mobile-tab="astro"] {
-    display: none;
   }
 
   .forecast-strip-head {
@@ -4054,7 +4263,7 @@ body.is-map-fullscreen-active .mobile-tabbar {
 
   .weather-subtabs {
     overflow-x: hidden;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: 1fr 1fr 1.25fr;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
   }
@@ -4324,7 +4533,7 @@ body.is-map-fullscreen-active .mobile-tabbar {
 }
 
 .weather-subtabs {
-  grid-template-columns: 1.2fr 0.8fr 0.8fr 0.8fr;
+  grid-template-columns: 1fr 1fr 1.25fr;
 }
 
 .forces-panel {

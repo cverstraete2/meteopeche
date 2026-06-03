@@ -1,4 +1,4 @@
-const CACHE_NAME = "meteocatch-shell-20260528-overpass-spots-v1";
+const CACHE_NAME = "meteocatch-shell-20260603-native-layer-visibility-apply";
 const APP_SHELL = [
   "./",
   "./index.html",
