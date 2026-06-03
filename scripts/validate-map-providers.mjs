@@ -377,6 +377,7 @@ expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-route-count",
 expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-route-labels", "native bridge contract doc documents smoke route labels data attribute");
 expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-event-route-labels", "native bridge contract doc documents event smoke route labels data attribute");
 expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-capability-route-labels", "native bridge contract doc documents capability smoke route labels data attribute");
+expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-native-capability-errors", "native bridge contract doc documents native capability-error smoke metadata attribute");
 expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-unsupported-route-labels", "native bridge contract doc documents unsupported smoke route labels data attribute");
 expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-native-debug-datasets", "native bridge contract doc documents native debug dataset smoke metadata attribute");
 expectIncludes(contents.nativeBridgeDocs, "normalized `params`", "native bridge contract doc documents smoke route params");
@@ -508,6 +509,8 @@ expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmo
 expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmokeRouteLabels", "source records smoke route labels dataset");
 expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmokeEventRouteLabels", "source records event smoke route labels dataset");
 expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmokeCapabilityRouteLabels", "source records capability smoke route labels dataset");
+expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmokeNativeCapabilityErrors", "source records native capability-error smoke metadata");
+expectIncludes(contents.source, "JSON.stringify(nativeCapabilityErrorRoutes)", "source serializes native capability-error smoke metadata");
 expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmokeUnsupportedRouteLabels", "source records unsupported smoke route labels dataset");
 expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmokeNativeDebugDatasets", "source records native debug dataset smoke metadata");
 expectIncludes(contents.source, "JSON.stringify(nativeDebugDatasetRoutes)", "source serializes native debug dataset smoke metadata");

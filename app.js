@@ -16431,6 +16431,15 @@ function installMapProviderDebugInspector() {
   const capabilitySmokeRouteLabels = smokeRoutes
     .filter((route) => route.expected?.nativeCapabilityError || route.expected?.nativeCapabilityErrorPrefix)
     .map((route) => route.label);
+  const nativeCapabilityErrorRoutes = smokeRoutes
+    .filter((route) => route.expected?.nativeCapabilityError || route.expected?.nativeCapabilityErrorPrefix)
+    .reduce((routes, route) => {
+      routes[route.label] = {
+        error: route.expected?.nativeCapabilityError ?? "",
+        errorPrefix: route.expected?.nativeCapabilityErrorPrefix ?? "",
+      };
+      return routes;
+    }, {});
   const unsupportedSmokeRouteLabels = smokeRoutes
     .filter((route) => route.params?.mapProviderDebugBridgeUnsupported)
     .map((route) => route.label);
@@ -16492,6 +16501,7 @@ function installMapProviderDebugInspector() {
   document.documentElement.dataset.mapProviderSmokeRouteLabels = smokeRoutes.map((route) => route.label).join(",");
   document.documentElement.dataset.mapProviderSmokeEventRouteLabels = eventSmokeRouteLabels.join(",");
   document.documentElement.dataset.mapProviderSmokeCapabilityRouteLabels = capabilitySmokeRouteLabels.join(",");
+  document.documentElement.dataset.mapProviderSmokeNativeCapabilityErrors = JSON.stringify(nativeCapabilityErrorRoutes);
   document.documentElement.dataset.mapProviderSmokeUnsupportedRouteLabels = unsupportedSmokeRouteLabels.join(",");
   document.documentElement.dataset.mapProviderSmokeNativeDebugDatasets = JSON.stringify(nativeDebugDatasetRoutes);
 }
