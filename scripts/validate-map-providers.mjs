@@ -402,7 +402,10 @@ expectIncludes(contents.source, "document.documentElement.dataset.nativeMapBridg
 expectIncludes(contents.source, "document.documentElement.dataset.nativeMapBridgeDebugLastCameraCenter", "source records native bridge debug camera center");
 expectIncludes(contents.source, "document.documentElement.dataset.nativeMapBridgeDebugLastCameraZoom", "source records native bridge debug camera zoom");
 expectIncludes(contents.source, "rememberCameraEventPayload", "source local native debug bridge updates camera state from events");
+expectIncludes(contents.source, "if (zoom != null) lastCameraZoom = zoom;\n    recordRendererDebugDatasets();", "source refreshes renderer debug datasets after native camera events");
 expectIncludes(contents.source, "if (eventName === \"moveend\" || eventName === \"zoomend\") rememberCameraEventPayload(payload)", "source local native debug bridge mirrors move/zoom camera events");
+expectIncludes(contents.source, "if (command === \"destroy\") {\n      layerMembership.clear()", "source local native debug bridge handles destroy state cleanup");
+expectIncludes(contents.source, "lastCameraZoom = null;\n    }\n    recordRendererDebugDatasets();", "source refreshes renderer debug datasets after recorded native commands");
 expectIncludes(contents.source, "frame: rendererFrame", "source local native debug bridge exposes renderer frame");
 expectIncludes(contents.source, "lastCameraCenter", "source local native debug bridge exposes camera center");
 expectIncludes(contents.source, "lastCameraZoom", "source local native debug bridge exposes camera zoom");
