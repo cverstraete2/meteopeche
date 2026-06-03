@@ -16425,6 +16425,14 @@ function mapProviderSmokeRoutes(baseUrl = window.location.href) {
 
 function installMapProviderDebugInspector() {
   const smokeRoutes = mapProviderSmokeRoutes();
+  const expectedOutcomeRoutes = smokeRoutes.reduce((routes, route) => {
+    routes[route.label] = {
+      provider: route.expected?.provider ?? "",
+      preference: route.expected?.preference ?? "",
+      fallbackReason: route.expected?.fallbackReason ?? "",
+    };
+    return routes;
+  }, {});
   const eventSmokeRouteLabels = smokeRoutes
     .filter((route) => Number(route.expected?.nativeEventCountMin) > 0)
     .map((route) => route.label);
@@ -16499,6 +16507,7 @@ function installMapProviderDebugInspector() {
   document.documentElement.dataset.mapProviderDebugInspector = "ready";
   document.documentElement.dataset.mapProviderSmokeRouteCount = String(smokeRoutes.length);
   document.documentElement.dataset.mapProviderSmokeRouteLabels = smokeRoutes.map((route) => route.label).join(",");
+  document.documentElement.dataset.mapProviderSmokeExpectedOutcomes = JSON.stringify(expectedOutcomeRoutes);
   document.documentElement.dataset.mapProviderSmokeEventRouteLabels = eventSmokeRouteLabels.join(",");
   document.documentElement.dataset.mapProviderSmokeCapabilityRouteLabels = capabilitySmokeRouteLabels.join(",");
   document.documentElement.dataset.mapProviderSmokeNativeCapabilityErrors = JSON.stringify(nativeCapabilityErrorRoutes);
