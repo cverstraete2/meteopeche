@@ -498,7 +498,7 @@ To verify failed experimental SDK startup still recovers to the current map, add
 
 Those routes should report `data-map-provider="leaflet-openmap"` with `data-map-provider-fallback-reason="mount-failed"`.
 
-For a canonical local QA route list, inspect `window.METEOPECHE_MAP_PROVIDER_DEBUG.mapProviderSmokeRoutes()` in the browser console.
+For a canonical local QA route list, inspect `window.METEOPECHE_MAP_PROVIDER_DEBUG.mapProviderSmokeRoutes()` in the browser console. Browser-only harnesses can also read the mirrored DOM metadata from `data-map-provider-smoke-route-labels`, `data-map-provider-smoke-route-params`, `data-map-provider-smoke-route-urls`, `data-map-provider-smoke-expected-outcomes`, `data-map-provider-smoke-native-capability-errors`, and `data-map-provider-smoke-native-debug-datasets`.
 
 Useful local checks:
 

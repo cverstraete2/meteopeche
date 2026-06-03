@@ -161,6 +161,10 @@ expectIncludes(contents.readme, "mapProviderExperimental=apple-web&mapProviderDe
 expectIncludes(contents.readme, "mapProviderDebugSdkFail=google", "README documents local Google web debug failure route");
 expectIncludes(contents.readme, "data-map-provider-fallback-reason=\"mount-failed\"", "README documents web debug failure fallback reason");
 expectIncludes(contents.readme, "mapProviderSmokeRoutes()", "README documents provider smoke route inspector");
+expectIncludes(contents.readme, "data-map-provider-smoke-route-urls", "README documents DOM smoke route URL metadata");
+expectIncludes(contents.readme, "data-map-provider-smoke-expected-outcomes", "README documents DOM smoke route expected outcome metadata");
+expectIncludes(contents.readme, "data-map-provider-smoke-native-capability-errors", "README documents DOM native capability error metadata");
+expectIncludes(contents.readme, "data-map-provider-smoke-native-debug-datasets", "README documents DOM native debug dataset metadata");
 expectIncludes(contents.docs, "npm run map-provider:validate", "strategy doc mentions provider validation command");
 expectIncludes(contents.docs, "20260603-native-smoke-capability-routes", "strategy doc mentions provider cache version");
 expectIncludes(contents.docs, "bridge-unavailable", "strategy doc mentions native bridge unavailable fallback");
