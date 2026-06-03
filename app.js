@@ -3373,9 +3373,11 @@ class GoogleMapsWebProvider {
   }
 
   normalizeShapeEvent(payload, shape) {
-    const position = payload?.latLng ?? shape?.getCenter?.() ?? mapProviderGoogleLatLngLiteral(shape?.__meteoPecheShapeCenter);
+    const position = mapProviderEventLatLng(payload)
+      ?? mapProviderLatLngFromGoogle(shape?.getCenter?.())
+      ?? mapProviderLatLngFromGoogle(shape?.__meteoPecheShapeCenter);
     return {
-      latlng: mapProviderLatLngFromGoogle(position),
+      latlng: position,
       originalEvent: payload?.domEvent ?? payload,
     };
   }
@@ -4081,7 +4083,7 @@ class AppleMapsWebProvider {
   }
 
   normalizeAnnotationEvent(payload, marker) {
-    const position = marker?.getPosition?.();
+    const position = mapProviderEventLatLng(payload) ?? marker?.getPosition?.();
     return {
       latlng: position ? { lat: position.lat, lng: position.lng } : null,
       originalEvent: payload?.domEvent ?? payload,
@@ -4089,7 +4091,7 @@ class AppleMapsWebProvider {
   }
 
   normalizeShapeEvent(payload, shape) {
-    const position = shape?.getCenter?.();
+    const position = mapProviderEventLatLng(payload) ?? shape?.getCenter?.();
     return {
       latlng: position ? { lat: position.lat, lng: position.lng } : null,
       originalEvent: payload?.domEvent ?? payload,
@@ -4771,7 +4773,7 @@ class NativeBridgeMapProvider {
     const callback = this.itemCallbacks.get(payload.itemId)?.[eventName];
     if (!callback) return;
     callback({
-      latlng: payload.latlng ?? this.itemEventLatLng(payload.itemId),
+      latlng: mapProviderEventLatLng(payload) ?? this.itemEventLatLng(payload.itemId),
       originalEvent: payload.originalEvent ?? payload,
     });
   }
@@ -5058,6 +5060,7 @@ function mapProviderCoordinatePair(value) {
 }
 
 function mapProviderEventLatLng(event = {}) {
+  event = event ?? {};
   const candidates = [
     event.latlng,
     event.latLng,

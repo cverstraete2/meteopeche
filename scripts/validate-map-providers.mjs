@@ -419,7 +419,10 @@ expectIncludes(contents.source, "nativePayloadLatLng", "source derives fallback 
 expectIncludes(contents.source, "function mapProviderEventLatLng", "source centralizes provider event coordinate extraction");
 expectIncludes(contents.source, "const latlng = mapProviderEventLatLng(event);", "source uses normalized provider event coordinates for map selection");
 expectIncludes(contents.source, "latlng: mapProviderEventLatLng(payload)", "source normalizes native click payload coordinates through shared helper");
-expectIncludes(contents.source, "payload.latlng ?? this.itemEventLatLng(payload.itemId)", "source falls back native item events to stored item coordinates");
+expectIncludes(contents.source, "mapProviderEventLatLng(payload) ?? this.itemEventLatLng(payload.itemId)", "source falls back native item events from normalized coordinates to stored item coordinates");
+expectIncludes(contents.source, "mapProviderEventLatLng(payload)\n      ?? mapProviderLatLngFromGoogle(shape?.getCenter?.())", "source normalizes Google shape click coordinates before center fallback");
+expectIncludes(contents.source, "mapProviderEventLatLng(payload) ?? marker?.getPosition?.()", "source normalizes Apple marker click coordinates before marker fallback");
+expectIncludes(contents.source, "mapProviderEventLatLng(payload) ?? shape?.getCenter?.()", "source normalizes Apple shape click coordinates before center fallback");
 expectIncludes(contents.source, "nativePayloadLatLng(itemPayloads.get(itemId))", "local native debug bridge simulates item clicks from stored item payloads");
 expectIncludes(contents.source, "bridge.simulateItemClick({\n          providerId,\n          itemId,\n        })", "local native debug bridge auto-simulates item-only clicks");
 expectIncludes(contents.source, "payload.camera?.target", "source supports native camera target event payloads");
@@ -943,7 +946,8 @@ function expectWebShapeCenterFallback(content, labelPrefix) {
   const googleRegion = googleStart >= 0 && googleEnd > googleStart ? content.slice(googleStart, googleEnd) : "";
   expect(googleRegion.includes("__meteoPecheShapeCenter"), `${labelPrefix} Google web stores fallback shape center`);
   expect(googleRegion.includes("normalizeShapeEvent(payload, shape)"), `${labelPrefix} Google web normalizes shape click events with fallback center`);
-  expect(googleRegion.includes("mapProviderLatLngFromGoogle(position)"), `${labelPrefix} Google web converts fallback shape center to latlng`);
+  expect(googleRegion.includes("mapProviderEventLatLng(payload)"), `${labelPrefix} Google web prefers normalized shape click coordinates`);
+  expect(googleRegion.includes("mapProviderLatLngFromGoogle(shape?.__meteoPecheShapeCenter)"), `${labelPrefix} Google web converts fallback shape center to latlng`);
 
   const appleStart = content.indexOf("class AppleMapsWebShapeOverlay");
   const appleEnd = content.indexOf("class NativeBridgeMapProvider");
