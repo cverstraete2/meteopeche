@@ -6538,6 +6538,14 @@ function installLocalNativeMapBridgeDebug() {
     [...tileOverlayDefinitions.entries()].map(([overlayId, definition]) => [overlayId, definition?.type ?? ""]),
   );
   const tileOverlayVisibilityState = () => Object.fromEntries(tileOverlayVisibility.entries());
+  const markerIdsState = () => [...itemTypes.entries()]
+    .filter(([, type]) => type === "marker")
+    .map(([itemId]) => itemId)
+    .sort();
+  const shapeIdsState = () => [...itemTypes.entries()]
+    .filter(([, type]) => ["circle", "circle-marker", "polyline", "polygon", "shape"].includes(type))
+    .map(([itemId]) => itemId)
+    .sort();
   const markerPayloadCount = (key) => [...itemPayloads.values()].filter((payload) => {
     if (key === "iconAnchor" || key === "tooltipAnchor" || key === "popupAnchor") {
       return Array.isArray(payload?.icon?.[key]) && Array.isArray(payload?.icon?.iconSize);
@@ -6569,6 +6577,8 @@ function installLocalNativeMapBridgeDebug() {
     layerVisibility: layerVisibilityState(),
     itemVisibility: itemVisibilityState(),
     itemTypeCounts: itemTypeCountsState(),
+    markerIds: markerIdsState(),
+    shapeIds: shapeIdsState(),
     markerClassNames: markerClassNamesState(),
     markerAnchorCount: markerPayloadCount("iconAnchor"),
     markerTooltipAnchorCount: markerPayloadCount("tooltipAnchor"),
@@ -6843,6 +6853,8 @@ function installLocalNativeMapBridgeDebug() {
       document.documentElement.dataset.nativeMapBridgeDebugTileOverlayVisibility = JSON.stringify(tileOverlayVisibilityState());
       document.documentElement.dataset.nativeMapBridgeDebugItemVisibility = JSON.stringify(itemVisibilityState());
       document.documentElement.dataset.nativeMapBridgeDebugItemTypeCounts = JSON.stringify(itemTypeCountsState());
+      document.documentElement.dataset.nativeMapBridgeDebugMarkerIds = markerIdsState().join(",");
+      document.documentElement.dataset.nativeMapBridgeDebugShapeIds = shapeIdsState().join(",");
       document.documentElement.dataset.nativeMapBridgeDebugMarkerClassNames = markerClassNamesState().join("|");
       document.documentElement.dataset.nativeMapBridgeDebugMarkerAnchorCount = String(markerPayloadCount("iconAnchor"));
       document.documentElement.dataset.nativeMapBridgeDebugMarkerTooltipAnchorCount = String(markerPayloadCount("tooltipAnchor"));

@@ -309,6 +309,10 @@ expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-tile-ove
 expectIncludes(contents.nativeBridgeDocs, "renderer.tileOverlayCount", "native bridge contract doc documents debug renderer tile overlay count");
 expectIncludes(contents.nativeBridgeDocs, "renderer.tileOverlayTypes", "native bridge contract doc documents debug renderer tile overlay types");
 expectIncludes(contents.nativeBridgeDocs, "renderer.tileOverlayVisibility", "native bridge contract doc documents debug renderer tile overlay visibility");
+expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-marker-ids", "native bridge contract doc documents debug marker ids data attribute");
+expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-shape-ids", "native bridge contract doc documents debug shape ids data attribute");
+expectIncludes(contents.nativeBridgeDocs, "renderer.markerIds", "native bridge contract doc documents debug renderer marker ids");
+expectIncludes(contents.nativeBridgeDocs, "renderer.shapeIds", "native bridge contract doc documents debug renderer shape ids");
 expectIncludes(contents.nativeBridgeDocs, "`setLayerVisible` should apply to every native item currently owned by that layer", "native bridge contract doc requires layer visibility to apply to member items");
 expectIncludes(contents.nativeBridgeDocs, "renderer.itemVisibility", "native bridge contract doc documents debug renderer item visibility");
 expectIncludes(contents.nativeBridgeDocs, "renderer.pinTierVisibility", "native bridge contract doc documents debug renderer pin-tier visibility");
@@ -383,6 +387,8 @@ expectIncludes(contents.source, "tileOverlayDefinitions = new Map()", "source lo
 expectIncludes(contents.source, "tileOverlayVisibilityState", "source local native debug bridge tracks tile overlay visibility");
 expectIncludes(contents.source, "tileOverlayIdsState", "source local native debug bridge tracks tile overlay ids");
 expectIncludes(contents.source, "tileOverlayTypesState", "source local native debug bridge tracks tile overlay types");
+expectIncludes(contents.source, "markerIdsState", "source local native debug bridge tracks marker ids");
+expectIncludes(contents.source, "shapeIdsState", "source local native debug bridge tracks shape ids");
 expectIncludes(contents.source, "setLayerItemVisibility", "source local native debug bridge applies layer visibility to member items");
 expectIncludes(contents.source, "payload.isLayer === true", "source local native debug bridge records child layer membership");
 expectIncludes(contents.source, "setLayerItemVisibility(childLayerId, visible, visitedLayerIds)", "source local native debug bridge cascades layer visibility to child layers");
@@ -428,6 +434,8 @@ expectIncludes(contents.source, "class GoogleMapsWebHtmlMarker", "source keeps G
 expectNotIncludes(classRegion(contents.source, "GoogleMapsWebHtmlMarker", "AppleMapsWebProvider"), "cleanupGoogleMapItem(this)", "Google HTML marker hide/show preserves listeners");
 expectIncludes(contents.source, "document.documentElement.dataset.nativeMapBridgeDebugLayerCount", "source local native debug bridge records DOM layer count");
 expectIncludes(contents.source, "document.documentElement.dataset.nativeMapBridgeDebugItemVisibility", "source local native debug bridge records DOM item visibility");
+expectIncludes(contents.source, "document.documentElement.dataset.nativeMapBridgeDebugMarkerIds", "source local native debug bridge records DOM marker ids");
+expectIncludes(contents.source, "document.documentElement.dataset.nativeMapBridgeDebugShapeIds", "source local native debug bridge records DOM shape ids");
 expectIncludes(contents.source, "document.documentElement.dataset.nativeMapBridgeDebugPinTierCount", "source local native debug bridge records DOM pin-tier count");
 expectIncludes(contents.source, "lastContainerMetrics: lastContainerMetrics()", "source local native debug bridge exposes last container metrics");
 expectIncludes(contents.source, "eventTypeCounts: eventTypeCounts()", "source local native debug bridge exposes event type counts");
