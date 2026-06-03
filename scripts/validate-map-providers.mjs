@@ -656,6 +656,8 @@ expectIncludes(contents.iosNativeMapPlugin, "\"tileOverlayTypes\"", "iOS native 
 expectIncludes(contents.iosNativeMapPlugin, "private class MeteoPecheMapAnnotation", "iOS native map plugin defines dormant MapKit annotation");
 expectIncludes(contents.iosNativeMapPlugin, "private var annotations: [String: MeteoPecheMapAnnotation]", "iOS native map plugin tracks MapKit annotations");
 expectIncludes(contents.iosNativeMapPlugin, "private var shapeOverlays: [String: MKOverlay]", "iOS native map plugin tracks MapKit shape overlays");
+expectIncludes(contents.iosNativeMapPlugin, "\"markerIds\": Array(annotations.keys).sorted()", "iOS native map plugin exposes provider-neutral marker ids");
+expectIncludes(contents.iosNativeMapPlugin, "\"shapeIds\": Array(shapeOverlays.keys).sorted()", "iOS native map plugin exposes provider-neutral shape ids");
 expectIncludes(contents.iosNativeMapPlugin, "\"markerCalloutCount\": markerCalloutCount()", "iOS native map plugin exposes marker callout debug count");
 expectIncludes(contents.iosNativeMapPlugin, "private func markerCalloutCount", "iOS native map plugin counts marker callout-ready payloads");
 expectIncludes(contents.iosNativeMapPlugin, "\"itemTypeCounts\": itemTypeCountsDebugState()", "iOS native map plugin exposes item type counts");
