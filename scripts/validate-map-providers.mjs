@@ -250,6 +250,7 @@ expectIncludes(
 ].forEach((helper) => {
   expectIncludes(contents.source, `function ${helper}`, `source defines ${helper}`);
 });
+expectIncludes(contents.source, "tooltipAnchor: options.tooltipAnchor ?? null", "source preserves tooltipAnchor in native div-icon payloads");
 
 expectIncludes(contents.docs, "nativeBridgeContract(providerId)", "strategy doc mentions native bridge contract inspector");
 expectIncludes(contents.docs, "Default builds still support only Leaflet/OpenMap", "strategy doc records default Leaflet safety");
@@ -305,6 +306,7 @@ expectIncludes(contents.nativeBridgeDocs, "renderer.layerVisibility", "native br
 expectIncludes(contents.nativeBridgeDocs, "`setLayerVisible` should apply to every native item currently owned by that layer", "native bridge contract doc requires layer visibility to apply to member items");
 expectIncludes(contents.nativeBridgeDocs, "renderer.itemVisibility", "native bridge contract doc documents debug renderer item visibility");
 expectIncludes(contents.nativeBridgeDocs, "renderer.pinTierVisibility", "native bridge contract doc documents debug renderer pin-tier visibility");
+expectIncludes(contents.nativeBridgeDocs, "tooltipAnchor", "native bridge contract doc documents native icon tooltip anchors");
 expectIncludes(contents.nativeBridgeDocs, "shape popup and tooltip counts", "native bridge contract doc documents shape popup and tooltip debug telemetry");
 expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-container-metrics", "native bridge contract doc documents debug container metrics");
 expectIncludes(contents.nativeBridgeDocs, "visible `MKMapView` lifecycle", "native bridge contract doc documents active iOS MapKit renderer lifecycle");
@@ -381,6 +383,7 @@ expectIncludes(contents.source, "markerClassNamesState", "source local native de
 expectIncludes(contents.source, "nativeMapBridgeDebugItemTypeCounts", "source records native bridge debug item type counts");
 expectIncludes(contents.source, "nativeMapBridgeDebugMarkerClassNames", "source records native bridge debug marker class names");
 expectIncludes(contents.source, "nativeMapBridgeDebugMarkerAnchorCount", "source records native bridge debug marker anchor count");
+expectIncludes(contents.source, "nativeMapBridgeDebugMarkerTooltipAnchorCount", "source records native bridge debug marker tooltip-anchor count");
 expectIncludes(contents.source, "nativeMapBridgeDebugMarkerOpacityCount", "source records native bridge debug marker opacity count");
 expectIncludes(contents.source, "nativeMapBridgeDebugMarkerZIndexCount", "source records native bridge debug marker z-index count");
 expectIncludes(contents.source, "nativeMapBridgeDebugShapePopupCount", "source records native bridge debug shape popup count");
@@ -482,6 +485,7 @@ expectIncludes(contents.androidNativeMapPlugin, "private JSObject rendererFrame"
 expectIncludes(contents.androidNativeMapPlugin, "renderer.put(\"itemTypeCounts\", itemTypeCountsJson())", "Android native map plugin exposes item type counts");
 expectIncludes(contents.androidNativeMapPlugin, "renderer.put(\"markerClassNames\", markerClassNamesJson())", "Android native map plugin exposes marker class names");
 expectIncludes(contents.androidNativeMapPlugin, "renderer.put(\"markerAnchorCount\", markerPayloadCount(\"iconAnchor\"))", "Android native map plugin exposes marker anchor debug count");
+expectIncludes(contents.androidNativeMapPlugin, "renderer.put(\"markerTooltipAnchorCount\", markerPayloadCount(\"tooltipAnchor\"))", "Android native map plugin exposes marker tooltip-anchor debug count");
 expectIncludes(contents.androidNativeMapPlugin, "renderer.put(\"markerOpacityCount\", markerPayloadCount(\"opacity\"))", "Android native map plugin exposes marker opacity debug count");
 expectIncludes(contents.androidNativeMapPlugin, "renderer.put(\"markerZIndexCount\", markerPayloadCount(\"zIndexOffset\"))", "Android native map plugin exposes marker z-index debug count");
 expectIncludes(contents.androidNativeMapPlugin, "private JSObject itemTypeCountsJson", "Android native map plugin computes item type counts");
@@ -625,6 +629,7 @@ expectIncludes(contents.iosNativeMapPlugin, "private func markerCalloutCount", "
 expectIncludes(contents.iosNativeMapPlugin, "\"itemTypeCounts\": itemTypeCountsDebugState()", "iOS native map plugin exposes item type counts");
 expectIncludes(contents.iosNativeMapPlugin, "\"markerClassNames\": markerClassNamesDebugState()", "iOS native map plugin exposes marker class names");
 expectIncludes(contents.iosNativeMapPlugin, "\"markerAnchorCount\": markerPayloadCount(for: \"iconAnchor\")", "iOS native map plugin exposes marker anchor debug count");
+expectIncludes(contents.iosNativeMapPlugin, "\"markerTooltipAnchorCount\": markerPayloadCount(for: \"tooltipAnchor\")", "iOS native map plugin exposes marker tooltip-anchor debug count");
 expectIncludes(contents.iosNativeMapPlugin, "\"markerOpacityCount\": markerPayloadCount(for: \"opacity\")", "iOS native map plugin exposes marker opacity debug count");
 expectIncludes(contents.iosNativeMapPlugin, "\"markerZIndexCount\": markerPayloadCount(for: \"zIndexOffset\")", "iOS native map plugin exposes marker z-index debug count");
 expectIncludes(contents.iosNativeMapPlugin, "private func itemTypeCountsDebugState", "iOS native map plugin computes item type counts");

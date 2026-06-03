@@ -5427,6 +5427,7 @@ function nativeDivIconPayload(icon) {
     html: options.html ?? "",
     iconSize: options.iconSize ?? null,
     iconAnchor: options.iconAnchor ?? null,
+    tooltipAnchor: options.tooltipAnchor ?? null,
     popupAnchor: options.popupAnchor ?? null,
   };
 }
@@ -6531,8 +6532,8 @@ function installLocalNativeMapBridgeDebug() {
     return counts;
   }, {});
   const markerPayloadCount = (key) => [...itemPayloads.values()].filter((payload) => {
-    if (key === "iconAnchor") {
-      return Array.isArray(payload?.icon?.iconAnchor) && Array.isArray(payload?.icon?.iconSize);
+    if (key === "iconAnchor" || key === "tooltipAnchor") {
+      return Array.isArray(payload?.icon?.[key]) && Array.isArray(payload?.icon?.iconSize);
     }
     return payload?.[key] !== undefined;
   }).length;
@@ -6559,6 +6560,7 @@ function installLocalNativeMapBridgeDebug() {
     itemTypeCounts: itemTypeCountsState(),
     markerClassNames: markerClassNamesState(),
     markerAnchorCount: markerPayloadCount("iconAnchor"),
+    markerTooltipAnchorCount: markerPayloadCount("tooltipAnchor"),
     markerOpacityCount: markerPayloadCount("opacity"),
     markerZIndexCount: markerPayloadCount("zIndexOffset"),
     shapePopupCount: shapePayloadCount("popup"),
@@ -6815,6 +6817,7 @@ function installLocalNativeMapBridgeDebug() {
       document.documentElement.dataset.nativeMapBridgeDebugItemTypeCounts = JSON.stringify(itemTypeCountsState());
       document.documentElement.dataset.nativeMapBridgeDebugMarkerClassNames = markerClassNamesState().join("|");
       document.documentElement.dataset.nativeMapBridgeDebugMarkerAnchorCount = String(markerPayloadCount("iconAnchor"));
+      document.documentElement.dataset.nativeMapBridgeDebugMarkerTooltipAnchorCount = String(markerPayloadCount("tooltipAnchor"));
       document.documentElement.dataset.nativeMapBridgeDebugMarkerOpacityCount = String(markerPayloadCount("opacity"));
       document.documentElement.dataset.nativeMapBridgeDebugMarkerZIndexCount = String(markerPayloadCount("zIndexOffset"));
       document.documentElement.dataset.nativeMapBridgeDebugShapePopupCount = String(shapePayloadCount("popup"));
