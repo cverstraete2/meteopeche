@@ -3672,6 +3672,84 @@ body.is-map-fullscreen-active .mobile-tabbar {
   justify-self: start;
 }
 
+.smart-alert-preferences {
+  gap: var(--sp-3);
+}
+
+.smart-alert-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-3);
+}
+
+.smart-alert-context,
+.smart-alert-toggle {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+  background: var(--bg-card);
+}
+
+.smart-alert-context small,
+.smart-alert-context strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.smart-alert-context small,
+.smart-alert-status {
+  color: var(--text-3);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.smart-alert-context strong {
+  margin-top: 2px;
+  color: var(--text-1);
+  font-size: 0.95rem;
+}
+
+.smart-alert-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--text-1);
+  font-weight: 800;
+}
+
+.smart-alert-toggle input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+
+.smart-alert-preview {
+  border: 1px solid var(--border-focus);
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+  color: var(--text-2);
+  background: var(--accent-soft);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.smart-alert-actions {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.smart-alert-actions .primary-button,
+.smart-alert-actions .ghost-button {
+  min-height: 42px;
+}
+
+.smart-alert-status {
+  display: block;
+}
+
 /* ── 22. GENERATED APP COMPATIBILITY ─────────────────────── */
 .day-strip {
   display: block;
@@ -4891,6 +4969,18 @@ html[data-current-mobile-view="more"] main {
 
   .native-preferences {
     grid-column: 1 / -1;
+  }
+
+  .smart-alert-preferences {
+    grid-column: 1 / -1;
+  }
+
+  .smart-alert-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .smart-alert-actions {
+    flex-direction: row;
   }
 
   .native-status-grid {

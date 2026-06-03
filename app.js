@@ -2202,6 +2202,16 @@ const els = {
   nativeNotificationButton: document.querySelector("#nativeNotificationButton"),
   nativePrivacyButton: document.querySelector("#nativePrivacyButton"),
   nativeOnboardingButton: document.querySelector("#nativeOnboardingButton"),
+  smartAlertSpot: document.querySelector("#smartAlertSpot"),
+  smartAlertSpecies: document.querySelector("#smartAlertSpecies"),
+  smartAlertType: document.querySelector("#smartAlertType"),
+  smartAlertEnabled: document.querySelector("#smartAlertEnabled"),
+  smartAlertQuietStart: document.querySelector("#smartAlertQuietStart"),
+  smartAlertQuietEnd: document.querySelector("#smartAlertQuietEnd"),
+  smartAlertPreview: document.querySelector("#smartAlertPreview"),
+  smartAlertScheduleButton: document.querySelector("#smartAlertScheduleButton"),
+  smartAlertCancelButton: document.querySelector("#smartAlertCancelButton"),
+  smartAlertStatus: document.querySelector("#smartAlertStatus"),
   activityFish: document.querySelector("#activityFish"),
   activityRing: document.querySelector("#activityRing"),
   activityScore: document.querySelector("#activityScore"),
@@ -11129,6 +11139,12 @@ function bindEvents() {
     renderNativeStatus();
   });
   els.nativeOnboardingButton?.addEventListener("click", () => showOnboarding({ force: true }));
+  els.smartAlertType?.addEventListener("change", renderSmartAlertSetup);
+  els.smartAlertEnabled?.addEventListener("change", () => updateSelectedSmartAlert({ enabled: els.smartAlertEnabled.checked }));
+  els.smartAlertQuietStart?.addEventListener("change", updateSmartAlertQuietHours);
+  els.smartAlertQuietEnd?.addEventListener("change", updateSmartAlertQuietHours);
+  els.smartAlertScheduleButton?.addEventListener("click", handleSmartAlertSchedule);
+  els.smartAlertCancelButton?.addEventListener("click", handleSmartAlertCancel);
   els.languageSelect?.addEventListener("change", () => {
     setLanguagePreference(els.languageSelect.value);
   });
@@ -12743,6 +12759,85 @@ function renderPreferenceControls(day = getSelectedDay()) {
       return chip;
     }));
   }
+
+  renderSmartAlertSetup();
+}
+
+function renderSmartAlertSetup() {
+  if (!els.smartAlertType) return;
+  populateSmartAlertTypes();
+
+  state.smartAlerts = normalizeSmartAlertSettings(state.smartAlerts);
+  const type = SMART_ALERT_TYPES.includes(els.smartAlertType.value) ? els.smartAlertType.value : SMART_ALERT_TYPES[0];
+  const config = SMART_ALERT_CATALOG[type];
+  const alertSettings = state.smartAlerts.alerts[type];
+  const scheduled = normalizeSmartAlertSchedule(state.smartAlertSchedule);
+
+  els.smartAlertType.value = type;
+  if (els.smartAlertSpot) els.smartAlertSpot.textContent = getActiveSpot().name;
+  if (els.smartAlertSpecies) els.smartAlertSpecies.textContent = getFishLabel(normalizeActivityFish(state.activityFish));
+  if (els.smartAlertEnabled) els.smartAlertEnabled.checked = Boolean(alertSettings?.enabled);
+  if (els.smartAlertQuietStart) els.smartAlertQuietStart.value = state.smartAlerts.quietHours.start;
+  if (els.smartAlertQuietEnd) els.smartAlertQuietEnd.value = state.smartAlerts.quietHours.end;
+  if (els.smartAlertPreview) {
+    const mode = config.proRequired ? "Pro" : "Inclus";
+    const lead = config.deliveryTime ? `à ${config.deliveryTime}` : `${alertSettings.leadMinutes} min avant`;
+    els.smartAlertPreview.textContent = `${config.label} · ${mode} · ${lead}. ${config.description} ${config.uncertaintyNote}`;
+  }
+  if (els.smartAlertStatus) {
+    els.smartAlertStatus.textContent = scheduled.length
+      ? `${scheduled.length} alertes programmées pour ${scheduled[0].spotName}.`
+      : "Aucune alerte programmée.";
+  }
+}
+
+function populateSmartAlertTypes() {
+  if (!els.smartAlertType || els.smartAlertType.options.length) return;
+  SMART_ALERT_TYPES.forEach((type) => {
+    const option = document.createElement("option");
+    option.value = type;
+    option.textContent = SMART_ALERT_CATALOG[type].label;
+    els.smartAlertType.append(option);
+  });
+}
+
+function updateSelectedSmartAlert(partial = {}) {
+  if (!els.smartAlertType) return;
+  const type = SMART_ALERT_TYPES.includes(els.smartAlertType.value) ? els.smartAlertType.value : SMART_ALERT_TYPES[0];
+  state.smartAlerts = normalizeSmartAlertSettings(state.smartAlerts);
+  state.smartAlerts.alerts[type] = {
+    ...state.smartAlerts.alerts[type],
+    ...partial,
+  };
+  saveSettings();
+  renderSmartAlertSetup();
+}
+
+function updateSmartAlertQuietHours() {
+  state.smartAlerts = normalizeSmartAlertSettings({
+    ...state.smartAlerts,
+    quietHours: {
+      start: els.smartAlertQuietStart?.value,
+      end: els.smartAlertQuietEnd?.value,
+    },
+  });
+  saveSettings();
+  renderSmartAlertSetup();
+}
+
+async function handleSmartAlertSchedule() {
+  if (!state.notificationsEnabled || state.native.notificationPermission !== "granted") {
+    await requestNotificationPermission();
+  }
+  const result = await scheduleSmartFishingAlerts();
+  if (els.smartAlertStatus) els.smartAlertStatus.textContent = result.message;
+  renderSmartAlertSetup();
+}
+
+async function handleSmartAlertCancel() {
+  const result = await cancelSmartFishingAlerts();
+  if (els.smartAlertStatus) els.smartAlertStatus.textContent = `${result.canceled} alertes annulées.`;
+  renderSmartAlertSetup();
 }
 
 function preferenceSummaryChips(day, profile, species) {

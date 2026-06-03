@@ -298,6 +298,42 @@ try {
           <p class="privacy-copy">Le GPS n'est utilisé que pour sélectionner un spot et charger les conditions. Les photos du journal restent dans le stockage local de l'appareil. Les services météo, cartographie et eau reçoivent seulement les coordonnées nécessaires. <a href="privacy.html" target="_blank" rel="noopener">Politique de confidentialité</a></p>
           <button class="ghost-button native-onboarding-button" id="nativeOnboardingButton" type="button">Revoir l'onboarding</button>
         </div>
+
+        <div class="preference-control smart-alert-preferences">
+          <span>Alertes pêche</span>
+          <div class="smart-alert-grid">
+            <div class="smart-alert-context">
+              <small>Spot actif</small>
+              <strong id="smartAlertSpot">--</strong>
+            </div>
+            <div class="smart-alert-context">
+              <small>Espèce</small>
+              <strong id="smartAlertSpecies">--</strong>
+            </div>
+            <label class="field" for="smartAlertType">
+              <span>Type d'alerte</span>
+              <select id="smartAlertType"></select>
+            </label>
+            <label class="smart-alert-toggle" for="smartAlertEnabled">
+              <input id="smartAlertEnabled" type="checkbox" />
+              <span>Activer ce type</span>
+            </label>
+            <label class="field" for="smartAlertQuietStart">
+              <span>Silence dès</span>
+              <input id="smartAlertQuietStart" type="time" value="21:00" />
+            </label>
+            <label class="field" for="smartAlertQuietEnd">
+              <span>Reprendre à</span>
+              <input id="smartAlertQuietEnd" type="time" value="07:00" />
+            </label>
+          </div>
+          <div class="smart-alert-preview" id="smartAlertPreview">Choisis une alerte pour voir le déclencheur.</div>
+          <div class="smart-alert-actions">
+            <button class="primary-button" id="smartAlertScheduleButton" type="button">Programmer</button>
+            <button class="ghost-button" id="smartAlertCancelButton" type="button">Annuler les alertes</button>
+          </div>
+          <small class="smart-alert-status" id="smartAlertStatus">Aucune alerte programmée.</small>
+        </div>
       </div>
     </section>
 
