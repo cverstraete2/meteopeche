@@ -607,21 +607,21 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
     private func clearMapKitLayer(_ call: CAPPluginCall) {
         let layerId = call.getString("layerId") ?? call.getString("overlayId") ?? call.getString("id") ?? ""
         guard !layerId.isEmpty else { return }
-        let overlay = tileOverlays.removeValue(forKey: layerId)
-        tileOverlayDefinitions.removeValue(forKey: layerId)
-        layerVisibility.removeValue(forKey: layerId)
-        layerChildren.removeValue(forKey: layerId)
-        let itemIds = layerMembership.removeValue(forKey: layerId) ?? []
-        let annotationsToRemove = itemIds.compactMap { annotations.removeValue(forKey: $0) }
-        let overlaysToRemove = itemIds.compactMap { shapeOverlays.removeValue(forKey: $0) }
-        itemIds.forEach { itemId in
-            annotationPayloads.removeValue(forKey: itemId)
-            shapeItemTypes.removeValue(forKey: itemId)
-            shapePayloads.removeValue(forKey: itemId)
-            itemLayers.removeValue(forKey: itemId)
-            itemVisibility.removeValue(forKey: itemId)
-        }
         DispatchQueue.main.async {
+            let overlay = self.tileOverlays.removeValue(forKey: layerId)
+            self.tileOverlayDefinitions.removeValue(forKey: layerId)
+            self.layerVisibility.removeValue(forKey: layerId)
+            self.layerChildren.removeValue(forKey: layerId)
+            let itemIds = self.layerMembership.removeValue(forKey: layerId) ?? []
+            let annotationsToRemove = itemIds.compactMap { self.annotations.removeValue(forKey: $0) }
+            let overlaysToRemove = itemIds.compactMap { self.shapeOverlays.removeValue(forKey: $0) }
+            itemIds.forEach { itemId in
+                self.annotationPayloads.removeValue(forKey: itemId)
+                self.shapeItemTypes.removeValue(forKey: itemId)
+                self.shapePayloads.removeValue(forKey: itemId)
+                self.itemLayers.removeValue(forKey: itemId)
+                self.itemVisibility.removeValue(forKey: itemId)
+            }
             self.tileOverlayVisibility.removeValue(forKey: layerId)
             if let overlay = overlay {
                 self.mapView?.removeOverlay(overlay)
@@ -669,49 +669,57 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
 
     private func addMapKitLayerMembership(layerId: String, itemId: String, isLayer: Bool) {
         guard !layerId.isEmpty, !itemId.isEmpty else { return }
-        layerMembership[layerId, default: Set<String>()].insert(itemId)
-        itemLayers[itemId] = layerId
-        if isLayer {
-            layerChildren[layerId, default: Set<String>()].insert(itemId)
+        DispatchQueue.main.async {
+            self.layerMembership[layerId, default: Set<String>()].insert(itemId)
+            self.itemLayers[itemId] = layerId
+            if isLayer {
+                self.layerChildren[layerId, default: Set<String>()].insert(itemId)
+            }
         }
     }
 
     private func removeMapKitLayerMembership(layerId: String, itemId: String) {
         guard !layerId.isEmpty, !itemId.isEmpty else { return }
-        layerMembership[layerId]?.remove(itemId)
-        if layerMembership[layerId]?.isEmpty == true {
-            layerMembership.removeValue(forKey: layerId)
-        }
-        if itemLayers[itemId] == layerId {
-            itemLayers.removeValue(forKey: itemId)
-        }
-        layerChildren[layerId]?.remove(itemId)
-        if layerChildren[layerId]?.isEmpty == true {
-            layerChildren.removeValue(forKey: layerId)
+        DispatchQueue.main.async {
+            self.removeMapKitLayerMembershipOnMain(layerId: layerId, itemId: itemId)
         }
     }
 
     private func removeMapKitItemFromMemberships(_ itemId: String) {
         guard !itemId.isEmpty else { return }
-        if let layerId = itemLayers.removeValue(forKey: itemId) {
-            layerMembership[layerId]?.remove(itemId)
-            if layerMembership[layerId]?.isEmpty == true {
-                layerMembership.removeValue(forKey: layerId)
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async {
+                self.removeMapKitItemFromMemberships(itemId)
             }
-            layerChildren[layerId]?.remove(itemId)
-            if layerChildren[layerId]?.isEmpty == true {
-                layerChildren.removeValue(forKey: layerId)
-            }
+            return
         }
-        for layerId in Array(layerMembership.keys) {
-            layerMembership[layerId]?.remove(itemId)
-            if layerMembership[layerId]?.isEmpty == true {
-                layerMembership.removeValue(forKey: layerId)
-            }
-            layerChildren[layerId]?.remove(itemId)
-            if layerChildren[layerId]?.isEmpty == true {
-                layerChildren.removeValue(forKey: layerId)
-            }
+
+        var layerIds = Set(layerMembership.keys)
+        layerIds.formUnion(layerChildren.keys)
+        if let layerId = itemLayers.removeValue(forKey: itemId) {
+            layerIds.insert(layerId)
+        }
+
+        for layerId in layerIds {
+            removeMapKitLayerMembershipOnMain(layerId: layerId, itemId: itemId)
+        }
+    }
+
+    private func removeMapKitLayerMembershipOnMain(layerId: String, itemId: String) {
+        guard Thread.isMainThread, !layerId.isEmpty, !itemId.isEmpty else { return }
+
+        if var itemIds = layerMembership[layerId] {
+            itemIds.remove(itemId)
+            layerMembership[layerId] = itemIds.isEmpty ? nil : itemIds
+        }
+
+        if itemLayers[itemId] == layerId {
+            itemLayers.removeValue(forKey: itemId)
+        }
+
+        if var childLayerIds = layerChildren[layerId] {
+            childLayerIds.remove(itemId)
+            layerChildren[layerId] = childLayerIds.isEmpty ? nil : childLayerIds
         }
     }
 
