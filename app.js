@@ -16233,7 +16233,7 @@ function mapProviderSmokeRoutes(baseUrl = window.location.href) {
   const base = String(baseUrl || window.location.href).split("?")[0];
   const route = (label, params, expected) => {
     const search = new URLSearchParams(params);
-    return { label, url: `${base}?${search.toString()}`, expected };
+    return { label, url: `${base}?${search.toString()}`, params: Object.fromEntries(search.entries()), expected };
   };
 
   return [
@@ -16430,6 +16430,9 @@ function installMapProviderDebugInspector() {
   const capabilitySmokeRouteLabels = smokeRoutes
     .filter((route) => route.expected?.nativeCapabilityError || route.expected?.nativeCapabilityErrorPrefix)
     .map((route) => route.label);
+  const unsupportedSmokeRouteLabels = smokeRoutes
+    .filter((route) => route.params?.mapProviderDebugBridgeUnsupported)
+    .map((route) => route.label);
   const inspector = {
     mapOverlayTileUrl,
     tileBbox4326,
@@ -16482,6 +16485,7 @@ function installMapProviderDebugInspector() {
   document.documentElement.dataset.mapProviderSmokeRouteLabels = smokeRoutes.map((route) => route.label).join(",");
   document.documentElement.dataset.mapProviderSmokeEventRouteLabels = eventSmokeRouteLabels.join(",");
   document.documentElement.dataset.mapProviderSmokeCapabilityRouteLabels = capabilitySmokeRouteLabels.join(",");
+  document.documentElement.dataset.mapProviderSmokeUnsupportedRouteLabels = unsupportedSmokeRouteLabels.join(",");
 }
 
 installMapProviderDebugInspector();
