@@ -2179,6 +2179,12 @@ const els = {
   conditionReason: document.querySelector("#conditionReason"),
   conditionScore: document.querySelector("#conditionScore"),
   conditionFacts: document.querySelector("#conditionFacts"),
+  timingWindowCard: document.querySelector("#timingWindowCard"),
+  timingWindowScore: document.querySelector("#timingWindowScore"),
+  timingWindowTitle: document.querySelector("#timingWindowTitle"),
+  timingWindowDetail: document.querySelector("#timingWindowDetail"),
+  timingWindowFacts: document.querySelector("#timingWindowFacts"),
+  timingWindowChips: document.querySelector("#timingWindowChips"),
   metricGrid: document.querySelector("#metricGrid"),
   metricTemplate: document.querySelector("#metricTemplate"),
   waterInsights: document.querySelector("#waterInsights"),
@@ -12184,6 +12190,7 @@ function renderAll() {
   renderDayTabs();
   renderPreferenceControls(selected);
   renderActivity(selected);
+  renderTimingWindow(selected);
   renderTides(selected);
   renderConditionBrief(selected);
   renderMetrics(selected);
@@ -12780,6 +12787,99 @@ function activityLabel(score) {
   if (score >= 42) return t("Activité moyenne");
   if (score >= 24) return t("Faible activité");
   return t("Très faible activité");
+}
+
+function renderTimingWindow(day) {
+  if (!els.timingWindowCard) return;
+
+  if (!day?.bestWindow) {
+    els.timingWindowCard.className = "timing-window-card unavailable";
+    els.timingWindowScore.textContent = "--";
+    els.timingWindowTitle.textContent = "Créneau indisponible";
+    els.timingWindowDetail.textContent = "Charge un spot pour calculer la prochaine fenêtre de pêche.";
+    els.timingWindowFacts.innerHTML = "";
+    els.timingWindowChips.innerHTML = "";
+    return;
+  }
+
+  const window = day.bestWindow;
+  const sample = timelineSample(day, window.peakMinute ?? selectedTimelineMinute());
+  const score = isValidNumber(window.score) ? window.score : 0;
+  const reasons = window.reasons?.length ? window.reasons : ["Signaux à confirmer"];
+  const risks = window.risks ?? [];
+  const facts = timingWindowFacts(day, window, sample);
+
+  els.timingWindowCard.className = `timing-window-card ${window.tone ?? timingWindowTone(score)}`.trim();
+  els.timingWindowScore.textContent = `${score}/100`;
+  els.timingWindowTitle.textContent = `${window.label} · ${getFishLabel(normalizeActivityFish(state.activityFish))}`;
+  els.timingWindowDetail.textContent = `${getActiveSpot().name} · pic ${formatHourCompact(window.peakMinute)} · ${reasons.slice(0, 2).join(" · ")}`;
+  els.timingWindowFacts.innerHTML = facts.map((fact) => `
+    <span>
+      <b>${escapeHtml(fact.label)}</b>
+      <em>${escapeHtml(fact.value)}</em>
+    </span>
+  `).join("");
+  els.timingWindowChips.innerHTML = [
+    ...reasons.map((label) => ({ label, tone: "good" })),
+    ...risks.map((label) => ({ label, tone: "risk" })),
+  ].slice(0, 6).map((chip) => `
+    <span class="${escapeHtml(chip.tone)}">${escapeHtml(chip.label)}</span>
+  `).join("");
+}
+
+function timingWindowFacts(day, window, sample) {
+  return [
+    {
+      label: isSeaMode() ? "Marée" : "Rivière",
+      value: isSeaMode() ? timingTideFact(day, sample) : timingRiverFact(day),
+    },
+    {
+      label: "Lune",
+      value: timingMoonFact(day),
+    },
+    {
+      label: "Météo",
+      value: timingWeatherFact(day, sample),
+    },
+  ];
+}
+
+function timingTideFact(day, sample) {
+  if (!isValidNumber(sample?.seaLevel)) return "à confirmer";
+  const trend = rowTideTrend(sample.weatherRow, tideRows(day));
+  const label = trend === "rising"
+    ? "montante"
+    : trend === "falling"
+      ? "descendante"
+      : "étale";
+  return `${label} · ${formatTideHeight(sample.seaLevel)}`;
+}
+
+function timingRiverFact(day) {
+  if (!isValidNumber(day?.riverFlow)) return "débit à confirmer";
+  return `${formatRiverFlow(day.riverFlow)} · ${riverTrendLabel(day.riverFlowTrend)}`;
+}
+
+function timingMoonFact(day) {
+  const windows = solunarWindows(day);
+  const nextWindow = nextSolunarWindow(windows, selectedTimelineMinute());
+  return `${moonPhaseLabel(windows.phase)} · ${nextWindow?.label ?? "--"}`;
+}
+
+function nextSolunarWindow(windows, minute) {
+  return [...(windows?.major ?? []), ...(windows?.minor ?? [])]
+    .map((window) => ({ ...window, distance: minuteDistance(minute, window.center) }))
+    .sort((a, b) => a.distance - b.distance)[0] ?? null;
+}
+
+function timingWeatherFact(day, sample) {
+  const wind = sample?.windSpeed ?? day?.windAvg;
+  const wave = sample?.waveHeight ?? day?.waveAvg;
+  if (isSeaMode() && isValidNumber(wind) && isValidNumber(wave)) {
+    return `${formatNumber(wind, 0)} kt · houle ${formatNumber(wave, 1)} m`;
+  }
+  if (isValidNumber(wind)) return `${formatNumber(wind, 0)} kt · ${formatHourCompact(selectedTimelineMinute())}`;
+  return "conditions à confirmer";
 }
 
 function renderConditionBrief(day) {

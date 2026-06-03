@@ -2359,6 +2359,141 @@ body.is-map-fullscreen-active .mobile-tabbar {
   padding: 0 var(--sp-4) var(--sp-4);
 }
 
+/* Best timing window */
+.timing-window-card {
+  background:
+    radial-gradient(circle at 12% 12%, rgba(47, 116, 192, 0.16), transparent 32%),
+    linear-gradient(140deg, var(--bg-card), var(--bg-elevated));
+  border: 1px solid var(--border-focus);
+  border-radius: var(--r-lg);
+  padding: var(--sp-5);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.timing-window-card.good {
+  border-color: var(--go);
+}
+
+.timing-window-card.maybe {
+  border-color: var(--maybe);
+}
+
+.timing-window-card.poor,
+.timing-window-card.unavailable {
+  border-color: var(--warn);
+}
+
+.timing-window-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.timing-window-score {
+  font-family: var(--f-display);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 4px 11px;
+  border-radius: var(--r-pill);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.timing-window-card.good .timing-window-score {
+  color: var(--go);
+  background: var(--go-bg);
+}
+
+.timing-window-card.maybe .timing-window-score {
+  color: var(--maybe);
+  background: var(--maybe-bg);
+}
+
+.timing-window-card.poor .timing-window-score,
+.timing-window-card.unavailable .timing-window-score {
+  color: var(--warn);
+  background: var(--warn-bg);
+}
+
+.timing-window-card h2 {
+  font-size: 1.75rem;
+  color: var(--text-1);
+  line-height: 1.08;
+}
+
+.timing-window-card p {
+  font-size: 0.9rem;
+  color: var(--text-2);
+  line-height: 1.55;
+}
+
+.timing-window-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+
+.timing-window-facts span {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+  background: var(--bg-soft);
+}
+
+.timing-window-facts b,
+.timing-window-facts em {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.timing-window-facts b {
+  font-size: 0.68rem;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.timing-window-facts em {
+  margin-top: 2px;
+  font-style: normal;
+  font-size: 0.82rem;
+  color: var(--text-1);
+  line-height: 1.25;
+}
+
+.timing-window-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.timing-window-chips span {
+  border-radius: var(--r-pill);
+  padding: 5px 10px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text-2);
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+}
+
+.timing-window-chips span.good {
+  color: var(--go);
+  background: var(--go-bg);
+  border-color: color-mix(in srgb, var(--go) 28%, transparent);
+}
+
+.timing-window-chips span.risk {
+  color: var(--warn);
+  background: var(--warn-bg);
+  border-color: color-mix(in srgb, var(--warn) 28%, transparent);
+}
+
 /* Condition brief card */
 .condition-brief {
   background: var(--bg-card);
