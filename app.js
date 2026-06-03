@@ -6565,11 +6565,29 @@ function installLocalNativeMapBridgeDebug() {
   }).length;
   const markerClassNamesState = () => [...new Set(itemClassNames.values())].sort();
   const pinTierVisibilityState = () => Object.fromEntries(pinTierVisibility.entries());
+  const recordRendererDebugDatasets = () => {
+    if (rendererFrame) {
+      document.documentElement.dataset.nativeMapBridgeDebugRendererFrame = JSON.stringify(rendererFrame);
+    } else {
+      delete document.documentElement.dataset.nativeMapBridgeDebugRendererFrame;
+    }
+    if (lastCameraCenter) {
+      document.documentElement.dataset.nativeMapBridgeDebugLastCameraCenter = JSON.stringify(lastCameraCenter);
+    } else {
+      delete document.documentElement.dataset.nativeMapBridgeDebugLastCameraCenter;
+    }
+    if (lastCameraZoom != null) {
+      document.documentElement.dataset.nativeMapBridgeDebugLastCameraZoom = String(lastCameraZoom);
+    } else {
+      delete document.documentElement.dataset.nativeMapBridgeDebugLastCameraZoom;
+    }
+  };
   const rememberCameraEventPayload = (payload = {}) => {
     const center = nativeEventCenter(payload);
     const zoom = nativeEventZoom(payload);
     if (center) lastCameraCenter = center;
     if (zoom != null) lastCameraZoom = zoom;
+    recordRendererDebugDatasets();
   };
   const debugRendererState = (providerId) => ({
     kind: providerId,
@@ -6766,6 +6784,7 @@ function installLocalNativeMapBridgeDebug() {
       lastCameraCenter = null;
       lastCameraZoom = null;
     }
+    recordRendererDebugDatasets();
   };
   const bridge = {
     __meteoPecheDebugBridge: true,

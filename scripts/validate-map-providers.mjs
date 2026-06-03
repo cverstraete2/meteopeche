@@ -305,6 +305,9 @@ expectIncludes(contents.nativeBridgeDocs, "renderer.layerMembership", "native br
 expectIncludes(contents.nativeBridgeDocs, "renderer.frame", "native bridge contract doc documents debug renderer frame");
 expectIncludes(contents.nativeBridgeDocs, "renderer.lastCameraCenter", "native bridge contract doc documents debug renderer camera center");
 expectIncludes(contents.nativeBridgeDocs, "renderer.lastCameraZoom", "native bridge contract doc documents debug renderer camera zoom");
+expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-renderer-frame", "native bridge contract doc documents renderer frame data attribute");
+expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-last-camera-center", "native bridge contract doc documents camera center data attribute");
+expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-last-camera-zoom", "native bridge contract doc documents camera zoom data attribute");
 expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-layer-visibility", "native bridge contract doc documents debug renderer layer visibility data attribute");
 expectIncludes(contents.nativeBridgeDocs, "renderer.layerVisibility", "native bridge contract doc documents debug renderer layer visibility");
 expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-tile-overlay-count", "native bridge contract doc documents debug tile overlay count data attribute");
@@ -394,6 +397,10 @@ expectIncludes(contents.source, "renderer: debugRendererState(providerId)", "sou
 expectIncludes(contents.source, "let rendererFrame = null", "source local native debug bridge tracks renderer frame");
 expectIncludes(contents.source, "let lastCameraCenter = null", "source local native debug bridge tracks camera center");
 expectIncludes(contents.source, "let lastCameraZoom = null", "source local native debug bridge tracks camera zoom");
+expectIncludes(contents.source, "recordRendererDebugDatasets", "source local native debug bridge records renderer debug datasets");
+expectIncludes(contents.source, "document.documentElement.dataset.nativeMapBridgeDebugRendererFrame", "source records native bridge debug renderer frame");
+expectIncludes(contents.source, "document.documentElement.dataset.nativeMapBridgeDebugLastCameraCenter", "source records native bridge debug camera center");
+expectIncludes(contents.source, "document.documentElement.dataset.nativeMapBridgeDebugLastCameraZoom", "source records native bridge debug camera zoom");
 expectIncludes(contents.source, "rememberCameraEventPayload", "source local native debug bridge updates camera state from events");
 expectIncludes(contents.source, "if (eventName === \"moveend\" || eventName === \"zoomend\") rememberCameraEventPayload(payload)", "source local native debug bridge mirrors move/zoom camera events");
 expectIncludes(contents.source, "frame: rendererFrame", "source local native debug bridge exposes renderer frame");
