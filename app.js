@@ -10119,23 +10119,174 @@ function getSelectedDay() {
 }
 
 function bestWindow(rows) {
-  const windowSize = 3;
-  let best = { score: -Infinity, index: 0 };
+  return bestFishingWindowForDay({ date: rows[0]?.date, rows }, {
+    waterMode: state.waterMode,
+    selectedSpecies: state.activityFish,
+    targetDepth: state.depth,
+    selectedMinute: selectedTimelineMinute(),
+    profile: state.profile,
+  });
+}
+
+function bestFishingWindowForDay(day, options = {}) {
+  const rows = (day?.rows ?? []).filter((row) => row?.hour);
+  const windowSize = Math.min(3, rows.length);
+  const waterMode = normalizeWaterMode(options.waterMode ?? state.waterMode);
+  const fish = normalizeActivityFish(options.selectedSpecies ?? state.activityFish);
+  const windows = solunarWindows({ date: day?.date ?? rows[0]?.date, rows });
+  const sourceAvailability = timingSourceAvailability(day, rows, waterMode);
+
+  if (!rows.length || !windowSize) {
+    return emptyBestFishingWindow(sourceAvailability);
+  }
+
+  let best = { score: -Infinity, index: 0, peakIndex: 0, slices: [] };
 
   for (let index = 0; index <= rows.length - windowSize; index += 1) {
-    const slice = rows.slice(index, index + windowSize);
-    const score = average(slice.map(scoreHour));
+    const slices = rows.slice(index, index + windowSize).map((row) => {
+      const score = timingWindowScore(row, { waterMode, fish, windows, rows });
+      return { row, score };
+    });
+    const score = average(slices.map((slice) => slice.score));
     if (score != null && score > best.score) {
-      best = { score, index };
+      const peak = slices.reduce((winner, slice, sliceIndex) => (
+        slice.score > winner.score ? { score: slice.score, index: sliceIndex } : winner
+      ), { score: -Infinity, index: 0 });
+      best = { score, index, peakIndex: index + peak.index, slices };
     }
   }
 
-  const start = rows[best.index]?.hour ?? "--";
-  const end = rows[best.index + windowSize - 1]?.hour ?? "--";
+  const startRow = rows[best.index];
+  const endRow = rows[best.index + windowSize - 1] ?? startRow;
+  const peakRow = rows[best.peakIndex] ?? startRow;
+  const score = Math.round(clamp(best.score, 0, 100));
+  const reasons = timingWindowReasons(peakRow, { waterMode, fish, windows, rows, sourceAvailability });
+  const risks = timingWindowRisks(peakRow, { waterMode, sourceAvailability });
+
   return {
-    label: `${start} - ${end}`,
-    score: Math.round(best.score),
+    label: `${startRow?.hour ?? "--"} - ${endRow?.hour ?? "--"}`,
+    score,
+    tone: timingWindowTone(score),
+    startMinute: minutesFromClockOrNull(startRow?.hour),
+    endMinute: minutesFromClockOrNull(endRow?.hour),
+    peakMinute: minutesFromClockOrNull(peakRow?.hour),
+    peakHour: peakRow?.hour ?? "--",
+    reasons,
+    risks,
+    sourceAvailability,
   };
+}
+
+function emptyBestFishingWindow(sourceAvailability = {}) {
+  return {
+    label: "--",
+    score: 0,
+    tone: "unavailable",
+    startMinute: null,
+    endMinute: null,
+    peakMinute: null,
+    peakHour: "--",
+    reasons: [],
+    risks: ["Prévision indisponible"],
+    sourceAvailability,
+  };
+}
+
+function timingWindowScore(row, context) {
+  const base = scoreHour(row);
+  const activity = fishActivityForHour(row, context.fish, context.windows);
+  const light = lightActivityScore(row, "balanced");
+  const cycle = solunarActivityScore(row, context.windows);
+  const tide = context.waterMode === WATER_MODES.SEA ? tideTimingScore(row, context.rows) : freshwaterTimingScore(row);
+
+  return clamp(
+    base * 0.34 +
+    activity * 0.28 +
+    tide * 0.18 +
+    cycle * 0.12 +
+    light * 0.08,
+    0,
+    100,
+  );
+}
+
+function tideTimingScore(row, rows = []) {
+  if (!isValidNumber(row.seaLevel)) return 56;
+  const trend = rowTideTrend(row, rows);
+  if (trend === "rising") return 78;
+  if (trend === "falling") return 66;
+  return 58;
+}
+
+function freshwaterTimingScore(row) {
+  const rain = row.precipitation ?? 0;
+  const pressure = isValidNumber(row.pressure) ? rangeScore(row.pressure, [1007, 1016, 1028]) : 58;
+  return clamp(pressure * 0.74 + clamp(100 - rain * 72, 0, 100) * 0.26, 0, 100);
+}
+
+function rowTideTrend(row, rows = []) {
+  if (!isValidNumber(row?.seaLevel)) return "unknown";
+  const tideRowsForDay = rows.filter((candidate) => isValidNumber(candidate.seaLevel));
+  const index = tideRowsForDay.findIndex((candidate) => candidate.time === row.time);
+  if (index < 0) return "unknown";
+  const before = tideRowsForDay[Math.max(0, index - 1)]?.seaLevel;
+  const after = tideRowsForDay[Math.min(tideRowsForDay.length - 1, index + 1)]?.seaLevel;
+  if (!isValidNumber(before) || !isValidNumber(after)) return "unknown";
+  const delta = after - before;
+  if (delta > 0.015) return "rising";
+  if (delta < -0.015) return "falling";
+  return "slack";
+}
+
+function timingWindowReasons(row, context) {
+  const reasons = [];
+  const trend = context.waterMode === WATER_MODES.SEA ? rowTideTrend(row, context.rows) : "freshwater";
+  const cycleScore = solunarActivityScore(row, context.windows);
+
+  if (context.waterMode === WATER_MODES.SEA && trend === "rising") reasons.push("Marée montante");
+  if (context.waterMode === WATER_MODES.SEA && trend === "falling") reasons.push("Marée descendante exploitable");
+  if (context.waterMode !== WATER_MODES.SEA) reasons.push("Fenêtre eau douce");
+  if (cycleScore >= 70) reasons.push("Signal solunar fort");
+  if (lightActivityScore(row, "balanced") >= 72) reasons.push("Lumière favorable");
+  if (fishActivityForHour(row, context.fish, context.windows) >= 70) reasons.push(`${getFishLabel(context.fish)} actif`);
+  if (scoreHour(row) >= 72) reasons.push("Conditions calmes");
+  if (!context.sourceAvailability.tide && context.waterMode === WATER_MODES.SEA) reasons.push("Marée à confirmer");
+
+  return reasons.slice(0, 4);
+}
+
+function timingWindowRisks(row, context) {
+  const risks = [];
+  const wind = row.windSpeed ?? 0;
+  const gust = row.windGust ?? wind;
+  const wave = row.waveHeight ?? 0;
+  const current = row.surfaceCurrent ?? 0;
+  const rain = row.precipitation ?? 0;
+
+  if (gust >= 24 || wind >= 18) risks.push("Vent à surveiller");
+  if (context.waterMode === WATER_MODES.SEA && wave >= 1.2) risks.push("Houle marquée");
+  if (context.waterMode === WATER_MODES.SEA && current >= 1.2) risks.push("Courant soutenu");
+  if (context.waterMode !== WATER_MODES.SEA && rain >= 0.8) risks.push("Pluie / eau teintée");
+  if (!context.sourceAvailability.marine && context.waterMode === WATER_MODES.SEA) risks.push("Marine partielle");
+  if (!context.sourceAvailability.river && context.waterMode !== WATER_MODES.SEA) risks.push("Débit à confirmer");
+
+  return risks.slice(0, 4);
+}
+
+function timingSourceAvailability(day, rows, waterMode) {
+  return {
+    weather: rows.some((row) => isValidNumber(row.windSpeed) || isValidNumber(row.pressure)),
+    marine: rows.some((row) => isValidNumber(row.waveHeight) || isValidNumber(row.surfaceCurrent)),
+    tide: rows.some((row) => isValidNumber(row.seaLevel)),
+    river: waterMode !== WATER_MODES.SEA && isValidNumber(day?.riverFlow),
+    solunar: Boolean(day?.date ?? rows[0]?.date),
+  };
+}
+
+function timingWindowTone(score) {
+  if (score >= 72) return "good";
+  if (score >= 48) return "maybe";
+  return "poor";
 }
 
 function scoreHour(row) {
