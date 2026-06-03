@@ -16434,6 +16434,12 @@ function installMapProviderDebugInspector() {
   const unsupportedSmokeRouteLabels = smokeRoutes
     .filter((route) => route.params?.mapProviderDebugBridgeUnsupported)
     .map((route) => route.label);
+  const nativeDebugDatasetRoutes = smokeRoutes
+    .filter((route) => Array.isArray(route.expected?.nativeDebugDatasets) && route.expected.nativeDebugDatasets.length > 0)
+    .reduce((routes, route) => {
+      routes[route.label] = route.expected.nativeDebugDatasets;
+      return routes;
+    }, {});
   const inspector = {
     mapOverlayTileUrl,
     tileBbox4326,
@@ -16487,6 +16493,7 @@ function installMapProviderDebugInspector() {
   document.documentElement.dataset.mapProviderSmokeEventRouteLabels = eventSmokeRouteLabels.join(",");
   document.documentElement.dataset.mapProviderSmokeCapabilityRouteLabels = capabilitySmokeRouteLabels.join(",");
   document.documentElement.dataset.mapProviderSmokeUnsupportedRouteLabels = unsupportedSmokeRouteLabels.join(",");
+  document.documentElement.dataset.mapProviderSmokeNativeDebugDatasets = JSON.stringify(nativeDebugDatasetRoutes);
 }
 
 installMapProviderDebugInspector();
