@@ -4870,7 +4870,7 @@ class NativeMapLayer {
     const childLayers = this.items.filter((item) => item instanceof NativeMapLayer);
     if (nativeItems.length > 0 && nativeItems.length === this.items.length) {
       this.setItemsVisible(nativeItems, this.visible);
-      return;
+      return promise;
     }
     if (nativeItems.length > 0) this.setItemsVisible(nativeItems, this.visible);
     childLayers.forEach((layer) => layer.setMap(this.visible));

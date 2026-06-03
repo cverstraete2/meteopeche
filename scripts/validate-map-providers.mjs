@@ -204,6 +204,11 @@ expectIncludes(contents.docs, "mapProviderExperimental", "strategy doc records e
   expectIncludes(contents.source, needle, `source includes ${needle}`);
   expectIncludes(contents.dist, needle, `dist includes ${needle}`);
 });
+expectIncludes(
+  contents.source,
+  "return promise;\n    }\n    if (nativeItems.length > 0) this.setItemsVisible(nativeItems, this.visible);",
+  "source preserves native layer visibility promise for all-item layers",
+);
 
 [
   "getStatus",
