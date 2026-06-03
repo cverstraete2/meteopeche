@@ -30,6 +30,27 @@ try {
 }
 </script>
 
+<script>
+(() => {
+  const isLocalHost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname);
+  const alreadyCleaned = new URLSearchParams(window.location.search).get("localCacheClean") === "20260603-native-cache-recovery";
+  if (!isLocalHost || alreadyCleaned || !("serviceWorker" in navigator)) return;
+
+  Promise.all([
+    navigator.serviceWorker.getRegistrations?.()
+      .then((registrations = []) => Promise.all(registrations.map((registration) => registration.unregister())))
+      .catch(() => []),
+    window.caches?.keys?.()
+      .then((keys = []) => Promise.all(keys.map((key) => window.caches.delete(key))))
+      .catch(() => []),
+  ]).then(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("localCacheClean", "20260603-native-cache-recovery");
+    window.location.replace(url.toString());
+  }).catch(() => {});
+})();
+</script>
+
 <!-- Fonts: Montserrat · Barlow Condensed · DM Sans · Fira Code -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -37,7 +58,7 @@ try {
 
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
 <link rel="stylesheet" href="vendor/tabler/tabler-icons.min.css" />
-<link rel="stylesheet" href="styles.css?v=20260603-native-smoke-capability-routes" />
+<link rel="stylesheet" href="styles.css?v=20260603-native-cache-recovery" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon-v2.png" />
 </head>
@@ -890,11 +911,11 @@ try {
 <script src="vendor/capacitor/network.js" defer></script>
 <script src="vendor/capacitor/local-notifications.js" defer></script>
 <script src="mobile-runtime.js" defer></script>
-<script src="vendor/leaflet/leaflet.js" defer></script>
-<script src="config.js" defer></script>
-<script src="spots-db.js?v=20260603-native-smoke-capability-routes" defer></script>
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="config.js"></script>
+<script src="spots-db.js?v=20260603-native-cache-recovery" defer></script>
 <script src="overpass-spots.js?v=20260528-global-spots-v2" defer></script>
-<script src="app.js?v=20260603-native-smoke-capability-routes" defer></script>
+<script src="app.js?v=20260603-native-cache-recovery" defer></script>
 
 </body>
 </html>

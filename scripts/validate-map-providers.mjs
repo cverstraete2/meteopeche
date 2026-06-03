@@ -35,7 +35,7 @@ const contents = Object.fromEntries(
   await Promise.all(Object.entries(files).map(async ([key, file]) => [key, await readFile(file, "utf8")])),
 );
 
-const providerAssetVersion = "20260603-native-smoke-capability-routes";
+const providerAssetVersion = "20260603-native-cache-recovery";
 [
   "styles.css",
   "spots-db.js",
@@ -57,6 +57,9 @@ expectIncludes(contents.source, "[MAP_PROVIDER_IDS.APPLE_WEB]: false", "Apple we
 expectIncludes(contents.source, "[MAP_PROVIDER_IDS.GOOGLE_WEB]: false", "Google web remains default-off");
 expectIncludes(contents.source, "[MAP_PROVIDER_IDS.APPLE_NATIVE]: false", "Apple native remains default-off");
 expectIncludes(contents.source, "[MAP_PROVIDER_IDS.GOOGLE_NATIVE]: false", "Google native remains default-off");
+expectIncludes(contents.source, "const DEFAULT_RUNTIME_CONFIG = Object.freeze", "source defines safe default runtime config");
+expectIncludes(contents.source, "...DEFAULT_RUNTIME_CONFIG", "source merges loaded config over safe defaults");
+expectIncludes(contents.source, "experimentalMapProviders: []", "source default runtime config keeps experimental providers disabled");
 
 expectIncludes(contents.distConfig, "\"experimentalMapProviders\":[]", "dist config keeps experimental providers disabled");
 expectIncludes(contents.distConfig, "\"enableGoogleMapsWeb\":false", "dist config keeps Google web disabled");
@@ -106,6 +109,12 @@ expectIncludes(contents.source, "els.mapTiles.replaceChildren()", "source clears
 expectIncludes(contents.source, "els.mapMarkers.replaceChildren()", "source clears fallback marker DOM when provider mounts");
 expectIncludes(contents.source, "\"has-map-provider\",", "source removes provider ownership class on failed mount cleanup");
 expectIncludes(contents.source, "delete els.spotMap._leaflet_id", "source clears partial Leaflet container id on failed mount cleanup");
+expectIncludes(contents.source, "clearLocalServiceWorkerCache", "source clears stale local service worker caches for smoke testing");
+expectIncludes(contents.source, "registration.unregister()", "source unregisters stale local service workers");
+expectIncludes(contents.source, "window.caches.delete(key)", "source clears stale local browser caches");
+expectIncludes(contents.source, "loadLeafletLibraryFallback", "source defines cache-busted Leaflet fallback loader");
+expectIncludes(contents.source, "leaflet-js-fallback", "source marks fallback Leaflet script");
+expectIncludes(contents.source, "vendor/leaflet/leaflet.js?v=20260603-native-cache-recovery", "source loads cache-busted Leaflet fallback script");
 expectIncludes(contents.source, "document.documentElement.classList.toggle(\"is-native-map-provider\", isNativeMapProvider(state.mapProviderId))", "source marks native provider for transparent web corridor");
 expectIncludes(contents.styles, "html.is-native-map-provider body", "styles make body transparent for native map provider");
 expectIncludes(contents.styles, "html.is-native-map-provider .app-shell", "styles make app shell transparent for native map provider");
@@ -166,7 +175,7 @@ expectIncludes(contents.readme, "data-map-provider-smoke-expected-outcomes", "RE
 expectIncludes(contents.readme, "data-map-provider-smoke-native-capability-errors", "README documents DOM native capability error metadata");
 expectIncludes(contents.readme, "data-map-provider-smoke-native-debug-datasets", "README documents DOM native debug dataset metadata");
 expectIncludes(contents.docs, "npm run map-provider:validate", "strategy doc mentions provider validation command");
-expectIncludes(contents.docs, "20260603-native-smoke-capability-routes", "strategy doc mentions provider cache version");
+expectIncludes(contents.docs, "20260603-native-cache-recovery", "strategy doc mentions provider cache version");
 expectIncludes(contents.docs, "bridge-unavailable", "strategy doc mentions native bridge unavailable fallback");
 expectIncludes(contents.docs, "strict native bridge readiness handshake", "strategy doc records native bridge readiness handshake");
 expectIncludes(contents.docs, "mapProviderDebugBridgeUnsupported", "strategy doc records native bridge unsupported-provider smoke switch");

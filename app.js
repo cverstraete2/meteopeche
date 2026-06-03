@@ -12,6 +12,15 @@ const RIVER_FORECAST_API_PATH = "api/river-forecast";
 const BATHYMETRY_WMS = "https://ows.emodnet-bathymetry.eu/wms";
 const BATHYMETRY_REST = "https://rest.emodnet-bathymetry.eu/depth/point";
 const DEFAULT_API_BASE_URL = "https://meteopeche-copernicus-977572434171.europe-west1.run.app";
+const DEFAULT_RUNTIME_CONFIG = Object.freeze({
+  apiBaseUrl: DEFAULT_API_BASE_URL,
+  enableGoogleMapsWeb: false,
+  googleMapsApiKey: "",
+  enableAppleMapsWeb: false,
+  appleMapKitToken: "",
+  appleMapKitTokenUrl: "",
+  experimentalMapProviders: [],
+});
 const METERS_PER_SECOND_TO_KNOTS = 1.9438444924406;
 const STORE_KEY = "meteo-peche-store-v1";
 const LEGACY_FAVORITES_KEY = "meteo-peche-favorites";
@@ -2474,12 +2483,15 @@ async function init() {
 }
 
 async function initMapEngine() {
+  document.documentElement.dataset.mapProviderStartupStep = "install-debug-bridges";
   installLocalNativeMapBridgeDebug();
   installLocalWebMapSdkDebug();
+  document.documentElement.dataset.mapProviderStartupStep = "resolve-provider";
   resolveRuntimeMapProvider();
 
   const active = getActiveSpot();
   state.mapCenter = { lat: active.lat, lon: active.lon };
+  document.documentElement.dataset.mapProviderStartupStep = "mount-provider";
   const mounted = await mountMapProvider(state.mapProviderId, active);
   if (mounted) return;
 
@@ -2494,9 +2506,11 @@ async function initMapEngine() {
 
 async function mountMapProvider(providerId, active) {
   if (providerId === MAP_PROVIDER_IDS.LEAFLET_OPENMAP) {
+    document.documentElement.dataset.mapProviderMountStep = "wait-leaflet";
     await waitForLeafletLibrary();
   }
 
+  document.documentElement.dataset.mapProviderMountStep = "create-provider";
   state.mapProvider = createMapProvider(providerId);
   if (!state.mapProvider) return false;
 
@@ -2637,6 +2651,7 @@ function isLeafletLibraryReady() {
 
 function waitForLeafletLibrary(timeoutMs = 1600) {
   if (isLeafletLibraryReady()) return Promise.resolve(true);
+  loadLeafletLibraryFallback();
 
   return new Promise((resolve) => {
     const startedAt = Date.now();
@@ -2655,6 +2670,16 @@ function waitForLeafletLibrary(timeoutMs = 1600) {
     };
     check();
   });
+}
+
+function loadLeafletLibraryFallback() {
+  if (isLeafletLibraryReady() || document.getElementById("leaflet-js-fallback")) return;
+
+  const script = document.createElement("script");
+  script.id = "leaflet-js-fallback";
+  script.src = "vendor/leaflet/leaflet.js?v=20260603-native-cache-recovery";
+  script.defer = true;
+  document.head.appendChild(script);
 }
 
 function leafletDefinedOptions(source, keys) {
@@ -5807,7 +5832,10 @@ function isNativeMapBridgeAvailable() {
 }
 
 function getRuntimeConfig() {
-  return window.METEOPECHE_CONFIG ?? {};
+  return {
+    ...DEFAULT_RUNTIME_CONFIG,
+    ...(window.METEOPECHE_CONFIG ?? {}),
+  };
 }
 
 function experimentalMapProviders() {
@@ -7245,7 +7273,11 @@ async function initOfflineSupport() {
   state.native.online = navigator.onLine !== false;
   renderNativeStatus();
 
-  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+  if (isLocalMapProviderDebugOrigin()) {
+    await clearLocalServiceWorkerCache();
+    state.native.offlineReady = false;
+    renderNativeStatus();
+  } else if ("serviceWorker" in navigator && location.protocol !== "file:") {
     try {
       const registration = await navigator.serviceWorker.register("sw.js");
       await navigator.serviceWorker.ready;
@@ -7277,6 +7309,17 @@ async function initOfflineSupport() {
     } catch {
       // Native listener is best-effort.
     }
+  }
+}
+
+async function clearLocalServiceWorkerCache() {
+  try {
+    const registrations = await navigator.serviceWorker?.getRegistrations?.() ?? [];
+    await Promise.all(registrations.map((registration) => registration.unregister()));
+    const cacheKeys = await window.caches?.keys?.() ?? [];
+    await Promise.all(cacheKeys.map((key) => window.caches.delete(key)));
+  } catch (error) {
+    console.warn("Local service worker cache cleanup unavailable", error);
   }
 }
 
@@ -11810,7 +11853,7 @@ function buildDepthCurrentUrl(lat, lon) {
 }
 
 function buildAppApiUrl(path) {
-  const configBase = typeof window.METEOPECHE_CONFIG?.apiBaseUrl === "string" ? window.METEOPECHE_CONFIG.apiBaseUrl.trim() : "";
+  const configBase = typeof getRuntimeConfig().apiBaseUrl === "string" ? getRuntimeConfig().apiBaseUrl.trim() : "";
   const base = configBase || DEFAULT_API_BASE_URL || window.location.origin;
   const normalizedBase = base.endsWith("/") ? base : `${base}/`;
   const cleanPath = String(path).replace(/^\/+/, "");
@@ -16002,7 +16045,9 @@ function updateAppStore(mutator) {
 }
 
 function writeAppStore(store) {
-  localStorage.setItem(STORE_KEY, JSON.stringify(normalizeStore(store)));
+  const storage = safeLocalStorage();
+  if (!storage) return;
+  storage.setItem(STORE_KEY, JSON.stringify(normalizeStore(store)));
 }
 
 function normalizeStore(store) {
@@ -16119,8 +16164,17 @@ function normalizeCatchMediaItem(item) {
 
 function parseStoredJson(key) {
   try {
-    const value = localStorage.getItem(key);
+    const storage = safeLocalStorage();
+    const value = storage?.getItem(key);
     return value ? JSON.parse(value) : null;
+  } catch {
+    return null;
+  }
+}
+
+function safeLocalStorage() {
+  try {
+    return window.localStorage ?? null;
   } catch {
     return null;
   }
@@ -16526,5 +16580,9 @@ function installMapProviderDebugInspector() {
 }
 
 installMapProviderDebugInspector();
-init();
+init().catch((error) => {
+  document.documentElement.dataset.appStartupError = error?.message || String(error);
+  console.error("MeteoCatch startup failed", error);
+  scheduleHideAppSplash(250);
+});
 window.addEventListener("load", () => scheduleHideAppSplash(250), { once: true });

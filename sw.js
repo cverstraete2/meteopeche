@@ -1,4 +1,4 @@
-const CACHE_NAME = "meteocatch-shell-20260603-native-smoke-capability-routes";
+const CACHE_NAME = "meteocatch-shell-20260603-native-cache-recovery";
 const APP_SHELL = [
   "./",
   "./index.html",
