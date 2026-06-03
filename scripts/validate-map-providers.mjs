@@ -307,6 +307,10 @@ expectIncludes(contents.nativeBridgeDocs, "`setLayerVisible` should apply to eve
 expectIncludes(contents.nativeBridgeDocs, "renderer.itemVisibility", "native bridge contract doc documents debug renderer item visibility");
 expectIncludes(contents.nativeBridgeDocs, "renderer.pinTierVisibility", "native bridge contract doc documents debug renderer pin-tier visibility");
 expectIncludes(contents.nativeBridgeDocs, "tooltipAnchor", "native bridge contract doc documents native icon tooltip anchors");
+expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-marker-tooltip-anchor-count", "native bridge contract doc documents debug marker tooltip-anchor data attribute");
+expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-marker-popup-anchor-count", "native bridge contract doc documents debug marker popup-anchor data attribute");
+expectIncludes(contents.nativeBridgeDocs, "renderer.markerTooltipAnchorCount", "native bridge contract doc documents debug renderer marker tooltip-anchor count");
+expectIncludes(contents.nativeBridgeDocs, "renderer.markerPopupAnchorCount", "native bridge contract doc documents debug renderer marker popup-anchor count");
 expectIncludes(contents.nativeBridgeDocs, "shape popup and tooltip counts", "native bridge contract doc documents shape popup and tooltip debug telemetry");
 expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-container-metrics", "native bridge contract doc documents debug container metrics");
 expectIncludes(contents.nativeBridgeDocs, "visible `MKMapView` lifecycle", "native bridge contract doc documents active iOS MapKit renderer lifecycle");
