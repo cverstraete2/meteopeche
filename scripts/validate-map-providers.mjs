@@ -361,6 +361,7 @@ expectIncludes(contents.source, "commandTypeCounts: commandTypeCounts()", "sourc
 expectIncludes(contents.source, "renderer: debugRendererState(providerId)", "source local native debug bridge exposes renderer state");
 expectIncludes(contents.source, "layerMembershipState", "source local native debug bridge tracks layer membership");
 expectIncludes(contents.source, "layerVisibilityState", "source local native debug bridge tracks layer visibility");
+expectIncludes(contents.source, "setLayerItemVisibility", "source local native debug bridge applies layer visibility to member items");
 expectIncludes(contents.source, "nativeMapBridgeDebugLayerVisibility", "source records native bridge debug layer visibility");
 expectIncludes(contents.source, "itemVisibilityState", "source local native debug bridge tracks item visibility");
 expectIncludes(contents.source, "itemTypeCountsState", "source local native debug bridge tracks item type counts");

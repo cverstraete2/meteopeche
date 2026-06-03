@@ -6524,6 +6524,12 @@ function installLocalNativeMapBridgeDebug() {
     });
     layerMembership.delete(layerId);
   };
+  const setLayerItemVisibility = (layerId, visible) => {
+    if (!layerId) return;
+    layerMembership.get(layerId)?.forEach((itemId) => {
+      if (itemId) itemVisibility.set(itemId, visible);
+    });
+  };
   const recordLayerAndTierState = (command, payload = {}) => {
     if (command === "configurePinTier") {
       const tier = payload.tier ?? {};
@@ -6536,7 +6542,11 @@ function installLocalNativeMapBridgeDebug() {
     }
     if (command === "setLayerVisible") {
       const layerId = payload.layerId ?? payload.overlayId ?? payload.id;
-      if (layerId) layerVisibility.set(layerId, payload.visible !== false);
+      if (layerId) {
+        const visible = payload.visible !== false;
+        layerVisibility.set(layerId, visible);
+        setLayerItemVisibility(layerId, visible);
+      }
     }
     if (command === "addToLayer") {
       addLayerMembership(payload.layerId, payload.itemId);
