@@ -116,9 +116,9 @@ expectIncludes(contents.source, "loadLeafletLibraryFallback", "source defines ca
 expectIncludes(contents.source, "leaflet-js-fallback", "source marks fallback Leaflet script");
 expectIncludes(contents.source, "vendor/leaflet/leaflet.js?v=20260603-native-cache-recovery", "source loads cache-busted Leaflet fallback script");
 expectIncludes(contents.source, "document.documentElement.classList.toggle(\"is-native-map-provider\", isNativeMapProvider(state.mapProviderId))", "source marks native provider for transparent web corridor");
-expectIncludes(contents.styles, "html.is-native-map-provider body", "styles make body transparent for native map provider");
-expectIncludes(contents.styles, "html.is-native-map-provider .app-shell", "styles make app shell transparent for native map provider");
-expectIncludes(contents.styles, "html.is-native-map-provider .spot-map", "styles keep native map surface transparent through web layer");
+expectIncludes(contents.styles, "html.is-native-map-provider[data-current-mobile-view=\"map\"] body", "styles scope native map body transparency to map tab");
+expectIncludes(contents.styles, "html.is-native-map-provider[data-current-mobile-view=\"map\"] .spot-map", "styles keep native map surface transparent through web layer on map tab");
+expectIncludes(contents.styles, "html.is-native-map-provider:not([data-current-mobile-view=\"map\"]) body", "styles restore opaque app background away from native map tab");
 expectIncludes(contents.sw, "styles.css", "service worker tracks styles asset");
 expectIncludes(contents.source, "experimentalMapProviders().includes(providerId)", "runtime filters experimental provider ids");
 expectIncludes(contents.buildScript, "validMapProviderIds", "build script filters experimental provider ids");

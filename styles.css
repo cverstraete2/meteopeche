@@ -1371,17 +1371,20 @@ input[type="range"]::-moz-range-thumb {
   border-radius: 0;
 }
 
-.spot-map.is-native-map {
+.spot-map.is-native-map,
+html.is-native-map-provider[data-current-mobile-view="map"] body,
+html.is-native-map-provider[data-current-mobile-view="map"] .app-shell,
+html.is-native-map-provider[data-current-mobile-view="map"] main,
+html.is-native-map-provider[data-current-mobile-view="map"] .spot-workspace,
+html.is-native-map-provider[data-current-mobile-view="map"] .map-panel,
+html.is-native-map-provider[data-current-mobile-view="map"] .spot-map {
   background: transparent;
 }
 
-html.is-native-map-provider body,
-html.is-native-map-provider .app-shell,
-html.is-native-map-provider main,
-html.is-native-map-provider .spot-workspace,
-html.is-native-map-provider .map-panel,
-html.is-native-map-provider .spot-map {
-  background: transparent;
+html.is-native-map-provider:not([data-current-mobile-view="map"]) body,
+html.is-native-map-provider:not([data-current-mobile-view="map"]) .app-shell,
+html.is-native-map-provider:not([data-current-mobile-view="map"]) main {
+  background: var(--bg);
 }
 
 .spot-map.map-loading::after {

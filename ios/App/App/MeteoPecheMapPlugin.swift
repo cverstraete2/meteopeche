@@ -1039,14 +1039,20 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         let top = cgFloat(metrics["top"]) ?? 0
         let width = cgFloat(metrics["width"]) ?? 0
         let height = cgFloat(metrics["height"]) ?? 0
-        let frame = CGRect(x: left, y: top, width: max(width, 0), height: max(height, 0))
         DispatchQueue.main.async {
-            self.mapView?.frame = frame
+            self.mapView?.frame = self.bridge?.viewController?.view.bounds ?? CGRect(x: left, y: top, width: max(width, 0), height: max(height, 0))
+            self.mapView?.autoresizingMask = [.flexibleWidth, .flexibleHeight]
             self.mapViewFrame = [
                 "left": Double(left),
                 "top": Double(top),
                 "width": Double(width),
-                "height": Double(height)
+                "height": Double(height),
+                "nativeFrame": [
+                    "left": Double(self.mapView?.frame.origin.x ?? 0),
+                    "top": Double(self.mapView?.frame.origin.y ?? 0),
+                    "width": Double(self.mapView?.frame.width ?? 0),
+                    "height": Double(self.mapView?.frame.height ?? 0)
+                ]
             ]
         }
     }

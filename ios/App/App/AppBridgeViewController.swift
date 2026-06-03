@@ -7,6 +7,7 @@ class AppBridgeViewController: CAPBridgeViewController {
         view.backgroundColor = .clear
         webView?.backgroundColor = .clear
         webView?.isOpaque = false
+        webView?.scrollView.backgroundColor = .clear
         bridge?.registerPluginInstance(MeteoPecheMapPlugin())
     }
 }
