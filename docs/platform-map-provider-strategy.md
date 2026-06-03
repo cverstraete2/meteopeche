@@ -299,6 +299,7 @@ Do not install Google or Apple map SDKs as the first step. First, introduce the 
 - Added provider-neutral `markerCount` and `shapeCount` debug fields to iOS MapKit and the local native debug bridge, matching Android Google count telemetry for cross-provider smoke assertions.
 - Added native handle count telemetry to iOS MapKit for tile overlays, markers, circles, polylines, and polygons, matching Android Google's native renderer debug counters.
 - Mirrored native renderer frame and camera debug fields in the local native debug bridge, so browser smoke tests can inspect layout and `setView` state with the same `renderer.frame`, `renderer.lastCameraCenter`, and `renderer.lastCameraZoom` keys as device bridges.
+- Taught local native move/zoom event simulation to update renderer camera debug state, matching native bridge behavior when provider-scoped camera callbacks fire.
 - Applied native `setLayerVisible` to all marker and shape items currently owned by the target layer in both the MapKit and Google scaffolds, bringing non-tile layer toggles closer to Leaflet layer-group semantics.
 - Matched the local native debug bridge to that same layer-owned item visibility behavior, so browser smoke tests can inspect native-style layer toggles before running device builds.
 - Added explicit child-layer tracking for local debug, iOS MapKit, and Android Google native scaffolds so parent layer visibility cascades through nested provider layers such as coastal overlay groups and progressive pin tiers.

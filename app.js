@@ -6565,6 +6565,12 @@ function installLocalNativeMapBridgeDebug() {
   }).length;
   const markerClassNamesState = () => [...new Set(itemClassNames.values())].sort();
   const pinTierVisibilityState = () => Object.fromEntries(pinTierVisibility.entries());
+  const rememberCameraEventPayload = (payload = {}) => {
+    const center = nativeEventCenter(payload);
+    const zoom = nativeEventZoom(payload);
+    if (center) lastCameraCenter = center;
+    if (zoom != null) lastCameraZoom = zoom;
+  };
   const debugRendererState = (providerId) => ({
     kind: providerId,
     providerId,
@@ -6827,6 +6833,7 @@ function installLocalNativeMapBridgeDebug() {
     },
     emitMapEvent({ providerId, eventName, payload = {} } = {}) {
       if (!providerId || !eventName) return Promise.resolve(null);
+      if (eventName === "moveend" || eventName === "zoomend") rememberCameraEventPayload(payload);
       this.emit(nativeBridgeEventName(providerId, eventName), payload);
       return Promise.resolve({ ok: true, providerId, eventName, payload });
     },

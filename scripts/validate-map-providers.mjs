@@ -286,6 +286,7 @@ expectIncludes(contents.nativeBridgeDocs, "map:google-native:moveend", "native b
 expectIncludes(contents.nativeBridgeDocs, "emitMapEvent", "native bridge contract doc documents debug bridge event emission");
 expectIncludes(contents.nativeBridgeDocs, "simulateMove", "native bridge contract doc documents debug bridge move simulation");
 expectIncludes(contents.nativeBridgeDocs, "simulateItemClick", "native bridge contract doc documents debug bridge item-click simulation");
+expectIncludes(contents.nativeBridgeDocs, "simulation also updates `renderer.lastCameraCenter`", "native bridge contract doc documents simulated camera debug state");
 expectIncludes(contents.nativeBridgeDocs, "mapProviderDebugSimulateEvents=1", "native bridge contract doc documents automatic event simulation");
 expectIncludes(contents.nativeBridgeDocs, "camera: { target: { latitude, longitude }, zoom }", "native bridge contract doc documents camera target payloads");
 expectIncludes(contents.nativeBridgeDocs, "zoomLevel", "native bridge contract doc documents zoomLevel payloads");
@@ -393,6 +394,8 @@ expectIncludes(contents.source, "renderer: debugRendererState(providerId)", "sou
 expectIncludes(contents.source, "let rendererFrame = null", "source local native debug bridge tracks renderer frame");
 expectIncludes(contents.source, "let lastCameraCenter = null", "source local native debug bridge tracks camera center");
 expectIncludes(contents.source, "let lastCameraZoom = null", "source local native debug bridge tracks camera zoom");
+expectIncludes(contents.source, "rememberCameraEventPayload", "source local native debug bridge updates camera state from events");
+expectIncludes(contents.source, "if (eventName === \"moveend\" || eventName === \"zoomend\") rememberCameraEventPayload(payload)", "source local native debug bridge mirrors move/zoom camera events");
 expectIncludes(contents.source, "frame: rendererFrame", "source local native debug bridge exposes renderer frame");
 expectIncludes(contents.source, "lastCameraCenter", "source local native debug bridge exposes camera center");
 expectIncludes(contents.source, "lastCameraZoom", "source local native debug bridge exposes camera zoom");
