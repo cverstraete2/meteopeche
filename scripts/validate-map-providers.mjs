@@ -304,8 +304,10 @@ expectIncludes(contents.nativeBridgeDocs, "renderer.layerMembership", "native br
 expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-layer-visibility", "native bridge contract doc documents debug renderer layer visibility data attribute");
 expectIncludes(contents.nativeBridgeDocs, "renderer.layerVisibility", "native bridge contract doc documents debug renderer layer visibility");
 expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-tile-overlay-count", "native bridge contract doc documents debug tile overlay count data attribute");
+expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-tile-overlay-types", "native bridge contract doc documents debug tile overlay types data attribute");
 expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-tile-overlay-visibility", "native bridge contract doc documents debug tile overlay visibility data attribute");
 expectIncludes(contents.nativeBridgeDocs, "renderer.tileOverlayCount", "native bridge contract doc documents debug renderer tile overlay count");
+expectIncludes(contents.nativeBridgeDocs, "renderer.tileOverlayTypes", "native bridge contract doc documents debug renderer tile overlay types");
 expectIncludes(contents.nativeBridgeDocs, "renderer.tileOverlayVisibility", "native bridge contract doc documents debug renderer tile overlay visibility");
 expectIncludes(contents.nativeBridgeDocs, "`setLayerVisible` should apply to every native item currently owned by that layer", "native bridge contract doc requires layer visibility to apply to member items");
 expectIncludes(contents.nativeBridgeDocs, "renderer.itemVisibility", "native bridge contract doc documents debug renderer item visibility");
@@ -380,6 +382,7 @@ expectIncludes(contents.source, "layerVisibilityState", "source local native deb
 expectIncludes(contents.source, "tileOverlayDefinitions = new Map()", "source local native debug bridge tracks tile overlay definitions");
 expectIncludes(contents.source, "tileOverlayVisibilityState", "source local native debug bridge tracks tile overlay visibility");
 expectIncludes(contents.source, "tileOverlayIdsState", "source local native debug bridge tracks tile overlay ids");
+expectIncludes(contents.source, "tileOverlayTypesState", "source local native debug bridge tracks tile overlay types");
 expectIncludes(contents.source, "setLayerItemVisibility", "source local native debug bridge applies layer visibility to member items");
 expectIncludes(contents.source, "payload.isLayer === true", "source local native debug bridge records child layer membership");
 expectIncludes(contents.source, "setLayerItemVisibility(childLayerId, visible, visitedLayerIds)", "source local native debug bridge cascades layer visibility to child layers");
@@ -387,6 +390,7 @@ expectIncludes(contents.source, "nativeMapBridgeDebugLayerChildren", "source rec
 expectIncludes(contents.source, "nativeMapBridgeDebugLayerVisibility", "source records native bridge debug layer visibility");
 expectIncludes(contents.source, "nativeMapBridgeDebugTileOverlayCount", "source records native bridge debug tile overlay count");
 expectIncludes(contents.source, "nativeMapBridgeDebugTileOverlayIds", "source records native bridge debug tile overlay ids");
+expectIncludes(contents.source, "nativeMapBridgeDebugTileOverlayTypes", "source records native bridge debug tile overlay types");
 expectIncludes(contents.source, "nativeMapBridgeDebugTileOverlayVisibility", "source records native bridge debug tile overlay visibility");
 expectIncludes(contents.source, "itemVisibilityState", "source local native debug bridge tracks item visibility");
 expectIncludes(contents.source, "itemTypeCountsState", "source local native debug bridge tracks item type counts");
@@ -510,6 +514,8 @@ expectIncludes(contents.androidNativeMapPlugin, "private int markerPayloadCount"
 expectIncludes(contents.androidNativeMapPlugin, "private JSObject lastCameraCenter", "Android native map plugin tracks camera center");
 expectIncludes(contents.androidNativeMapPlugin, "private final Map<String, JSObject> tileOverlayDefinitions", "Android native map plugin tracks tile overlay definitions");
 expectIncludes(contents.androidNativeMapPlugin, "createGoogleTileOverlay", "Android native map plugin records Google tile overlay definitions");
+expectIncludes(contents.androidNativeMapPlugin, "renderer.put(\"tileOverlayTypes\", tileOverlayTypesJson())", "Android native map plugin exposes tile overlay type debug state");
+expectIncludes(contents.androidNativeMapPlugin, "private JSObject tileOverlayTypesJson()", "Android native map plugin serializes tile overlay types");
 expectIncludes(contents.androidNativeMapPlugin, "setGoogleLayerVisible", "Android native map plugin records Google layer visibility");
 expectIncludes(contents.androidNativeMapPlugin, "private final Map<String, TileOverlay> nativeTileOverlays", "Android native map plugin tracks native Google tile overlays");
 expectIncludes(contents.androidNativeMapPlugin, "googleMap.addTileOverlay", "Android native map plugin renders Google tile overlays");

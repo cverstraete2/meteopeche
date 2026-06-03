@@ -513,6 +513,7 @@ public class MeteoPecheMapPlugin extends Plugin implements OnMapReadyCallback {
         renderer.put("lastCameraZoom", lastCameraZoom == null ? JSONObject.NULL : lastCameraZoom);
         renderer.put("tileOverlayCount", tileOverlayDefinitions.size());
         renderer.put("tileOverlayIds", tileOverlayIdsJson());
+        renderer.put("tileOverlayTypes", tileOverlayTypesJson());
         renderer.put("tileOverlayVisibility", tileOverlayVisibilityJson());
         renderer.put("nativeTileOverlayCount", nativeTileOverlays.size());
         renderer.put("markerCount", markerDefinitions.size());
@@ -1444,6 +1445,14 @@ public class MeteoPecheMapPlugin extends Plugin implements OnMapReadyCallback {
             visibility.put(entry.getKey(), entry.getValue());
         }
         return visibility;
+    }
+
+    private JSObject tileOverlayTypesJson() {
+        JSObject types = new JSObject();
+        for (Map.Entry<String, JSObject> entry : tileOverlayDefinitions.entrySet()) {
+            types.put(entry.getKey(), entry.getValue().optString("type", ""));
+        }
+        return types;
     }
 
     private JSArray itemIdsJson(Map<String, JSObject> items) {

@@ -6534,6 +6534,9 @@ function installLocalNativeMapBridgeDebug() {
     return counts;
   }, {});
   const tileOverlayIdsState = () => [...tileOverlayDefinitions.keys()].sort();
+  const tileOverlayTypesState = () => Object.fromEntries(
+    [...tileOverlayDefinitions.entries()].map(([overlayId, definition]) => [overlayId, definition?.type ?? ""]),
+  );
   const tileOverlayVisibilityState = () => Object.fromEntries(tileOverlayVisibility.entries());
   const markerPayloadCount = (key) => [...itemPayloads.values()].filter((payload) => {
     if (key === "iconAnchor" || key === "tooltipAnchor" || key === "popupAnchor") {
@@ -6558,6 +6561,7 @@ function installLocalNativeMapBridgeDebug() {
     ready: supportedProviders.includes(providerId),
     tileOverlayCount: tileOverlayDefinitions.size,
     tileOverlayIds: tileOverlayIdsState(),
+    tileOverlayTypes: tileOverlayTypesState(),
     tileOverlayVisibility: tileOverlayVisibilityState(),
     layerCount: layerMembership.size,
     layerMembership: layerMembershipState(),
@@ -6835,6 +6839,7 @@ function installLocalNativeMapBridgeDebug() {
       document.documentElement.dataset.nativeMapBridgeDebugLayerVisibility = JSON.stringify(layerVisibilityState());
       document.documentElement.dataset.nativeMapBridgeDebugTileOverlayCount = String(tileOverlayDefinitions.size);
       document.documentElement.dataset.nativeMapBridgeDebugTileOverlayIds = tileOverlayIdsState().join(",");
+      document.documentElement.dataset.nativeMapBridgeDebugTileOverlayTypes = JSON.stringify(tileOverlayTypesState());
       document.documentElement.dataset.nativeMapBridgeDebugTileOverlayVisibility = JSON.stringify(tileOverlayVisibilityState());
       document.documentElement.dataset.nativeMapBridgeDebugItemVisibility = JSON.stringify(itemVisibilityState());
       document.documentElement.dataset.nativeMapBridgeDebugItemTypeCounts = JSON.stringify(itemTypeCountsState());
