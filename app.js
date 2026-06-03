@@ -16289,6 +16289,16 @@ function mapProviderSmokeRoutes(baseUrl = window.location.href) {
       provider: MAP_PROVIDER_IDS.APPLE_NATIVE,
       fallbackReason: "",
     }),
+    route("apple-native-debug-bridge-events", {
+      mapProviderOverride: MAP_PROVIDER_IDS.APPLE_NATIVE,
+      mapProviderExperimental: MAP_PROVIDER_IDS.APPLE_NATIVE,
+      mapProviderDebugBridge: "1",
+      mapProviderDebugSimulateEvents: "1",
+    }, {
+      provider: MAP_PROVIDER_IDS.APPLE_NATIVE,
+      fallbackReason: "",
+      note: "Auto-simulates native move and item-click callbacks for event parity smoke testing.",
+    }),
     route("apple-native-debug-bridge-not-ready", {
       mapProviderOverride: MAP_PROVIDER_IDS.APPLE_NATIVE,
       mapProviderExperimental: MAP_PROVIDER_IDS.APPLE_NATIVE,
@@ -16306,6 +16316,16 @@ function mapProviderSmokeRoutes(baseUrl = window.location.href) {
     }, {
       provider: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
       fallbackReason: "",
+    }),
+    route("google-native-debug-bridge-events", {
+      mapProviderOverride: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
+      mapProviderExperimental: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
+      mapProviderDebugBridge: "1",
+      mapProviderDebugSimulateEvents: "1",
+    }, {
+      provider: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
+      fallbackReason: "",
+      note: "Auto-simulates native move and item-click callbacks for event parity smoke testing.",
     }),
     route("google-native-debug-bridge-not-ready", {
       mapProviderOverride: MAP_PROVIDER_IDS.GOOGLE_NATIVE,

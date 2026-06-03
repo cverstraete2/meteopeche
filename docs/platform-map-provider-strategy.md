@@ -301,6 +301,7 @@ Do not install Google or Apple map SDKs as the first step. First, introduce the 
 - Mirrored native renderer frame and camera debug fields in the local native debug bridge, so browser smoke tests can inspect layout and `setView` state with the same `renderer.frame`, `renderer.lastCameraCenter`, and `renderer.lastCameraZoom` keys as device bridges.
 - Taught local native move/zoom event simulation to update renderer camera debug state, matching native bridge behavior when provider-scoped camera callbacks fire.
 - Added DOM debug attributes for local native renderer frame and camera state, so browser smoke tests can inspect native-style layout and camera telemetry without calling `getDebugState()`.
+- Added native event-simulation entries to `mapProviderSmokeRoutes()` for both `apple-native` and `google-native`, so the canonical route matrix now covers provider-scoped move and item-click callback parity as well as mount/fallback behavior.
 - Applied native `setLayerVisible` to all marker and shape items currently owned by the target layer in both the MapKit and Google scaffolds, bringing non-tile layer toggles closer to Leaflet layer-group semantics.
 - Matched the local native debug bridge to that same layer-owned item visibility behavior, so browser smoke tests can inspect native-style layer toggles before running device builds.
 - Added explicit child-layer tracking for local debug, iOS MapKit, and Android Google native scaffolds so parent layer visibility cascades through nested provider layers such as coastal overlay groups and progressive pin tiers.

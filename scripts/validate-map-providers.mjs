@@ -137,6 +137,7 @@ expectIncludes(contents.readme, "`emitMapEvent`", "README documents local native
 expectIncludes(contents.readme, "`simulateMove`", "README documents local native move simulation");
 expectIncludes(contents.readme, "`simulateItemClick`", "README documents local native item-click simulation");
 expectIncludes(contents.readme, "mapProviderDebugSimulateEvents=1", "README documents automatic local native event simulation");
+expectIncludes(contents.readme, "native event-simulation routes for both `apple-native` and `google-native`", "README documents native event simulation smoke routes");
 expectIncludes(contents.readme, "`camera.target`", "README documents native camera target event normalization");
 expectIncludes(contents.readme, "`zoomLevel`", "README documents native zoomLevel event normalization");
 expectIncludes(contents.readme, "`bridgeProtocolVersion`", "README documents native bridge protocol version");
@@ -360,6 +361,8 @@ expectIncludes(contents.nativeBridgeDocs, "mapProviderDebugSdkFail=google", "nat
 expectIncludes(contents.nativeBridgeDocs, "mapProviderDebugSdkFail=apple", "native bridge contract doc documents Apple web debug failure route");
 expectIncludes(contents.nativeBridgeDocs, "data-map-provider-fallback-reason=\"mount-failed\"", "native bridge contract doc documents web debug failure fallback reason");
 expectIncludes(contents.nativeBridgeDocs, "mapProviderSmokeRoutes()", "native bridge contract doc documents provider smoke route inspector");
+expectIncludes(contents.nativeBridgeDocs, "apple-native-debug-bridge-events", "native bridge contract doc documents Apple native event simulation smoke route");
+expectIncludes(contents.nativeBridgeDocs, "google-native-debug-bridge-events", "native bridge contract doc documents Google native event simulation smoke route");
 expectIncludes(contents.nativeBridgeDocs, "data-web-map-sdk-debug-google-overlay-count", "native bridge contract doc documents Google web debug overlay count");
 expectIncludes(contents.nativeBridgeDocs, "data-web-map-sdk-debug-apple-annotation-count", "native bridge contract doc documents Apple web debug annotation count");
 expectIncludes(contents.source, "document.documentElement.dataset.nativeMapBridgeDebugCommandCount", "source records debug native command count");
@@ -474,6 +477,9 @@ expectIncludes(contents.source, "emitMapEvent({ providerId, eventName, payload =
 expectIncludes(contents.source, "simulateMove({ providerId, center, zoom } = {})", "source local native debug bridge simulates move events");
 expectIncludes(contents.source, "simulateItemClick({ providerId, itemId, lat, lon } = {})", "source local native debug bridge simulates item click events");
 expectIncludes(contents.source, "mapProviderDebugSimulateEvents", "source local native debug bridge supports automatic event simulation");
+expectIncludes(contents.source, "apple-native-debug-bridge-events", "source includes Apple native event simulation smoke route");
+expectIncludes(contents.source, "google-native-debug-bridge-events", "source includes Google native event simulation smoke route");
+expectIncludes(contents.source, "mapProviderDebugSimulateEvents: \"1\"", "source enables automatic native event simulation from smoke routes");
 expectIncludes(contents.source, "nativeEventCenter(payload)", "source normalizes native event centers");
 expectIncludes(contents.source, "nativeEventZoom(payload)", "source normalizes native event zoom");
 expectIncludes(contents.source, "nativePayloadLatLng", "source derives fallback native item-click coordinates from item payloads");
