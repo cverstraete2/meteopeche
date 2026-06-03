@@ -2132,6 +2132,7 @@ const state = {
   privacyAccepted: false,
   notificationsEnabled: false,
   smartAlerts: defaultSmartAlertSettings(),
+  smartAlertSchedule: [],
   native: {
     isNative: Boolean(window.Capacitor?.isNativePlatform?.()),
     online: navigator.onLine !== false,
@@ -7376,6 +7377,7 @@ function restoreState() {
   state.privacyAccepted = Boolean(saved.privacyAccepted);
   state.notificationsEnabled = Boolean(saved.notificationsEnabled);
   state.smartAlerts = normalizeSmartAlertSettings(saved.smartAlerts);
+  state.smartAlertSchedule = normalizeSmartAlertSchedule(saved.smartAlertSchedule);
 }
 
 function applyTheme(options = {}) {
@@ -7664,19 +7666,7 @@ async function requestNotificationPermission() {
 async function sendTestNotification() {
   const notifications = getNotificationPlugin();
   if (state.native.isNative && notifications?.schedule) {
-    if (notifications.createChannel) {
-      try {
-        await notifications.createChannel({
-          id: "fishing-alerts",
-          name: "Alertes pêche",
-          description: "Rappels météo et sécurité MeteoCatch",
-          importance: 4,
-          visibility: 1,
-        });
-      } catch {
-        // iOS and web do not use Android notification channels.
-      }
-    }
+    await ensureFishingAlertChannel(notifications);
     await notifications.schedule({
       notifications: [{
         id: Math.floor(Date.now() % 2147483647),
@@ -7692,6 +7682,283 @@ async function sendTestNotification() {
   if ("Notification" in window && Notification.permission === "granted") {
     new Notification("MeteoCatch", { body: "Les alertes de sortie sont activées." });
   }
+}
+
+async function ensureFishingAlertChannel(notifications = getNotificationPlugin()) {
+  if (!notifications?.createChannel) return;
+  try {
+    await notifications.createChannel({
+      id: "fishing-alerts",
+      name: "Alertes pêche",
+      description: "Rappels météo et sécurité MeteoCatch",
+      importance: 4,
+      visibility: 1,
+    });
+  } catch {
+    // iOS and web do not use Android notification channels.
+  }
+}
+
+async function scheduleSmartFishingAlerts(options = {}) {
+  const notifications = getNotificationPlugin();
+  const permission = await syncNotificationPermission();
+  const nativeSchedulerAvailable = state.native.isNative && notifications?.schedule;
+
+  if (permission !== "granted" || !state.notificationsEnabled) {
+    return {
+      status: "permission-required",
+      scheduled: [],
+      message: "Active les notifications pour programmer les alertes.",
+    };
+  }
+
+  if (!nativeSchedulerAvailable) {
+    return {
+      status: "unavailable",
+      scheduled: [],
+      message: "La programmation locale est disponible dans l'app native.",
+    };
+  }
+
+  const candidates = buildSmartAlertCandidates(options).slice(0, 24);
+  await cancelSmartFishingAlerts({ persist: false });
+
+  if (!candidates.length) {
+    state.smartAlertSchedule = [];
+    saveSettings();
+    return {
+      status: "empty",
+      scheduled: [],
+      message: "Aucune alerte exploitable avec les données actuelles.",
+    };
+  }
+
+  await ensureFishingAlertChannel(notifications);
+  await notifications.schedule({
+    notifications: candidates.map((candidate) => ({
+      id: candidate.id,
+      title: candidate.title,
+      body: candidate.body,
+      channelId: "fishing-alerts",
+      schedule: { at: new Date(candidate.scheduledAt) },
+      extra: {
+        type: candidate.type,
+        spotId: candidate.spotId,
+        date: candidate.date,
+      },
+    })),
+  });
+
+  state.smartAlertSchedule = candidates.map(({ id, type, title, body, spotId, spotName, date, scheduledAt }) => ({
+    id,
+    type,
+    title,
+    body,
+    spotId,
+    spotName,
+    date,
+    scheduledAt,
+  }));
+  saveSettings();
+
+  return {
+    status: "scheduled",
+    scheduled: state.smartAlertSchedule,
+    message: `${state.smartAlertSchedule.length} alertes programmées.`,
+  };
+}
+
+async function cancelSmartFishingAlerts(options = {}) {
+  const notifications = getNotificationPlugin();
+  const ids = normalizeSmartAlertSchedule(state.smartAlertSchedule).map((alert) => ({ id: alert.id }));
+
+  if (state.native.isNative && notifications?.cancel && ids.length) {
+    try {
+      await notifications.cancel({ notifications: ids });
+    } catch (error) {
+      console.warn("Smart alert cancellation failed", error);
+    }
+  }
+
+  state.smartAlertSchedule = [];
+  if (options.persist !== false) saveSettings();
+  return { status: "canceled", canceled: ids.length };
+}
+
+async function updateSmartFishingAlerts(options = {}) {
+  return scheduleSmartFishingAlerts(options);
+}
+
+function buildSmartAlertCandidates(options = {}) {
+  const settings = normalizeSmartAlertSettings(options.settings ?? state.smartAlerts);
+  const active = getActiveSpot();
+  const days = (options.days ?? state.days).slice(0, 10);
+  const now = options.now instanceof Date ? options.now : new Date();
+  const candidates = [];
+
+  SMART_ALERT_TYPES.forEach((type) => {
+    const alertSettings = settings.alerts[type];
+    if (!alertSettings?.enabled) return;
+    const builder = {
+      "rising-tide": risingTideAlertCandidates,
+      "best-solunar": bestSolunarAlertCandidates,
+      "wind-drop": windDropAlertCandidates,
+      "species-activity": speciesActivityAlertCandidates,
+      "morning-report": morningReportAlertCandidates,
+    }[type];
+    if (!builder) return;
+    candidates.push(...builder(days, alertSettings, active, now));
+  });
+
+  return candidates
+    .filter((candidate) => candidate && !isQuietTime(candidate.scheduledAt, settings.quietHours))
+    .sort((a, b) => Date.parse(a.scheduledAt) - Date.parse(b.scheduledAt))
+    .filter(limitSmartAlertsPerDay(settings.maxPerDay));
+}
+
+function risingTideAlertCandidates(days, alertSettings, spot, now) {
+  if (!isSeaMode()) return [];
+  return days.flatMap((day) => {
+    const rows = tideRows(day).filter((row) => rowTideTrend(row, tideRows(day)) === "rising");
+    const row = rows.find((candidate) => forecastDate(candidate.time) > now);
+    if (!row) return [];
+    return smartAlertCandidate({
+      type: "rising-tide",
+      spot,
+      day,
+      at: addMinutes(forecastDate(row.time), -alertSettings.leadMinutes),
+      title: "Marée montante bientôt",
+      body: `${spot.name}: marée montante vers ${row.hour}, hauteur ${formatTideHeight(row.seaLevel)}.`,
+    });
+  });
+}
+
+function bestSolunarAlertCandidates(days, alertSettings, spot, now) {
+  return days.flatMap((day) => {
+    const best = day.bestWindow;
+    const peakRow = day.rows?.find((row) => row.hour === best?.peakHour);
+    const peakDate = peakRow ? forecastDate(peakRow.time) : null;
+    if (!peakDate || peakDate <= now) return [];
+    return smartAlertCandidate({
+      type: "best-solunar",
+      spot,
+      day,
+      at: addMinutes(peakDate, -alertSettings.leadMinutes),
+      title: "Meilleur créneau en approche",
+      body: `${spot.name}: ${best.label}, score ${best.score}/100 pour ${getFishLabel(normalizeActivityFish(state.activityFish))}.`,
+    });
+  });
+}
+
+function windDropAlertCandidates(days, alertSettings, spot, now) {
+  return days.flatMap((day) => {
+    const rows = day.rows ?? [];
+    const row = rows.find((candidate, index) => {
+      const previous = rows[index - 1];
+      return forecastDate(candidate.time) > now
+        && isValidNumber(candidate.windSpeed)
+        && candidate.windSpeed <= 10
+        && (!previous || (previous.windSpeed ?? 0) >= 14);
+    });
+    if (!row) return [];
+    return smartAlertCandidate({
+      type: "wind-drop",
+      spot,
+      day,
+      at: addMinutes(forecastDate(row.time), -alertSettings.leadMinutes),
+      title: "Le vent baisse",
+      body: `${spot.name}: vent prévu ${formatNumber(row.windSpeed, 0)} kt vers ${row.hour}.`,
+    });
+  });
+}
+
+function speciesActivityAlertCandidates(days, alertSettings, spot, now) {
+  const fish = normalizeActivityFish(state.activityFish);
+  return days.flatMap((day) => {
+    const row = activityRows(day, fish)
+      .find((candidate) => candidate.score >= 72 && forecastDate(candidate.time) > now);
+    if (!row) return [];
+    return smartAlertCandidate({
+      type: "species-activity",
+      spot,
+      day,
+      at: addMinutes(forecastDate(row.time), -alertSettings.leadMinutes),
+      title: `${getFishLabel(fish)} actif`,
+      body: `${spot.name}: activité ${row.score}/100 vers ${row.hour}.`,
+    });
+  });
+}
+
+function morningReportAlertCandidates(days, alertSettings, spot, now) {
+  const today = now.toISOString().slice(0, 10);
+  return days.flatMap((day) => {
+    if (day.date < today) return [];
+    const at = forecastDate(`${day.date}T${alertSettings.deliveryTime ?? "07:00"}`);
+    if (at <= now) return [];
+    const summary = day.planningSummary ?? dailyPlanningSummary(day);
+    return smartAlertCandidate({
+      type: "morning-report",
+      spot,
+      day,
+      at,
+      title: "Rapport pêche du matin",
+      body: `${spot.name}: ${summary.bestWindow.label}, ${summary.weatherRisk.label.toLowerCase()}, score ${summary.score}/100.`,
+    });
+  });
+}
+
+function smartAlertCandidate({ type, spot, day, at, title, body }) {
+  if (!(at instanceof Date) || Number.isNaN(at.getTime()) || at <= new Date()) return null;
+  return {
+    id: smartAlertId(type, spot.id ?? spot.name, day.date, at),
+    type,
+    title,
+    body,
+    spotId: spot.id ?? spot.name,
+    spotName: spot.name,
+    date: day.date,
+    scheduledAt: at.toISOString(),
+  };
+}
+
+function smartAlertId(type, spotId, date, at) {
+  const key = `${type}:${spotId}:${date}:${at.toISOString().slice(11, 16)}`;
+  let hash = 0;
+  for (let index = 0; index < key.length; index += 1) {
+    hash = ((hash << 5) - hash + key.charCodeAt(index)) | 0;
+  }
+  return 100000 + Math.abs(hash % 1900000000);
+}
+
+function limitSmartAlertsPerDay(maxPerDay) {
+  const counts = new Map();
+  return (candidate) => {
+    const key = `${candidate.spotId}:${candidate.scheduledAt.slice(0, 10)}`;
+    const count = counts.get(key) ?? 0;
+    if (count >= maxPerDay) return false;
+    counts.set(key, count + 1);
+    return true;
+  };
+}
+
+function isQuietTime(isoTime, quietHours) {
+  const date = new Date(isoTime);
+  if (Number.isNaN(date.getTime())) return false;
+  const minute = date.getHours() * 60 + date.getMinutes();
+  const start = minutesFromClockOrNull(quietHours?.start) ?? 21 * 60;
+  const end = minutesFromClockOrNull(quietHours?.end) ?? 7 * 60;
+  return start <= end
+    ? minute >= start && minute < end
+    : minute >= start || minute < end;
+}
+
+function forecastDate(value) {
+  if (!value) return new Date(NaN);
+  return new Date(String(value).length === 16 ? `${value}:00` : value);
+}
+
+function addMinutes(date, minutes) {
+  return new Date(date.getTime() + minutes * 60000);
 }
 
 function normalizePermissionState(value) {
@@ -16399,6 +16666,7 @@ function saveSettings() {
     privacyAccepted: Boolean(state.privacyAccepted),
     notificationsEnabled: Boolean(state.notificationsEnabled),
     smartAlerts: normalizeSmartAlertSettings(state.smartAlerts),
+    smartAlertSchedule: normalizeSmartAlertSchedule(state.smartAlertSchedule),
   };
   updateAppStore((store) => {
     store.settings = {
@@ -16587,6 +16855,7 @@ function normalizeSettings(settings) {
     privacyAccepted: Boolean(settings.privacyAccepted),
     notificationsEnabled: Boolean(settings.notificationsEnabled),
     smartAlerts: normalizeSmartAlertSettings(settings.smartAlerts),
+    smartAlertSchedule: normalizeSmartAlertSchedule(settings.smartAlertSchedule),
   };
 }
 
@@ -16635,6 +16904,22 @@ function normalizeClockTime(value, fallback = null) {
   if (value == null && fallback == null) return null;
   const text = typeof value === "string" ? value : fallback;
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(text) ? text : fallback;
+}
+
+function normalizeSmartAlertSchedule(schedule) {
+  if (!Array.isArray(schedule)) return [];
+  return schedule
+    .map((item) => ({
+      id: Number.isInteger(item?.id) ? item.id : null,
+      type: SMART_ALERT_TYPES.includes(item?.type) ? item.type : "",
+      title: typeof item?.title === "string" ? item.title : "",
+      body: typeof item?.body === "string" ? item.body : "",
+      spotId: typeof item?.spotId === "string" ? item.spotId : "",
+      spotName: typeof item?.spotName === "string" ? item.spotName : "",
+      date: typeof item?.date === "string" ? item.date : "",
+      scheduledAt: typeof item?.scheduledAt === "string" ? item.scheduledAt : "",
+    }))
+    .filter((item) => item.id && item.type && item.scheduledAt);
 }
 
 function normalizeTheme(theme) {
