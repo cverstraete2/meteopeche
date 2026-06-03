@@ -183,6 +183,7 @@ node server.mjs 8090
 | `npm run map-provider:validate` | Validates provider ids, default-off config, bridge/debug contracts, asset cache versioning, and generated web/iOS/Android bundle propagation. |
 | `npm run deploy` | Builds and deploys `dist/` to Cloudflare Pages project `meteopeche` on branch `main`. |
 | `npm run mobile:sync` | Builds the web app and runs `npx cap sync`. |
+| `npm run mobile:sync:ios-native` | Builds and syncs iOS, then enables the generated Xcode bundle to use `apple-native`. |
 | `npm run mobile:add:ios` | Builds the web app and adds an iOS Capacitor project. |
 | `npm run mobile:add:android` | Builds the web app and adds an Android Capacitor project. |
 | `npm run mobile:open:ios` | Opens the iOS project with Capacitor. |
