@@ -621,6 +621,8 @@ expectIncludes(contents.iosNativeMapPlugin, "MKTileOverlayRenderer", "iOS native
 expectIncludes(contents.iosNativeMapPlugin, "wmsTileUrl", "iOS native map plugin builds WMS tile URLs");
 expectIncludes(contents.iosNativeMapPlugin, "tileBbox4326", "iOS native map plugin computes WMS tile bbox");
 expectIncludes(contents.iosNativeMapPlugin, "renderer.alpha = CGFloat", "iOS native map plugin applies tile overlay opacity");
+expectIncludes(contents.iosNativeMapPlugin, "let minZoomValue = (call.getInt(\"minZoom\")", "iOS native map plugin builds explicit optional min zoom debug values");
+expectIncludes(contents.iosNativeMapPlugin, "\"maxZoom\": maxZoomValue", "iOS native map plugin builds explicit optional max zoom debug values");
 expectIncludes(contents.iosNativeMapPlugin, "\"tileOverlayCount\"", "iOS native map plugin exposes tile overlay debug count");
 expectIncludes(contents.iosNativeMapPlugin, "\"tileOverlayTypes\"", "iOS native map plugin exposes tile overlay type debug state");
 expectIncludes(contents.iosNativeMapPlugin, "private class MeteoPecheMapAnnotation", "iOS native map plugin defines dormant MapKit annotation");

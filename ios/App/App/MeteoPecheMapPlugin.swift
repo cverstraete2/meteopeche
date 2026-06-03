@@ -528,12 +528,14 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
             ?? ""
         let url = call.getString("url") ?? overlayPayload["url"] as? String
         guard !overlayId.isEmpty, let url = url else { return }
+        let minZoomValue = (call.getInt("minZoom") ?? intValue(overlayPayload["minZoom"])).map { $0 as Any } ?? NSNull()
+        let maxZoomValue = (call.getInt("maxZoom") ?? intValue(overlayPayload["maxZoom"])).map { $0 as Any } ?? NSNull()
         let definition: [String: Any] = [
             "overlayId": overlayId,
             "type": call.getString("type") ?? overlayPayload["type"] as? String ?? "",
             "url": url,
-            "minZoom": call.getInt("minZoom") ?? intValue(overlayPayload["minZoom"]) ?? NSNull(),
-            "maxZoom": call.getInt("maxZoom") ?? intValue(overlayPayload["maxZoom"]) ?? NSNull(),
+            "minZoom": minZoomValue,
+            "maxZoom": maxZoomValue,
             "opacity": call.getDouble("opacity") ?? doubleValue(overlayPayload["opacity"]) ?? 1,
             "layers": overlayPayload["layers"] as? String ?? "",
             "styles": overlayPayload["styles"] as? String ?? "",
