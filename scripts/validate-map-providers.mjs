@@ -106,6 +106,10 @@ expectIncludes(contents.source, "els.mapTiles.replaceChildren()", "source clears
 expectIncludes(contents.source, "els.mapMarkers.replaceChildren()", "source clears fallback marker DOM when provider mounts");
 expectIncludes(contents.source, "\"has-map-provider\",", "source removes provider ownership class on failed mount cleanup");
 expectIncludes(contents.source, "delete els.spotMap._leaflet_id", "source clears partial Leaflet container id on failed mount cleanup");
+expectIncludes(contents.source, "document.documentElement.classList.toggle(\"is-native-map-provider\", isNativeMapProvider(state.mapProviderId))", "source marks native provider for transparent web corridor");
+expectIncludes(contents.styles, "html.is-native-map-provider body", "styles make body transparent for native map provider");
+expectIncludes(contents.styles, "html.is-native-map-provider .app-shell", "styles make app shell transparent for native map provider");
+expectIncludes(contents.styles, "html.is-native-map-provider .spot-map", "styles keep native map surface transparent through web layer");
 expectIncludes(contents.sw, "styles.css", "service worker tracks styles asset");
 expectIncludes(contents.source, "experimentalMapProviders().includes(providerId)", "runtime filters experimental provider ids");
 expectIncludes(contents.buildScript, "validMapProviderIds", "build script filters experimental provider ids");
