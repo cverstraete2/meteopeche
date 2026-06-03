@@ -703,6 +703,8 @@ expectIncludes(contents.iosNativeMapPlugin, "private var commandLog", "iOS nativ
 expectIncludes(contents.iosNativeMapPlugin, "private var commandTypeCounts", "iOS native map plugin keeps command type counts");
 expectIncludes(contents.iosNativeMapPlugin, "private var eventLog", "iOS native map plugin keeps event journal");
 expectIncludes(contents.iosNativeMapPlugin, "private var eventTypeCounts", "iOS native map plugin keeps event type counts");
+expectIncludes(contents.iosNativeMapPlugin, "guard hasSafeListenerArray(for: bridgeEventName) else { return }", "iOS native map plugin guards event listener array before notifying");
+expectIncludes(contents.iosNativeMapPlugin, "private func hasSafeListenerArray", "iOS native map plugin defines safe listener-array guard");
 expectIncludes(contents.iosNativeMapPlugin, "notifyListeners(bridgeEventName", "iOS native map plugin notifies provider-scoped native events");
 expectIncludes(contents.iosNativeMapPlugin, "regionDidChangeAnimated", "iOS native map plugin emits MapKit move and zoom events");
 expectIncludes(contents.iosNativeMapPlugin, "didSelect view", "iOS native map plugin emits MapKit annotation click events");
@@ -784,6 +786,9 @@ expectIncludes(contents.iosNativeMapPlugin, "private var pinTiers: [String: [Str
 expectIncludes(contents.iosNativeMapPlugin, "configureMapKitPinTier(call)", "iOS native map plugin handles pin-tier configuration");
 expectIncludes(contents.iosNativeMapPlugin, "addMapKitItemToLayer(call)", "iOS native map plugin handles layer membership");
 expectIncludes(contents.iosNativeMapPlugin, "addMapKitItemsToLayer(call)", "iOS native map plugin handles batch layer membership");
+expectIncludes(contents.iosNativeMapPlugin, "let items = rawArray(call, \"items\")", "iOS native map plugin normalizes batch item payload arrays");
+expectIncludes(contents.iosNativeMapPlugin, "let itemIds = rawArray(call, \"itemIds\").compactMap { $0 as? String }", "iOS native map plugin normalizes batch item visibility ids");
+expectIncludes(contents.iosNativeMapPlugin, "private func rawArray", "iOS native map plugin defines safe raw array payload helper");
 expectIncludes(contents.iosNativeMapPlugin, "setMapKitPinTierVisible(call)", "iOS native map plugin handles pin-tier visibility");
 expectIncludes(contents.iosNativeMapPlugin, "createMapKitItem", "iOS native map plugin creates MapKit marker items");
 expectIncludes(contents.iosNativeMapPlugin, "createMapKitItems", "iOS native map plugin creates MapKit marker batches");
