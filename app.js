@@ -2185,6 +2185,9 @@ const els = {
   timingWindowDetail: document.querySelector("#timingWindowDetail"),
   timingWindowFacts: document.querySelector("#timingWindowFacts"),
   timingWindowChips: document.querySelector("#timingWindowChips"),
+  planningPanel: document.querySelector("#planningPanel"),
+  planningContext: document.querySelector("#planningContext"),
+  planningList: document.querySelector("#planningList"),
   metricGrid: document.querySelector("#metricGrid"),
   metricTemplate: document.querySelector("#metricTemplate"),
   waterInsights: document.querySelector("#waterInsights"),
@@ -8951,7 +8954,7 @@ function buildRegionalMarineUrl(samples) {
     "ocean_current_direction",
   ].join(","));
   url.searchParams.set("timezone", "auto");
-  url.searchParams.set("forecast_days", "7");
+  url.searchParams.set("forecast_days", "10");
   url.searchParams.set("cell_selection", "sea");
   return url;
 }
@@ -11705,7 +11708,7 @@ function buildWeatherUrl(lat, lon, endpoint = WEATHER_API) {
   );
   url.searchParams.set("daily", "wind_speed_10m_max,wind_direction_10m_dominant,sunrise,sunset");
   url.searchParams.set("timezone", "auto");
-  url.searchParams.set("forecast_days", "7");
+  url.searchParams.set("forecast_days", "10");
   url.searchParams.set("wind_speed_unit", "kn");
   return url;
 }
@@ -11726,7 +11729,7 @@ function buildMarineUrl(lat, lon) {
     "sea_level_height_msl",
   ].join(","));
   url.searchParams.set("timezone", "auto");
-  url.searchParams.set("forecast_days", "7");
+  url.searchParams.set("forecast_days", "10");
   url.searchParams.set("cell_selection", "sea");
   return url;
 }
@@ -11735,7 +11738,7 @@ function buildRiverForecastUrl(lat, lon) {
   const url = buildAppApiUrl(RIVER_FORECAST_API_PATH);
   url.searchParams.set("latitude", lat.toFixed(4));
   url.searchParams.set("longitude", lon.toFixed(4));
-  url.searchParams.set("forecast_days", "7");
+  url.searchParams.set("forecast_days", "10");
   return url;
 }
 
@@ -12276,6 +12279,7 @@ function renderAll() {
   renderPreferenceControls(selected);
   renderActivity(selected);
   renderTimingWindow(selected);
+  renderPlanningView();
   renderTides(selected);
   renderConditionBrief(selected);
   renderMetrics(selected);
@@ -12532,14 +12536,14 @@ function setPreferredSpecies(fish, options = {}) {
 function renderDayTabs() {
   els.dayTabs.innerHTML = "";
   els.dayTabs.classList.toggle("is-forecast-expanded", state.forecastExpanded);
-  const days = state.days.slice(0, 6);
+  const days = state.days.slice(0, 10);
 
   if (!days.length) {
     els.dayTabs.innerHTML = `
       <div class="forecast-strip-head">
         <div>
           <span class="eyebrow">Prévision</span>
-          <h2>Prévisions 6 jours</h2>
+          <h2>Prévisions 10 jours</h2>
         </div>
       </div>
       <div class="forecast-strip-empty">Prévisions indisponibles</div>
@@ -12552,7 +12556,7 @@ function renderDayTabs() {
   header.innerHTML = `
     <div>
       <span class="eyebrow">Prévision</span>
-      <h2>Prévisions 6 jours</h2>
+      <h2>Prévisions 10 jours</h2>
     </div>
     <button class="ghost-button forecast-expand-toggle" type="button" data-forecast-toggle aria-expanded="${state.forecastExpanded}">
       ${state.forecastExpanded ? "Réduire" : "Agrandir"}
@@ -12965,6 +12969,116 @@ function timingWeatherFact(day, sample) {
   }
   if (isValidNumber(wind)) return `${formatNumber(wind, 0)} kt · ${formatHourCompact(selectedTimelineMinute())}`;
   return "conditions à confirmer";
+}
+
+function renderPlanningView() {
+  if (!els.planningPanel || !els.planningList) return;
+
+  const summaries = dailyPlanningSummaries(state.days.slice(0, 10));
+  if (els.planningContext) {
+    els.planningContext.textContent = summaries.length
+      ? `${getFishLabel(normalizeActivityFish(state.activityFish))} · ${getActiveSpot().name}`
+      : "Prévisions indisponibles";
+  }
+
+  if (!summaries.length) {
+    els.planningList.innerHTML = `
+      <div class="planning-empty">
+        Charge un spot pour comparer les meilleurs créneaux des prochains jours.
+      </div>
+    `;
+    return;
+  }
+
+  els.planningList.innerHTML = summaries.map((summary) => planningRowMarkup(summary)).join("");
+  els.planningList.querySelectorAll("[data-planning-date]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedDate = button.dataset.planningDate;
+      renderAll();
+    });
+  });
+}
+
+function planningRowMarkup(summary) {
+  const active = summary.date === state.selectedDate;
+  const weather = summary.weather.icon ?? { icon: "ti-sun", label: "Météo" };
+  const risk = summary.weatherRisk ?? {};
+  const sourceBadges = planningSourceBadges(summary);
+
+  return `
+    <button class="planning-row ${escapeHtml(summary.tone)} ${active ? "is-active" : ""}" type="button"
+      data-planning-date="${escapeHtml(summary.date)}" aria-pressed="${active}">
+      <span class="planning-date">
+        <strong>${escapeHtml(formatWeekday3(summary.date))}</strong>
+        <em>${escapeHtml(formatShortDateNoWeekday(summary.date))}</em>
+      </span>
+      <span class="planning-score ${escapeHtml(summary.tone)}">${escapeHtml(String(summary.score))}</span>
+      <span class="planning-main">
+        <strong>${escapeHtml(summary.bestWindow.label)}</strong>
+        <em>${escapeHtml(planningWindowDetail(summary))}</em>
+      </span>
+      <span class="planning-facts">
+        <span><i class="ti ${escapeHtml(weather.icon)}" aria-hidden="true"></i>${escapeHtml(planningWeatherSummary(summary))}</span>
+        <span>${escapeHtml(planningWaterSummary(summary))}</span>
+        <span>${escapeHtml(planningMoonSummary(summary))}</span>
+      </span>
+      <span class="planning-risk ${escapeHtml(risk.tone ?? "warn")}">${escapeHtml(risk.label ?? "À confirmer")}</span>
+      ${sourceBadges.length ? `<span class="planning-sources">${sourceBadges.map((label) => `<em>${escapeHtml(label)}</em>`).join("")}</span>` : ""}
+    </button>
+  `;
+}
+
+function planningWindowDetail(summary) {
+  const reasons = summary.bestWindow.reasons ?? [];
+  const risks = summary.bestWindow.risks ?? [];
+  const detail = reasons.length ? reasons.slice(0, 2) : risks.slice(0, 1);
+  return detail.length ? detail.join(" · ") : "Signaux à confirmer";
+}
+
+function planningWeatherSummary(summary) {
+  const weather = summary.weather ?? {};
+  const wind = isValidNumber(weather.windAvg) ? `Vent ${formatNumber(weather.windAvg, 0)} kt` : "Vent --";
+  if (isSeaMode()) {
+    const wave = isValidNumber(weather.waveAvg) ? `houle ${formatNumber(weather.waveAvg, 1)} m` : "houle --";
+    return `${wind} · ${wave}`;
+  }
+  const rain = isValidNumber(weather.precipitationTotal) ? `pluie ${formatNumber(weather.precipitationTotal, 1)} mm` : "pluie --";
+  return `${wind} · ${rain}`;
+}
+
+function planningWaterSummary(summary) {
+  if (!isSeaMode()) {
+    const flow = isValidNumber(summary.weather?.riverFlow)
+      ? `${formatRiverFlow(summary.weather.riverFlow)} · ${riverTrendLabel(summary.weather.riverFlowTrend)}`
+      : "Débit à confirmer";
+    return `Rivière ${flow}`;
+  }
+
+  if (summary.tideEvents?.length) {
+    return summary.tideEvents.slice(0, 2).map((event) => (
+      `${event.type === "high" ? "PM" : "BM"} ${event.hour}`
+    )).join(" · ");
+  }
+
+  const current = isValidNumber(summary.weather?.surfaceCurrent)
+    ? `${formatNumber(summary.weather.surfaceCurrent, 1)} kt`
+    : "--";
+  return `Courant ${current}`;
+}
+
+function planningMoonSummary(summary) {
+  const major = summary.moon?.major?.[0];
+  return `${summary.moon?.label ?? "Lune --"}${major ? ` · ${major}` : ""}`;
+}
+
+function planningSourceBadges(summary) {
+  const source = summary.sourceAvailability ?? {};
+  const badges = [];
+  if (!source.weather) badges.push("météo partielle");
+  if (isSeaMode() && !source.tide) badges.push("marée à confirmer");
+  if (isSeaMode() && !source.marine) badges.push("marine partielle");
+  if (!isSeaMode() && !source.river) badges.push("débit à confirmer");
+  return badges.slice(0, 2);
 }
 
 function renderConditionBrief(day) {

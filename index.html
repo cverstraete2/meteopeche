@@ -602,7 +602,7 @@ try {
 
     <section class="day-strip" id="dayTabs"
       data-mobile-view="activity weather"
-      aria-label="Prévisions 6 jours"></section>
+      aria-label="Prévisions 10 jours"></section>
 
     <section class="weather-top-tools" data-mobile-view="weather" aria-label="Sélecteur prévision">
       <div class="weather-subtabs" id="weatherSubtabs" role="tablist" aria-label="Sous-vues météo">
@@ -696,6 +696,17 @@ try {
           </div>
           <div class="timing-window-facts" id="timingWindowFacts"></div>
           <div class="timing-window-chips" id="timingWindowChips"></div>
+        </article>
+
+        <article class="planning-panel" id="planningPanel">
+          <div class="planning-panel-head">
+            <div>
+              <span class="eyebrow">Planification</span>
+              <h2>10 jours</h2>
+            </div>
+            <span id="planningContext">--</span>
+          </div>
+          <div class="planning-list" id="planningList"></div>
         </article>
 
         <article class="condition-brief" id="conditionBrief">

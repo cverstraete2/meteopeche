@@ -2494,6 +2494,212 @@ body.is-map-fullscreen-active .mobile-tabbar {
   border-color: color-mix(in srgb, var(--warn) 28%, transparent);
 }
 
+/* 10-day planning */
+.planning-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-5);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.planning-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.planning-panel-head h2 {
+  color: var(--text-1);
+  font-size: 1.45rem;
+  line-height: 1.1;
+}
+
+.planning-panel-head > span {
+  max-width: 45%;
+  color: var(--text-3);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.planning-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.planning-row {
+  width: 100%;
+  min-height: 96px;
+  display: grid;
+  grid-template-columns: minmax(58px, 0.55fr) minmax(48px, 0.35fr) minmax(126px, 1.2fr) minmax(180px, 1.45fr) minmax(82px, 0.8fr);
+  align-items: center;
+  gap: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+  color: var(--text-1);
+  background: var(--bg-soft);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+
+.planning-row:hover,
+.planning-row:focus-visible,
+.planning-row.is-active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent-soft) 42%, var(--bg-soft));
+  transform: translateY(-1px);
+}
+
+.planning-date,
+.planning-main,
+.planning-facts,
+.planning-sources {
+  min-width: 0;
+}
+
+.planning-date strong,
+.planning-date em,
+.planning-main strong,
+.planning-main em,
+.planning-facts span,
+.planning-sources em {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.planning-date strong {
+  font-family: var(--f-display);
+  font-size: 0.95rem;
+}
+
+.planning-date em,
+.planning-main em {
+  margin-top: 2px;
+  color: var(--text-3);
+  font-style: normal;
+  font-size: 0.74rem;
+  line-height: 1.25;
+}
+
+.planning-score {
+  justify-self: start;
+  min-width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--f-data);
+  font-size: 1rem;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.planning-score.good {
+  color: var(--go);
+  background: var(--go-bg);
+  border-color: color-mix(in srgb, var(--go) 28%, transparent);
+}
+
+.planning-score.maybe {
+  color: var(--maybe);
+  background: var(--maybe-bg);
+  border-color: color-mix(in srgb, var(--maybe) 28%, transparent);
+}
+
+.planning-score.poor,
+.planning-score.unavailable {
+  color: var(--warn);
+  background: var(--warn-bg);
+  border-color: color-mix(in srgb, var(--warn) 28%, transparent);
+}
+
+.planning-main strong {
+  color: var(--text-1);
+  font-size: 0.98rem;
+}
+
+.planning-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+
+.planning-facts span {
+  min-height: 48px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 7px 8px;
+  color: var(--text-2);
+  background: var(--bg-card);
+  font-size: 0.72rem;
+  line-height: 1.28;
+}
+
+.planning-facts i {
+  margin-right: 4px;
+  color: var(--accent);
+}
+
+.planning-risk {
+  justify-self: end;
+  border-radius: var(--r-pill);
+  padding: 6px 10px;
+  color: var(--text-2);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.planning-risk.good {
+  color: var(--go);
+  background: var(--go-bg);
+}
+
+.planning-risk.warn,
+.planning-risk.bad {
+  color: var(--warn);
+  background: var(--warn-bg);
+}
+
+.planning-sources {
+  grid-column: 3 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+}
+
+.planning-sources em {
+  border-radius: var(--r-pill);
+  padding: 4px 8px;
+  color: var(--text-3);
+  background: var(--bg-card);
+  border: 1px dashed var(--border);
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.planning-empty {
+  color: var(--text-3);
+  border: 1px dashed var(--border);
+  border-radius: var(--r-md);
+  padding: var(--sp-4);
+  background: var(--bg-soft);
+}
+
 /* Condition brief card */
 .condition-brief {
   background: var(--bg-card);
@@ -4321,6 +4527,44 @@ html[data-current-mobile-view="more"] main {
 
   .map-sensitive-card {
     bottom: calc(var(--safe-bottom) + var(--tabbar-h) + var(--sp-3));
+  }
+
+  .planning-panel {
+    padding: var(--sp-4);
+  }
+
+  .planning-panel-head > span {
+    max-width: 52%;
+    font-size: 0.72rem;
+  }
+
+  .planning-row {
+    grid-template-columns: 58px 48px minmax(0, 1fr);
+    min-height: 0;
+    gap: var(--sp-2);
+  }
+
+  .planning-main {
+    grid-column: 3;
+  }
+
+  .planning-facts {
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr;
+  }
+
+  .planning-facts span {
+    min-height: 0;
+  }
+
+  .planning-risk {
+    grid-column: 1 / -1;
+    justify-self: start;
+    white-space: normal;
+  }
+
+  .planning-sources {
+    grid-column: 1 / -1;
   }
 
   .forecast-strip-head {
