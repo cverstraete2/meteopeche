@@ -2133,6 +2133,7 @@ const state = {
   notificationsEnabled: false,
   smartAlerts: defaultSmartAlertSettings(),
   smartAlertSchedule: [],
+  glancePayload: null,
   native: {
     isNative: Boolean(window.Capacitor?.isNativePlatform?.()),
     online: navigator.onLine !== false,
@@ -7388,6 +7389,7 @@ function restoreState() {
   state.notificationsEnabled = Boolean(saved.notificationsEnabled);
   state.smartAlerts = normalizeSmartAlertSettings(saved.smartAlerts);
   state.smartAlertSchedule = normalizeSmartAlertSchedule(saved.smartAlertSchedule);
+  state.glancePayload = normalizeGlancePayload(readAppStore().glancePayload);
 }
 
 function applyTheme(options = {}) {
@@ -12610,6 +12612,96 @@ function dailyPlanningSummary(day, options = {}) {
   };
 }
 
+function syncGlancePayload(day = getSelectedDay()) {
+  const payload = buildGlancePayload(day);
+  state.glancePayload = payload;
+  updateAppStore((store) => {
+    store.glancePayload = payload;
+  });
+  return payload;
+}
+
+function buildGlancePayload(day = getSelectedDay(), options = {}) {
+  const active = getActiveSpot();
+  const summary = day?.planningSummary ?? dailyPlanningSummary(day, options);
+  const sample = timelineSample(day, summary.bestWindow.peakMinute ?? selectedTimelineMinute());
+  const generatedAt = new Date().toISOString();
+  const staleAfterMinutes = summary.sourceAvailability?.weather ? 90 : 30;
+
+  return normalizeGlancePayload({
+    version: 1,
+    generatedAt,
+    staleAt: new Date(Date.parse(generatedAt) + staleAfterMinutes * 60000).toISOString(),
+    state: state.native.online ? "fresh" : "offline",
+    spot: {
+      id: active.id,
+      name: active.name,
+      lat: active.lat,
+      lon: active.lon,
+      waterMode: state.waterMode,
+    },
+    species: {
+      id: normalizeActivityFish(state.activityFish),
+      label: getFishLabel(normalizeActivityFish(state.activityFish)),
+    },
+    day: {
+      date: summary.date,
+      label: summary.shortLabel,
+    },
+    activity: {
+      score: summary.score,
+      tone: summary.tone,
+      label: activityLabel(summary.score),
+    },
+    window: {
+      label: summary.bestWindow.label,
+      peakMinute: summary.bestWindow.peakMinute,
+      peakHour: summary.bestWindow.peakHour,
+      reasons: summary.bestWindow.reasons.slice(0, 2),
+      risks: summary.bestWindow.risks.slice(0, 2),
+    },
+    water: glanceWaterPayload(summary, sample, day),
+    weather: {
+      risk: summary.weatherRisk.label,
+      tone: summary.weatherRisk.tone,
+      windSpeed: sample.windSpeed ?? summary.weather.windAvg,
+      windDirection: sample.windDirection ?? summary.weather.windDirection,
+      windGust: sample.windGust ?? summary.weather.windGustMax,
+      waveHeight: isSeaMode() ? sample.waveHeight ?? summary.weather.waveAvg : null,
+      surfaceCurrent: isSeaMode() ? sample.surfaceCurrent ?? summary.weather.surfaceCurrent : null,
+      precipitation: sample.precipitation ?? summary.weather.precipitationTotal,
+    },
+    moon: {
+      label: summary.moon.label,
+      major: summary.moon.major.slice(0, 1),
+      minor: summary.moon.minor.slice(0, 1),
+    },
+    sourceAvailability: summary.sourceAvailability,
+  });
+}
+
+function glanceWaterPayload(summary, sample, day = getSelectedDay()) {
+  if (!isSeaMode()) {
+    return {
+      type: "river",
+      label: "Rivière",
+      value: isValidNumber(summary.weather.riverFlow) ? formatRiverFlow(summary.weather.riverFlow) : "Débit à confirmer",
+      trend: riverTrendLabel(summary.weather.riverFlowTrend),
+    };
+  }
+
+  return {
+    type: "tide",
+    label: "Marée",
+    value: timingTideFact(day, sample),
+    events: summary.tideEvents.slice(0, 2).map((event) => ({
+      type: event.type,
+      hour: event.hour,
+      height: event.height,
+    })),
+  };
+}
+
 function renderAll() {
   const selected = getSelectedDay();
   updateSpotMeta();
@@ -12632,6 +12724,7 @@ function renderAll() {
   renderCatchJournal();
   renderMarineOverlay();
   renderSpotResolution();
+  syncGlancePayload(selected);
   applyTranslations(document.body);
 }
 
@@ -16894,6 +16987,7 @@ function readAppStore() {
     settings: parseStoredJson(LEGACY_SETTINGS_KEY) ?? {},
     favorites: parseStoredJson(LEGACY_FAVORITES_KEY) ?? [],
     catchLog: [],
+    glancePayload: null,
   });
   writeAppStore(migrated);
   return migrated;
@@ -16919,6 +17013,50 @@ function normalizeStore(store) {
     settings: normalizeSettings(store?.settings ?? {}),
     favorites: Array.isArray(store?.favorites) ? store.favorites.map(normalizeFavorite).filter(Boolean) : [],
     catchLog: Array.isArray(store?.catchLog) ? store.catchLog.map(normalizeCatchLogEntry).filter(Boolean) : [],
+    glancePayload: normalizeGlancePayload(store?.glancePayload),
+  };
+}
+
+function normalizeGlancePayload(payload) {
+  if (!payload || typeof payload !== "object") return null;
+  return {
+    version: Number(payload.version) || 1,
+    generatedAt: typeof payload.generatedAt === "string" ? payload.generatedAt : new Date().toISOString(),
+    staleAt: typeof payload.staleAt === "string" ? payload.staleAt : new Date().toISOString(),
+    state: ["fresh", "offline", "stale"].includes(payload.state) ? payload.state : "stale",
+    spot: {
+      id: typeof payload.spot?.id === "string" ? payload.spot.id : "",
+      name: typeof payload.spot?.name === "string" ? payload.spot.name : "",
+      lat: isValidNumber(payload.spot?.lat) ? payload.spot.lat : null,
+      lon: isValidNumber(payload.spot?.lon) ? payload.spot.lon : null,
+      waterMode: normalizeWaterMode(payload.spot?.waterMode),
+    },
+    species: {
+      id: normalizeActivityFish(payload.species?.id),
+      label: typeof payload.species?.label === "string" ? payload.species.label : "",
+    },
+    day: {
+      date: typeof payload.day?.date === "string" ? payload.day.date : "",
+      label: typeof payload.day?.label === "string" ? payload.day.label : "",
+    },
+    activity: {
+      score: clamp(Number(payload.activity?.score) || 0, 0, 100),
+      tone: typeof payload.activity?.tone === "string" ? payload.activity.tone : "maybe",
+      label: typeof payload.activity?.label === "string" ? payload.activity.label : "",
+    },
+    window: {
+      label: typeof payload.window?.label === "string" ? payload.window.label : "--",
+      peakMinute: isValidNumber(payload.window?.peakMinute) ? payload.window.peakMinute : null,
+      peakHour: typeof payload.window?.peakHour === "string" ? payload.window.peakHour : "--",
+      reasons: Array.isArray(payload.window?.reasons) ? payload.window.reasons.slice(0, 2).map(String) : [],
+      risks: Array.isArray(payload.window?.risks) ? payload.window.risks.slice(0, 2).map(String) : [],
+    },
+    water: payload.water && typeof payload.water === "object" ? payload.water : {},
+    weather: payload.weather && typeof payload.weather === "object" ? payload.weather : {},
+    moon: payload.moon && typeof payload.moon === "object" ? payload.moon : {},
+    sourceAvailability: payload.sourceAvailability && typeof payload.sourceAvailability === "object"
+      ? payload.sourceAvailability
+      : {},
   };
 }
 
