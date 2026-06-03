@@ -12116,7 +12116,7 @@ function buildDailySummaries(hours) {
     const hourlyScores = rows.map((row) => scoreHour(row));
     const depthSource = realDepthRows.length ? "copernicus" : "unavailable";
 
-    return {
+    const day = {
       date,
       label: formatDayLabel(date),
       shortLabel: formatShortDay(date),
@@ -12161,6 +12161,11 @@ function buildDailySummaries(hours) {
       score: Math.round(average(hourlyScores) ?? 0),
       bestWindow: bestWindow(rows),
     };
+
+    return {
+      ...day,
+      planningSummary: dailyPlanningSummary(day),
+    };
   });
 }
 
@@ -12172,7 +12177,7 @@ function applyRiverForecastToDays(days, river) {
     const riverDay = byDate.get(day.date);
     if (!riverDay) return day;
 
-    return {
+    const enrichedDay = {
       ...day,
       riverFlow: riverDay.discharge,
       riverFlowMin: riverDay.min,
@@ -12182,7 +12187,85 @@ function applyRiverForecastToDays(days, river) {
       riverFlowAnomaly: riverDay.anomalyPercent,
       riverFlowStress: riverDay.stress,
     };
+
+    return {
+      ...enrichedDay,
+      planningSummary: dailyPlanningSummary(enrichedDay),
+    };
   });
+}
+
+function dailyPlanningSummaries(days, options = {}) {
+  return (days ?? []).map((day) => dailyPlanningSummary(day, options));
+}
+
+function dailyPlanningSummary(day, options = {}) {
+  const rows = day?.rows ?? [];
+  const best = day?.bestWindow ?? bestFishingWindowForDay(day, {
+    waterMode: options.waterMode ?? state.waterMode,
+    selectedSpecies: options.selectedSpecies ?? state.activityFish,
+    targetDepth: options.targetDepth ?? state.depth,
+    profile: options.profile ?? state.profile,
+  });
+  const peakSample = timelineSample(day, best?.peakMinute ?? selectedTimelineMinute());
+  const goNoGo = day ? weatherGoNoGo(day, peakSample) : null;
+  const windows = solunarWindows(day);
+  const tideList = (day?.tideEvents ?? tideEvents(rows)).slice(0, 4);
+  const sourceAvailability = best?.sourceAvailability ?? timingSourceAvailability(day, rows, state.waterMode);
+
+  return {
+    date: day?.date ?? "",
+    label: day?.label ?? "",
+    shortLabel: day?.shortLabel ?? "",
+    score: isValidNumber(best?.score) ? best.score : (day?.score ?? 0),
+    tone: best?.tone ?? timingWindowTone(day?.score ?? 0),
+    conditionTone: day ? dayConditionTone(day) : "maybe",
+    weatherRisk: {
+      tone: goNoGo?.tone ?? "warn",
+      label: goNoGo?.label ?? "À confirmer",
+      reasons: goNoGo?.reasons ?? ["Données partielles"],
+    },
+    bestWindow: {
+      label: best?.label ?? "--",
+      startMinute: best?.startMinute ?? null,
+      endMinute: best?.endMinute ?? null,
+      peakMinute: best?.peakMinute ?? null,
+      peakHour: best?.peakHour ?? "--",
+      reasons: best?.reasons ?? [],
+      risks: best?.risks ?? [],
+    },
+    tideEvents: tideList.map((event) => ({
+      type: event.type,
+      hour: event.hour,
+      height: event.height,
+      label: `${event.type === "high" ? "Pleine mer" : "Basse mer"} ${event.hour}`,
+    })),
+    moon: {
+      phase: windows.phase,
+      label: moonPhaseLabel(windows.phase),
+      major: windows.major.map((window) => window.label),
+      minor: windows.minor.map((window) => window.label),
+    },
+    weather: {
+      icon: dailyWeatherIcon(day),
+      windAvg: day?.windAvg ?? null,
+      windMax: day?.windMax ?? null,
+      windGustMax: day?.windGustMax ?? null,
+      windDirection: day?.windDirection ?? null,
+      waveAvg: day?.waveAvg ?? null,
+      waveMax: day?.waveMax ?? null,
+      waveDirection: day?.waveDirection ?? null,
+      wavePeriod: day?.wavePeriod ?? null,
+      surfaceCurrent: day?.surfaceCurrent ?? null,
+      surfaceCurrentDirection: day?.surfaceCurrentDirection ?? null,
+      precipitationTotal: day?.precipitationTotal ?? null,
+      pressureTrend: day?.pressureTrend ?? null,
+      riverFlow: day?.riverFlow ?? null,
+      riverFlowTrend: day?.riverFlowTrend ?? null,
+      riverFlowStress: day?.riverFlowStress ?? null,
+    },
+    sourceAvailability,
+  };
 }
 
 function renderAll() {
