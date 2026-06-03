@@ -743,8 +743,8 @@ expectIncludes(contents.iosNativeMapPlugin, "private var commandLog", "iOS nativ
 expectIncludes(contents.iosNativeMapPlugin, "private var commandTypeCounts", "iOS native map plugin keeps command type counts");
 expectIncludes(contents.iosNativeMapPlugin, "private var eventLog", "iOS native map plugin keeps event journal");
 expectIncludes(contents.iosNativeMapPlugin, "private var eventTypeCounts", "iOS native map plugin keeps event type counts");
-expectIncludes(contents.iosNativeMapPlugin, "guard hasSafeListenerArray(for: bridgeEventName) else { return }", "iOS native map plugin guards event listener array before notifying");
-expectIncludes(contents.iosNativeMapPlugin, "private func hasSafeListenerArray", "iOS native map plugin defines safe listener-array guard");
+expectNotIncludes(contents.iosNativeMapPlugin, "eventListeners?.object", "iOS native map plugin avoids unsafe Capacitor listener-store introspection");
+expectNotIncludes(contents.iosNativeMapPlugin, "hasSafeListenerArray", "iOS native map plugin avoids listener-count crash guard");
 expectIncludes(contents.iosNativeMapPlugin, "notifyListeners(bridgeEventName", "iOS native map plugin notifies provider-scoped native events");
 expectIncludes(contents.iosNativeMapPlugin, "regionDidChangeAnimated", "iOS native map plugin emits MapKit move and zoom events");
 expectIncludes(contents.iosNativeMapPlugin, "didSelect view", "iOS native map plugin emits MapKit annotation click events");

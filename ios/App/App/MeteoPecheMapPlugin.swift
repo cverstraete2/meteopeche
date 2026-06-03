@@ -409,13 +409,7 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         if eventLog.count > maxCommands {
             eventLog.removeFirst(eventLog.count - maxCommands)
         }
-        guard hasSafeListenerArray(for: bridgeEventName) else { return }
         notifyListeners(bridgeEventName, data: payload)
-    }
-
-    private func hasSafeListenerArray(for eventName: String) -> Bool {
-        guard let listeners = eventListeners?.object(forKey: eventName) as? NSArray else { return false }
-        return listeners.count > 0
     }
 
     private func rendererDebugState() -> [String: Any] {
