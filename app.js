@@ -5748,6 +5748,7 @@ function applyRuntimeMapProviderDataset() {
   document.documentElement.dataset.mapProviderMountReady = String(isMapProviderMountReady(state.mapProviderId));
   document.documentElement.dataset.mapProviderFallbackReason = state.mapProviderFallbackReason;
   document.documentElement.classList.toggle("map-provider-fallback", state.mapProviderFallbackActive);
+  document.documentElement.classList.toggle("is-native-map-provider", isNativeMapProvider(state.mapProviderId));
 }
 
 function resolveSupportedMapProvider(providerId) {

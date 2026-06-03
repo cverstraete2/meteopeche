@@ -1375,6 +1375,15 @@ input[type="range"]::-moz-range-thumb {
   background: transparent;
 }
 
+html.is-native-map-provider body,
+html.is-native-map-provider .app-shell,
+html.is-native-map-provider main,
+html.is-native-map-provider .spot-workspace,
+html.is-native-map-provider .map-panel,
+html.is-native-map-provider .spot-map {
+  background: transparent;
+}
+
 .spot-map.map-loading::after {
   content: "";
   position: absolute;
