@@ -116,6 +116,9 @@ expectIncludes(contents.source, "loadLeafletLibraryFallback", "source defines ca
 expectIncludes(contents.source, "leaflet-js-fallback", "source marks fallback Leaflet script");
 expectIncludes(contents.source, "vendor/leaflet/leaflet.js?v=20260603-native-cache-recovery", "source loads cache-busted Leaflet fallback script");
 expectIncludes(contents.source, "document.documentElement.classList.toggle(\"is-native-map-provider\", isNativeMapProvider(state.mapProviderId))", "source marks native provider for transparent web corridor");
+expectIncludes(contents.source, "if (!state.mapProvider || isNativeMapProvider(state.mapProviderId))", "source installs map surface gestures for native providers");
+expectIncludes(contents.ios, "if (!state.mapProvider || isNativeMapProvider(state.mapProviderId))", "iOS bundle installs map surface gestures for native providers");
+expectIncludes(contents.android, "if (!state.mapProvider || isNativeMapProvider(state.mapProviderId))", "Android bundle installs map surface gestures for native providers");
 expectIncludes(contents.styles, "html.is-native-map-provider[data-current-mobile-view=\"map\"] body", "styles scope native map body transparency to map tab");
 expectIncludes(contents.styles, "html.is-native-map-provider[data-current-mobile-view=\"map\"] .spot-map", "styles keep native map surface transparent through web layer on map tab");
 expectIncludes(contents.styles, "html.is-native-map-provider:not([data-current-mobile-view=\"map\"]) body", "styles restore opaque app background away from native map tab");
@@ -755,9 +758,12 @@ expectIncludes(contents.iosNativeMapPlugin, "private var mapView: MKMapView?", "
 expectIncludes(contents.iosNativeMapPlugin, "rendererDebugState()", "iOS native map plugin exposes renderer debug state");
 expectIncludes(contents.iosNativeMapPlugin, "\"implemented\": true", "iOS native map plugin reports implemented MapKit renderer");
 expectIncludes(contents.iosNativeMapPlugin, "mapView.isHidden = false", "iOS native map plugin creates visible MapKit view");
+expectIncludes(contents.iosNativeMapPlugin, "mapView.isUserInteractionEnabled = true", "iOS native map plugin keeps MapKit gesture handling enabled");
 expectIncludes(contents.iosNativeMapPlugin, "ensureMapKitView", "iOS native map plugin can create MapKit view");
 expectIncludes(contents.iosNativeMapPlugin, "applyContainerMetrics", "iOS native map plugin applies container metrics");
+expectIncludes(contents.iosNativeMapPlugin, "CGRect(x: left, y: top, width: max(width, 0), height: max(height, 0))", "iOS native map plugin frames MapKit to the web map container");
 expectIncludes(contents.iosNativeMapPlugin, "applyCamera", "iOS native map plugin applies camera updates");
+expectIncludes(contents.iosNativeMapPlugin, "CLLocationCoordinate2DIsValid", "iOS native map plugin validates camera and item coordinates before MapKit calls");
 expectIncludes(contents.iosNativeMapPlugin, "private var tileOverlays: [String: MKTileOverlay]", "iOS native map plugin tracks MapKit tile overlays");
 expectIncludes(contents.iosNativeMapPlugin, "private var tileOverlayDefinitions: [String: [String: Any]]", "iOS native map plugin tracks MapKit tile overlay definitions");
 expectIncludes(contents.iosNativeMapPlugin, "self.tileOverlayDefinitions.removeAll()", "iOS native map plugin clears tile overlay definitions on destroy");
@@ -776,6 +782,7 @@ expectIncludes(contents.iosNativeMapPlugin, "\"nativeTileOverlayCount\": tileOve
 expectIncludes(contents.iosNativeMapPlugin, "private class MeteoPecheMapAnnotation", "iOS native map plugin defines dormant MapKit annotation");
 expectIncludes(contents.iosNativeMapPlugin, "private var annotations: [String: MeteoPecheMapAnnotation]", "iOS native map plugin tracks MapKit annotations");
 expectIncludes(contents.iosNativeMapPlugin, "private var shapeOverlays: [String: MKOverlay]", "iOS native map plugin tracks MapKit shape overlays");
+expectIncludes(contents.iosNativeMapPlugin, "private var shapeOverlayItemIds: [ObjectIdentifier: String]", "iOS native map plugin indexes shape overlays for renderer lookup");
 expectIncludes(contents.iosNativeMapPlugin, "\"markerCount\": annotations.count", "iOS native map plugin exposes provider-neutral marker count");
 expectIncludes(contents.iosNativeMapPlugin, "\"markerIds\": Array(annotations.keys).sorted()", "iOS native map plugin exposes provider-neutral marker ids");
 expectIncludes(contents.iosNativeMapPlugin, "\"nativeMarkerCount\": annotations.count", "iOS native map plugin exposes native marker count");
@@ -797,8 +804,8 @@ expectIncludes(contents.iosNativeMapPlugin, "private func itemTypeCountsDebugSta
 expectIncludes(contents.iosNativeMapPlugin, "private func markerClassNamesDebugState", "iOS native map plugin computes marker class names");
 expectIncludes(contents.iosNativeMapPlugin, "private func markerPayloadCount", "iOS native map plugin computes marker payload counts");
 expectIncludes(contents.iosNativeMapPlugin, "applyMarkerViewStyle(view, annotation: meteoAnnotation)", "iOS native map plugin applies marker view style payloads");
-expectIncludes(contents.iosNativeMapPlugin, "self.mapView?.view(for: annotation)", "iOS native map plugin refreshes visible marker views on update");
-expectIncludes(contents.iosNativeMapPlugin, "self.applyMarkerViewStyle(view, annotation: annotation)", "iOS native map plugin reapplies marker view style on update");
+expectIncludes(contents.iosNativeMapPlugin, "mapView?.view(for: annotation)", "iOS native map plugin refreshes visible marker views on update");
+expectIncludes(contents.iosNativeMapPlugin, "applyMarkerViewStyle(view, annotation: annotation)", "iOS native map plugin reapplies marker view style on update");
 expectIncludes(contents.iosNativeMapPlugin, "view.centerOffset = markerCenterOffset(payload)", "iOS native map plugin applies marker icon anchors");
 expectIncludes(contents.iosNativeMapPlugin, "view.layer.zPosition = CGFloat(doubleValue(payload[\"zIndexOffset\"])", "iOS native map plugin applies marker z-index payloads");
 expectIncludes(contents.iosNativeMapPlugin, "view.alpha = CGFloat(max(0, min(1, doubleValue(payload[\"opacity\"])", "iOS native map plugin applies marker opacity payloads");
@@ -826,7 +833,8 @@ expectIncludes(contents.iosNativeMapPlugin, "private var pinTiers: [String: [Str
 expectIncludes(contents.iosNativeMapPlugin, "configureMapKitPinTier(call)", "iOS native map plugin handles pin-tier configuration");
 expectIncludes(contents.iosNativeMapPlugin, "addMapKitItemToLayer(call)", "iOS native map plugin handles layer membership");
 expectIncludes(contents.iosNativeMapPlugin, "addMapKitItemsToLayer(call)", "iOS native map plugin handles batch layer membership");
-expectIncludes(contents.iosNativeMapPlugin, "let items = rawArray(call, \"items\")", "iOS native map plugin normalizes batch item payload arrays");
+expectIncludes(contents.iosNativeMapPlugin, "rawArray(call, \"items\").compactMap", "iOS native map plugin normalizes batch item payload arrays");
+expectIncludes(contents.iosNativeMapPlugin, "upsertMapKitAnnotationOnMain(update, ensureView: false)", "iOS native map plugin batches marker creation on the main thread");
 expectIncludes(contents.iosNativeMapPlugin, "let itemIds = rawArray(call, \"itemIds\").compactMap { $0 as? String }", "iOS native map plugin normalizes batch item visibility ids");
 expectIncludes(contents.iosNativeMapPlugin, "private func rawArray", "iOS native map plugin defines safe raw array payload helper");
 expectIncludes(contents.iosNativeMapPlugin, "setMapKitPinTierVisible(call)", "iOS native map plugin handles pin-tier visibility");

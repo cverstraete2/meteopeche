@@ -107,6 +107,15 @@ private class MeteoPecheMapTileOverlay: MKTileOverlay {
 
 @objc(MeteoPecheMapPlugin)
 class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
+    private typealias MapKitAnnotationUpdate = (
+        itemId: String,
+        itemType: String,
+        payload: [String: Any],
+        coordinate: CLLocationCoordinate2D,
+        title: String?,
+        subtitle: String?
+    )
+
     private let notReadyReason = "native-map-renderer-not-implemented"
     private let providerId = "apple-native"
     private let bridgeProtocolVersion = 1
@@ -157,6 +166,7 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
     private var annotationPayloads: [String: [String: Any]] = [:]
     private var itemVisibility: [String: Bool] = [:]
     private var shapeOverlays: [String: MKOverlay] = [:]
+    private var shapeOverlayItemIds: [ObjectIdentifier: String] = [:]
     private var shapeItemTypes: [String: String] = [:]
     private var shapePayloads: [String: [String: Any]] = [:]
     private var layerMembership: [String: Set<String>] = [:]
@@ -194,32 +204,38 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
     ]
 
     @objc func getStatus(_ call: CAPPluginCall) {
-        call.resolve(statusPayload(call))
+        DispatchQueue.main.async {
+            call.resolve(self.statusPayload(call))
+        }
     }
 
     @objc func isReady(_ call: CAPPluginCall) {
-        call.resolve(statusPayload(call))
+        DispatchQueue.main.async {
+            call.resolve(self.statusPayload(call))
+        }
     }
 
     @objc func getDebugState(_ call: CAPPluginCall) {
-        let ready = isAppleNativeRequest(call)
-        call.resolve([
-            "ready": ready,
-            "reason": ready ? "" : notReadyReason,
-            "providerId": call.getString("providerId") ?? "",
-            "supportedProviders": supportedProviders,
-            "bridgeProtocolVersion": bridgeProtocolVersion,
-            "supportedCommands": supportedCommands,
-            "supportedEvents": supportedEvents,
-            "commandCount": commandLog.count,
-            "commandTypeCounts": commandTypeCounts,
-            "lastContainerMetrics": lastContainerMetrics ?? NSNull(),
-            "renderer": rendererDebugState(),
-            "eventCount": eventLog.count,
-            "eventTypeCounts": eventTypeCounts,
-            "events": eventLog,
-            "commands": commandLog
-        ])
+        DispatchQueue.main.async {
+            let ready = self.isAppleNativeRequest(call)
+            call.resolve([
+                "ready": ready,
+                "reason": ready ? "" : self.notReadyReason,
+                "providerId": call.getString("providerId") ?? "",
+                "supportedProviders": self.supportedProviders,
+                "bridgeProtocolVersion": self.bridgeProtocolVersion,
+                "supportedCommands": self.supportedCommands,
+                "supportedEvents": self.supportedEvents,
+                "commandCount": self.commandLog.count,
+                "commandTypeCounts": self.commandTypeCounts,
+                "lastContainerMetrics": self.lastContainerMetrics ?? NSNull(),
+                "renderer": self.rendererDebugState(),
+                "eventCount": self.eventLog.count,
+                "eventTypeCounts": self.eventTypeCounts,
+                "events": self.eventLog,
+                "commands": self.commandLog
+            ])
+        }
     }
 
     @objc func `init`(_ call: CAPPluginCall) {
@@ -334,6 +350,7 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
             self.annotationPayloads.removeAll()
             self.itemVisibility.removeAll()
             self.shapeOverlays.removeAll()
+            self.shapeOverlayItemIds.removeAll()
             self.shapeItemTypes.removeAll()
             self.shapePayloads.removeAll()
             self.layerMembership.removeAll()
@@ -382,23 +399,33 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
 
     private func recordCommand(_ command: String, _ call: CAPPluginCall) {
         let containerMetrics = call.getObject("containerMetrics")
-        if let metrics = containerMetrics {
-            lastContainerMetrics = metrics
-        }
-        commandTypeCounts[command] = (commandTypeCounts[command] ?? 0) + 1
+        let providerId = call.getString("providerId") ?? ""
+        let timestamp = Date().timeIntervalSince1970 * 1000
+        DispatchQueue.main.async {
+            if let metrics = containerMetrics {
+                self.lastContainerMetrics = metrics
+            }
+            self.commandTypeCounts[command] = (self.commandTypeCounts[command] ?? 0) + 1
 
-        commandLog.append([
-            "command": command,
-            "providerId": call.getString("providerId") ?? "",
-            "hasContainerMetrics": containerMetrics != nil,
-            "timestamp": Date().timeIntervalSince1970 * 1000
-        ])
-        if commandLog.count > maxCommands {
-            commandLog.removeFirst(commandLog.count - maxCommands)
+            self.commandLog.append([
+                "command": command,
+                "providerId": providerId,
+                "hasContainerMetrics": containerMetrics != nil,
+                "timestamp": timestamp
+            ])
+            if self.commandLog.count > self.maxCommands {
+                self.commandLog.removeFirst(self.commandLog.count - self.maxCommands)
+            }
         }
     }
 
     private func emitMapKitEvent(_ eventName: String, payload: [String: Any]) {
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async {
+                self.emitMapKitEvent(eventName, payload: payload)
+            }
+            return
+        }
         let bridgeEventName = "map:apple-native:\(eventName)"
         eventTypeCounts[bridgeEventName] = (eventTypeCounts[bridgeEventName] ?? 0) + 1
         eventLog.append([
@@ -521,7 +548,7 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
             if self.mapView == nil {
                 let mapView = MKMapView(frame: .zero)
                 mapView.isHidden = false
-                mapView.isUserInteractionEnabled = false
+                mapView.isUserInteractionEnabled = true
                 mapView.mapType = .standard
                 mapView.delegate = self
                 self.bridge?.viewController?.view.insertSubview(mapView, at: 0)
@@ -557,8 +584,8 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
             "version": overlayPayload["version"] as? String ?? "1.3.0",
             "renderer": "mapkit-tile-overlay-native"
         ]
-        tileOverlayDefinitions[overlayId] = definition
         DispatchQueue.main.async {
+            self.tileOverlayDefinitions[overlayId] = definition
             self.ensureMapKitViewForOverlay()
             if let existingOverlay = self.tileOverlays[overlayId] {
                 self.mapView?.removeOverlay(existingOverlay)
@@ -614,7 +641,11 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
             self.layerChildren.removeValue(forKey: layerId)
             let itemIds = self.layerMembership.removeValue(forKey: layerId) ?? []
             let annotationsToRemove = itemIds.compactMap { self.annotations.removeValue(forKey: $0) }
-            let overlaysToRemove = itemIds.compactMap { self.shapeOverlays.removeValue(forKey: $0) }
+            let overlaysToRemove = itemIds.compactMap { itemId -> MKOverlay? in
+                guard let overlay = self.shapeOverlays.removeValue(forKey: itemId) else { return nil }
+                self.shapeOverlayItemIds.removeValue(forKey: self.shapeOverlayIdentifier(overlay))
+                return overlay
+            }
             itemIds.forEach { itemId in
                 self.annotationPayloads.removeValue(forKey: itemId)
                 self.shapeItemTypes.removeValue(forKey: itemId)
@@ -635,13 +666,18 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         guard let tier = call.getObject("tier") else { return }
         let tierId = tier["id"] as? String ?? call.getString("tierId") ?? call.getString("id") ?? ""
         guard !tierId.isEmpty else { return }
-        pinTiers[tierId] = tier
+        DispatchQueue.main.async {
+            self.pinTiers[tierId] = tier
+        }
     }
 
     private func setMapKitPinTierVisible(_ call: CAPPluginCall) {
         let tierId = call.getString("tierId") ?? call.getString("id") ?? ""
         guard !tierId.isEmpty else { return }
-        pinTierVisibility[tierId] = call.getBool("visible") ?? true
+        let visible = call.getBool("visible") ?? true
+        DispatchQueue.main.async {
+            self.pinTierVisibility[tierId] = visible
+        }
     }
 
     private func addMapKitItemToLayer(_ call: CAPPluginCall) {
@@ -653,10 +689,14 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
     private func addMapKitItemsToLayer(_ call: CAPPluginCall) {
         let layerId = call.getString("layerId") ?? ""
         guard !layerId.isEmpty else { return }
-        let items = rawArray(call, "items")
-        for item in items {
-            if let item = item as? [String: Any], let itemId = item["itemId"] as? String {
-                addMapKitLayerMembership(layerId: layerId, itemId: itemId, isLayer: item["isLayer"] as? Bool ?? false)
+        let memberships = rawArray(call, "items").compactMap { item -> (itemId: String, isLayer: Bool)? in
+            guard let item = item as? [String: Any], let itemId = item["itemId"] as? String else { return nil }
+            return (itemId: itemId, isLayer: item["isLayer"] as? Bool ?? false)
+        }
+        guard !memberships.isEmpty else { return }
+        DispatchQueue.main.async {
+            memberships.forEach { membership in
+                self.addMapKitLayerMembershipOnMain(layerId: layerId, itemId: membership.itemId, isLayer: membership.isLayer)
             }
         }
     }
@@ -670,11 +710,16 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
     private func addMapKitLayerMembership(layerId: String, itemId: String, isLayer: Bool) {
         guard !layerId.isEmpty, !itemId.isEmpty else { return }
         DispatchQueue.main.async {
-            self.layerMembership[layerId, default: Set<String>()].insert(itemId)
-            self.itemLayers[itemId] = layerId
-            if isLayer {
-                self.layerChildren[layerId, default: Set<String>()].insert(itemId)
-            }
+            self.addMapKitLayerMembershipOnMain(layerId: layerId, itemId: itemId, isLayer: isLayer)
+        }
+    }
+
+    private func addMapKitLayerMembershipOnMain(layerId: String, itemId: String, isLayer: Bool) {
+        guard Thread.isMainThread, !layerId.isEmpty, !itemId.isEmpty else { return }
+        layerMembership[layerId, default: Set<String>()].insert(itemId)
+        itemLayers[itemId] = layerId
+        if isLayer {
+            layerChildren[layerId, default: Set<String>()].insert(itemId)
         }
     }
 
@@ -751,7 +796,7 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         if self.mapView == nil {
             let mapView = MKMapView(frame: .zero)
             mapView.isHidden = false
-            mapView.isUserInteractionEnabled = false
+            mapView.isUserInteractionEnabled = true
             mapView.mapType = .standard
             mapView.delegate = self
             self.bridge?.viewController?.view.insertSubview(mapView, at: 0)
@@ -846,55 +891,77 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
     }
 
     private func createMapKitItems(_ call: CAPPluginCall) {
-        let items = rawArray(call, "items")
-        for item in items {
+        let updates = rawArray(call, "items").compactMap { item -> MapKitAnnotationUpdate? in
             guard
                 let item = item as? [String: Any],
                 let itemId = item["itemId"] as? String,
                 let payload = item["payload"] as? [String: Any]
-            else { continue }
-            upsertMapKitAnnotation(itemId: itemId, itemType: item["type"] as? String ?? "marker", payload: payload)
+            else { return nil }
+            return makeMapKitAnnotationUpdate(itemId: itemId, itemType: item["type"] as? String ?? "marker", payload: payload)
+        }
+        guard !updates.isEmpty else { return }
+        DispatchQueue.main.async {
+            self.ensureMapKitViewForOverlay()
+            updates.forEach { update in
+                self.upsertMapKitAnnotationOnMain(update, ensureView: false)
+            }
         }
     }
 
     private func upsertMapKitAnnotation(itemId: String, itemType: String, payload: [String: Any]) {
-        guard let coordinate = coordinate(payload) else { return }
+        guard let update = makeMapKitAnnotationUpdate(itemId: itemId, itemType: itemType, payload: payload) else { return }
+        DispatchQueue.main.async {
+            self.upsertMapKitAnnotationOnMain(update)
+        }
+    }
+
+    private func makeMapKitAnnotationUpdate(itemId: String, itemType: String, payload: [String: Any]) -> MapKitAnnotationUpdate? {
+        guard let coordinate = coordinate(payload) else { return nil }
         let tooltip = payload["tooltip"] as? [String: Any]
         let tooltipContent = plainText(tooltip?["content"] as? String ?? "")
         let rawTitle = plainText(payload["title"] as? String ?? "")
         let title = !rawTitle.isEmpty ? rawTitle : (tooltipContent.isEmpty ? nil : tooltipContent)
         let subtitle = title == tooltipContent ? nil : (tooltipContent.isEmpty ? nil : tooltipContent)
-        DispatchQueue.main.async {
-            self.ensureMapKitViewForOverlay()
-            let isVisible = self.itemVisibility[itemId] ?? true
-            if self.itemVisibility[itemId] == nil {
-                self.itemVisibility[itemId] = true
+        return (itemId: itemId, itemType: itemType, payload: payload, coordinate: coordinate, title: title, subtitle: subtitle)
+    }
+
+    private func upsertMapKitAnnotationOnMain(_ update: MapKitAnnotationUpdate, ensureView: Bool = true) {
+        guard Thread.isMainThread else { return }
+        if ensureView {
+            ensureMapKitViewForOverlay()
+        }
+        let isVisible = itemVisibility[update.itemId] ?? true
+        if itemVisibility[update.itemId] == nil {
+            itemVisibility[update.itemId] = true
+        }
+        if let annotation = annotations[update.itemId] {
+            annotationPayloads[update.itemId] = update.payload
+            annotation.coordinate = update.coordinate
+            annotation.title = update.title
+            annotation.subtitle = update.subtitle
+            if let view = mapView?.view(for: annotation) {
+                view.canShowCallout = update.title != nil || update.subtitle != nil
+                view.isHidden = itemVisibility[update.itemId] == false
+                applyMarkerViewStyle(view, annotation: annotation)
             }
-            if let annotation = self.annotations[itemId] {
-                self.annotationPayloads[itemId] = payload
-                annotation.coordinate = coordinate
-                annotation.title = title
-                annotation.subtitle = subtitle
-                if let view = self.mapView?.view(for: annotation) {
-                    view.canShowCallout = title != nil || subtitle != nil
-                    view.isHidden = self.itemVisibility[itemId] == false
-                    self.applyMarkerViewStyle(view, annotation: annotation)
-                }
-            } else {
-                let annotation = MeteoPecheMapAnnotation(itemId: itemId, itemType: itemType, coordinate: coordinate, title: title, subtitle: subtitle)
-                self.annotations[itemId] = annotation
-                self.annotationPayloads[itemId] = payload
-                if isVisible {
-                    self.mapView?.addAnnotation(annotation)
-                }
+        } else {
+            let annotation = MeteoPecheMapAnnotation(itemId: update.itemId, itemType: update.itemType, coordinate: update.coordinate, title: update.title, subtitle: update.subtitle)
+            annotations[update.itemId] = annotation
+            annotationPayloads[update.itemId] = update.payload
+            if isVisible {
+                mapView?.addAnnotation(annotation)
             }
         }
     }
 
     private func updateMapKitItem(_ call: CAPPluginCall) {
         guard let itemId = call.getString("itemId"), let payload = call.getObject("payload") else { return }
-        let mergedPayload = annotationPayloads[itemId]?.merging(payload) { _, new in new } ?? payload
-        upsertMapKitAnnotation(itemId: itemId, itemType: call.getString("type") ?? "marker", payload: mergedPayload)
+        let itemType = call.getString("type") ?? "marker"
+        DispatchQueue.main.async {
+            let mergedPayload = self.annotationPayloads[itemId]?.merging(payload) { _, new in new } ?? payload
+            guard let update = self.makeMapKitAnnotationUpdate(itemId: itemId, itemType: itemType, payload: mergedPayload) else { return }
+            self.upsertMapKitAnnotationOnMain(update)
+        }
     }
 
     private func setMapKitItemVisible(_ call: CAPPluginCall) {
@@ -976,9 +1043,11 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
                 self.itemVisibility[itemId] = true
             }
             if let existing = self.shapeOverlays[itemId] {
+                self.shapeOverlayItemIds.removeValue(forKey: self.shapeOverlayIdentifier(existing))
                 self.mapView?.removeOverlay(existing)
             }
             self.shapeOverlays[itemId] = overlay
+            self.shapeOverlayItemIds[self.shapeOverlayIdentifier(overlay)] = itemId
             self.shapeItemTypes[itemId] = type
             self.shapePayloads[itemId] = payload
             if isVisible {
@@ -994,6 +1063,7 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
                 self.mapView?.removeAnnotation(annotation)
             }
             if let overlay = self.shapeOverlays.removeValue(forKey: itemId) {
+                self.shapeOverlayItemIds.removeValue(forKey: self.shapeOverlayIdentifier(overlay))
                 self.mapView?.removeOverlay(overlay)
             }
             self.annotationPayloads.removeValue(forKey: itemId)
@@ -1032,9 +1102,11 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
     }
 
     private func shapeItemId(for overlay: MKOverlay) -> String? {
-        shapeOverlays.first { _, value in
-            (value as AnyObject) === (overlay as AnyObject)
-        }?.key
+        shapeOverlayItemIds[shapeOverlayIdentifier(overlay)]
+    }
+
+    private func shapeOverlayIdentifier(_ overlay: MKOverlay) -> ObjectIdentifier {
+        ObjectIdentifier(overlay as AnyObject)
     }
 
     private func lineDashPattern(_ value: Any?) -> [NSNumber]? {
@@ -1042,7 +1114,7 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         let values = dashArray
             .split { $0 == " " || $0 == "," }
             .compactMap { Double($0) }
-            .filter { $0 > 0 }
+            .filter { $0.isFinite && $0 > 0 }
             .map { NSNumber(value: $0) }
         return values.isEmpty ? nil : values
     }
@@ -1053,9 +1125,10 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         let top = cgFloat(metrics["top"]) ?? 0
         let width = cgFloat(metrics["width"]) ?? 0
         let height = cgFloat(metrics["height"]) ?? 0
+        let frame = CGRect(x: left, y: top, width: max(width, 0), height: max(height, 0))
         DispatchQueue.main.async {
-            self.mapView?.frame = self.bridge?.viewController?.view.bounds ?? CGRect(x: left, y: top, width: max(width, 0), height: max(height, 0))
-            self.mapView?.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            self.mapView?.frame = frame
+            self.mapView?.autoresizingMask = []
             self.mapViewFrame = [
                 "left": Double(left),
                 "top": Double(top),
@@ -1073,18 +1146,22 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
 
     private func applyCamera(_ call: CAPPluginCall) {
         let center = call.getObject("center")
-        guard
-            let lat = doubleValue(center?["lat"]),
-            let lon = doubleValue(center?["lon"])
-        else { return }
-        let zoom = call.getDouble("zoom") ?? lastCameraZoom ?? 10
-        let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
-        let spanDelta = max(0.002, 360.0 / pow(2.0, max(zoom, 1)))
-        let region = MKCoordinateRegion(
-            center: coordinate,
-            span: MKCoordinateSpan(latitudeDelta: spanDelta, longitudeDelta: spanDelta)
-        )
+        let requestedZoom = call.getDouble("zoom")
         DispatchQueue.main.async {
+            guard
+                let lat = self.doubleValue(center?["lat"]),
+                let lon = self.doubleValue(center?["lon"])
+            else { return }
+            let rawZoom = requestedZoom ?? self.lastCameraZoom ?? 10
+            guard rawZoom.isFinite else { return }
+            let zoom = min(22, max(1, rawZoom))
+            let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+            guard CLLocationCoordinate2DIsValid(coordinate) else { return }
+            let spanDelta = min(180.0, max(0.002, 360.0 / pow(2.0, zoom)))
+            let region = MKCoordinateRegion(
+                center: coordinate,
+                span: MKCoordinateSpan(latitudeDelta: spanDelta, longitudeDelta: spanDelta)
+            )
             self.mapView?.setRegion(region, animated: false)
             self.lastCameraCenter = ["lat": lat, "lon": lon]
             self.lastCameraZoom = zoom
@@ -1093,14 +1170,20 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
 
     private func mapKitZoomLevel(_ mapView: MKMapView) -> Double {
         let longitudeDelta = max(mapView.region.span.longitudeDelta, 0.000001)
-        return max(1, log2(360.0 / longitudeDelta))
+        let zoom = log2(360.0 / longitudeDelta)
+        return zoom.isFinite ? min(22, max(1, zoom)) : 1
     }
 
     private func doubleValue(_ value: Any?) -> Double? {
-        if let value = value as? Double { return value }
+        if let value = value as? Double { return value.isFinite ? value : nil }
         if let value = value as? Int { return Double(value) }
-        if let value = value as? NSNumber { return value.doubleValue }
-        if let value = value as? String { return Double(value) }
+        if let value = value as? NSNumber {
+            let double = value.doubleValue
+            return double.isFinite ? double : nil
+        }
+        if let value = value as? String, let double = Double(value) {
+            return double.isFinite ? double : nil
+        }
         return nil
     }
 
@@ -1126,7 +1209,8 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
             let lat = doubleValue(payload["lat"]),
             let lon = doubleValue(payload["lon"])
         else { return nil }
-        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+        let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+        return CLLocationCoordinate2DIsValid(coordinate) ? coordinate : nil
     }
 
     private func coordinateList(_ value: Any?) -> [CLLocationCoordinate2D] {
@@ -1153,7 +1237,8 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
         }
         guard let pair = value as? [Any], pair.count >= 2 else { return nil }
         guard let lat = doubleValue(pair[0]), let lon = doubleValue(pair[1]) else { return nil }
-        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+        let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+        return CLLocationCoordinate2DIsValid(coordinate) ? coordinate : nil
     }
 
     private func numericPair(_ value: Any?) -> (Double, Double)? {

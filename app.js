@@ -10790,7 +10790,7 @@ function bindEvents() {
   els.spotNameCancel.addEventListener("click", closeSpotNameSheet);
   els.spotNameFavorite.addEventListener("click", () => confirmPendingSpot({ favorite: true }));
 
-  if (!state.mapProvider) {
+  if (!state.mapProvider || isNativeMapProvider(state.mapProviderId)) {
     els.spotMap.addEventListener("click", selectMapPoint);
     els.spotMap.addEventListener("pointerdown", startMapDrag);
     els.spotMap.addEventListener("mousedown", rememberMapClickStart);
