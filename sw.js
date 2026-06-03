@@ -1,4 +1,4 @@
-const CACHE_NAME = "meteocatch-shell-20260603-native-layer-visibility-apply";
+const CACHE_NAME = "meteocatch-shell-20260603-native-smoke-capability-routes";
 const APP_SHELL = [
   "./",
   "./index.html",

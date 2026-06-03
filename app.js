@@ -16317,6 +16317,39 @@ function mapProviderSmokeRoutes(baseUrl = window.location.href) {
       preference: MAP_PROVIDER_IDS.APPLE_NATIVE,
       fallbackReason: "mount-failed",
     }),
+    route("apple-native-debug-bridge-capability-protocol-fail", {
+      mapProviderOverride: MAP_PROVIDER_IDS.APPLE_NATIVE,
+      mapProviderExperimental: MAP_PROVIDER_IDS.APPLE_NATIVE,
+      mapProviderDebugBridge: "1",
+      mapProviderDebugBridgeCapabilityFail: "protocol",
+    }, {
+      provider: MAP_PROVIDER_IDS.LEAFLET_OPENMAP,
+      preference: MAP_PROVIDER_IDS.APPLE_NATIVE,
+      fallbackReason: "mount-failed",
+      nativeCapabilityError: "protocol-version-mismatch",
+    }),
+    route("apple-native-debug-bridge-capability-commands-fail", {
+      mapProviderOverride: MAP_PROVIDER_IDS.APPLE_NATIVE,
+      mapProviderExperimental: MAP_PROVIDER_IDS.APPLE_NATIVE,
+      mapProviderDebugBridge: "1",
+      mapProviderDebugBridgeCapabilityFail: "commands",
+    }, {
+      provider: MAP_PROVIDER_IDS.LEAFLET_OPENMAP,
+      preference: MAP_PROVIDER_IDS.APPLE_NATIVE,
+      fallbackReason: "mount-failed",
+      nativeCapabilityErrorPrefix: "missing-commands:",
+    }),
+    route("apple-native-debug-bridge-capability-events-fail", {
+      mapProviderOverride: MAP_PROVIDER_IDS.APPLE_NATIVE,
+      mapProviderExperimental: MAP_PROVIDER_IDS.APPLE_NATIVE,
+      mapProviderDebugBridge: "1",
+      mapProviderDebugBridgeCapabilityFail: "events",
+    }, {
+      provider: MAP_PROVIDER_IDS.LEAFLET_OPENMAP,
+      preference: MAP_PROVIDER_IDS.APPLE_NATIVE,
+      fallbackReason: "mount-failed",
+      nativeCapabilityErrorPrefix: "missing-events:",
+    }),
     route("google-native-debug-bridge", {
       mapProviderOverride: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
       mapProviderExperimental: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
@@ -16352,6 +16385,39 @@ function mapProviderSmokeRoutes(baseUrl = window.location.href) {
       provider: MAP_PROVIDER_IDS.LEAFLET_OPENMAP,
       preference: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
       fallbackReason: "mount-failed",
+    }),
+    route("google-native-debug-bridge-capability-protocol-fail", {
+      mapProviderOverride: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
+      mapProviderExperimental: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
+      mapProviderDebugBridge: "1",
+      mapProviderDebugBridgeCapabilityFail: "protocol",
+    }, {
+      provider: MAP_PROVIDER_IDS.LEAFLET_OPENMAP,
+      preference: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
+      fallbackReason: "mount-failed",
+      nativeCapabilityError: "protocol-version-mismatch",
+    }),
+    route("google-native-debug-bridge-capability-commands-fail", {
+      mapProviderOverride: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
+      mapProviderExperimental: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
+      mapProviderDebugBridge: "1",
+      mapProviderDebugBridgeCapabilityFail: "commands",
+    }, {
+      provider: MAP_PROVIDER_IDS.LEAFLET_OPENMAP,
+      preference: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
+      fallbackReason: "mount-failed",
+      nativeCapabilityErrorPrefix: "missing-commands:",
+    }),
+    route("google-native-debug-bridge-capability-events-fail", {
+      mapProviderOverride: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
+      mapProviderExperimental: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
+      mapProviderDebugBridge: "1",
+      mapProviderDebugBridgeCapabilityFail: "events",
+    }, {
+      provider: MAP_PROVIDER_IDS.LEAFLET_OPENMAP,
+      preference: MAP_PROVIDER_IDS.GOOGLE_NATIVE,
+      fallbackReason: "mount-failed",
+      nativeCapabilityErrorPrefix: "missing-events:",
     }),
   ];
 }

@@ -35,7 +35,7 @@ const contents = Object.fromEntries(
   await Promise.all(Object.entries(files).map(async ([key, file]) => [key, await readFile(file, "utf8")])),
 );
 
-const providerAssetVersion = "20260603-native-layer-visibility-apply";
+const providerAssetVersion = "20260603-native-smoke-capability-routes";
 [
   "styles.css",
   "spots-db.js",
@@ -154,7 +154,7 @@ expectIncludes(contents.readme, "mapProviderDebugSdkFail=google", "README docume
 expectIncludes(contents.readme, "data-map-provider-fallback-reason=\"mount-failed\"", "README documents web debug failure fallback reason");
 expectIncludes(contents.readme, "mapProviderSmokeRoutes()", "README documents provider smoke route inspector");
 expectIncludes(contents.docs, "npm run map-provider:validate", "strategy doc mentions provider validation command");
-expectIncludes(contents.docs, "20260603-native-layer-visibility-apply", "strategy doc mentions provider cache version");
+expectIncludes(contents.docs, "20260603-native-smoke-capability-routes", "strategy doc mentions provider cache version");
 expectIncludes(contents.docs, "bridge-unavailable", "strategy doc mentions native bridge unavailable fallback");
 expectIncludes(contents.docs, "strict native bridge readiness handshake", "strategy doc records native bridge readiness handshake");
 expectIncludes(contents.docs, "mapProviderDebugBridgeUnsupported", "strategy doc records native bridge unsupported-provider smoke switch");
@@ -368,6 +368,7 @@ expectIncludes(contents.nativeBridgeDocs, "nativeDebugDatasets", "native bridge 
 expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-route-count", "native bridge contract doc documents smoke route count data attribute");
 expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-route-labels", "native bridge contract doc documents smoke route labels data attribute");
 expectIncludes(contents.nativeBridgeDocs, "data-map-provider-smoke-event-route-labels", "native bridge contract doc documents event smoke route labels data attribute");
+expectIncludes(contents.nativeBridgeDocs, "native capability-failure entries for both providers", "native bridge contract doc documents native capability failure smoke routes");
 expectIncludes(contents.nativeBridgeDocs, "data-web-map-sdk-debug-google-overlay-count", "native bridge contract doc documents Google web debug overlay count");
 expectIncludes(contents.nativeBridgeDocs, "data-web-map-sdk-debug-apple-annotation-count", "native bridge contract doc documents Apple web debug annotation count");
 expectIncludes(contents.source, "document.documentElement.dataset.nativeMapBridgeDebugCommandCount", "source records debug native command count");
@@ -494,6 +495,15 @@ expectIncludes(contents.source, "nativeDebugDatasets: [", "source event simulati
 expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmokeRouteCount", "source records smoke route count dataset");
 expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmokeRouteLabels", "source records smoke route labels dataset");
 expectIncludes(contents.source, "document.documentElement.dataset.mapProviderSmokeEventRouteLabels", "source records event smoke route labels dataset");
+expectIncludes(contents.source, "apple-native-debug-bridge-capability-protocol-fail", "source includes Apple native protocol capability failure smoke route");
+expectIncludes(contents.source, "apple-native-debug-bridge-capability-commands-fail", "source includes Apple native command capability failure smoke route");
+expectIncludes(contents.source, "apple-native-debug-bridge-capability-events-fail", "source includes Apple native event capability failure smoke route");
+expectIncludes(contents.source, "google-native-debug-bridge-capability-protocol-fail", "source includes Google native protocol capability failure smoke route");
+expectIncludes(contents.source, "google-native-debug-bridge-capability-commands-fail", "source includes Google native command capability failure smoke route");
+expectIncludes(contents.source, "google-native-debug-bridge-capability-events-fail", "source includes Google native event capability failure smoke route");
+expectIncludes(contents.source, "nativeCapabilityError: \"protocol-version-mismatch\"", "source capability smoke routes expect protocol mismatch error");
+expectIncludes(contents.source, "nativeCapabilityErrorPrefix: \"missing-commands:\"", "source capability smoke routes expect missing command error prefix");
+expectIncludes(contents.source, "nativeCapabilityErrorPrefix: \"missing-events:\"", "source capability smoke routes expect missing event error prefix");
 expectIncludes(contents.source, "nativeEventCenter(payload)", "source normalizes native event centers");
 expectIncludes(contents.source, "nativeEventZoom(payload)", "source normalizes native event zoom");
 expectIncludes(contents.source, "nativePayloadLatLng", "source derives fallback native item-click coordinates from item payloads");
