@@ -718,6 +718,10 @@ expectLeafletUsageIsProviderScoped(contents.android, "Android bundle");
 expectNativeBridgeCommandsAreDocumented(contents.source, "source");
 expectNativePlatformCommandsMatchWebProvider(contents.source, contents.androidNativeMapPlugin, contents.iosNativeMapPlugin);
 expectProviderInterfaceMethods(contents.source, "source");
+expectProviderOnReturnsUnsubscribe(contents.source, "source");
+expectProviderOnReturnsUnsubscribe(contents.dist, "dist");
+expectProviderOnReturnsUnsubscribe(contents.ios, "iOS bundle");
+expectProviderOnReturnsUnsubscribe(contents.android, "Android bundle");
 expectNotIncludes(contents.readme, "renderLeafletPins", "README avoids stale renderLeafletPins helper name");
 expectNotIncludes(contents.readme, "updateLeafletPinVisibility", "README avoids stale updateLeafletPinVisibility helper name");
 expectIncludes(contents.readme, "normalized map-provider", "README documents provider-normalized map events");
@@ -824,6 +828,24 @@ function expectProviderInterfaceMethods(content, labelPrefix) {
       const signature = new RegExp(`(?:^|\\n)\\s+(?:async\\s+)?${escapeRegExp(method)}\\(`);
       expect(signature.test(region), `${labelPrefix} ${providerName} implements provider method ${method}()`);
     });
+  });
+}
+
+function expectProviderOnReturnsUnsubscribe(content, labelPrefix) {
+  [
+    ["LeafletMapProvider", "class LeafletMapProvider", "class GoogleMapsWebProvider"],
+    ["GoogleMapsWebProvider", "class GoogleMapsWebProvider", "class AppleMapsWebProvider"],
+    ["AppleMapsWebProvider", "class AppleMapsWebProvider", "class NativeBridgeMapProvider"],
+    ["NativeBridgeMapProvider", "class NativeBridgeMapProvider", "class NativeMapLayer"],
+  ].forEach(([providerName, startNeedle, endNeedle]) => {
+    const start = content.indexOf(startNeedle);
+    const end = content.indexOf(endNeedle);
+    const region = start >= 0 && end > start ? content.slice(start, end) : "";
+    const methodStart = region.indexOf("on(eventName, handler)");
+    const methodEnd = region.indexOf("\n  }\n", methodStart);
+    const methodRegion = methodStart >= 0 && methodEnd > methodStart ? region.slice(methodStart, methodEnd) : "";
+    expect(methodRegion.includes("return {"), `${labelPrefix} ${providerName} on() returns an unsubscribe handle`);
+    expect(methodRegion.includes("remove:"), `${labelPrefix} ${providerName} on() exposes remove()`);
   });
 }
 

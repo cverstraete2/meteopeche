@@ -3047,7 +3047,10 @@ class LeafletMapProvider {
   }
 
   on(eventName, handler) {
-    this.map?.on(eventName, handler);
+    this.map?.on?.(eventName, handler);
+    return {
+      remove: () => this.map?.off?.(eventName, handler),
+    };
   }
 
   bindTileLoadingState(layer) {
@@ -3507,13 +3510,22 @@ class GoogleMapsWebProvider {
 
   on(eventName, handler) {
     const events = String(eventName).split(/\s+/).filter(Boolean);
-    events.forEach((event) => {
+    const listeners = events.map((event) => {
       const googleEvent = googleWebMapEventName(event);
       const listener = this.maps.event.addListener(this.map, googleEvent, (payload) => {
         handler(this.normalizeEvent(event, payload));
       });
       this.listeners.push(listener);
+      return listener;
     });
+    return {
+      remove: () => {
+        listeners.forEach((listener) => {
+          listener?.remove?.();
+          this.listeners = this.listeners.filter((entry) => entry !== listener);
+        });
+      },
+    };
   }
 
   normalizeEvent(eventName, payload) {
@@ -4008,14 +4020,24 @@ class AppleMapsWebProvider {
 
   on(eventName, handler) {
     const eventMap = { click: "single-tap", moveend: "region-change-end", zoomend: "region-change-end" };
-    String(eventName).split(/\s+/).filter(Boolean).forEach((event) => {
+    const listeners = String(eventName).split(/\s+/).filter(Boolean).map((event) => {
       const mapkitEvent = eventMap[event] ?? event;
       const listener = (payload) => {
         handler(this.normalizeEvent(event, payload));
       };
       this.map?.addEventListener?.(mapkitEvent, listener);
-      this.listeners.push({ remove: () => this.map?.removeEventListener?.(mapkitEvent, listener) });
+      const handle = { remove: () => this.map?.removeEventListener?.(mapkitEvent, listener) };
+      this.listeners.push(handle);
+      return handle;
     });
+    return {
+      remove: () => {
+        listeners.forEach((listener) => {
+          listener?.remove?.();
+          this.listeners = this.listeners.filter((entry) => entry !== listener);
+        });
+      },
+    };
   }
 
   dispatchSyntheticEvent(eventName) {
