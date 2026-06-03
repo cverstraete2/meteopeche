@@ -6479,6 +6479,9 @@ function installLocalNativeMapBridgeDebug() {
   const tileOverlayVisibility = new Map();
   const pinTiers = new Map();
   const pinTierVisibility = new Map();
+  let rendererFrame = null;
+  let lastCameraCenter = null;
+  let lastCameraZoom = null;
   const unsupportedValue = params.get("mapProviderDebugBridgeUnsupported") ?? params.get("native_map_bridge_debug_unsupported") ?? "";
   const capabilityFailure = (params.get("mapProviderDebugBridgeCapabilityFail") ?? "").trim().toLowerCase();
   const unsupportedProviders = String(unsupportedValue)
@@ -6567,6 +6570,9 @@ function installLocalNativeMapBridgeDebug() {
     providerId,
     implemented: false,
     ready: supportedProviders.includes(providerId),
+    frame: rendererFrame,
+    lastCameraCenter,
+    lastCameraZoom,
     tileOverlayCount: tileOverlayDefinitions.size,
     tileOverlayIds: tileOverlayIdsState(),
     tileOverlayTypes: tileOverlayTypesState(),
@@ -6669,6 +6675,18 @@ function installLocalNativeMapBridgeDebug() {
         setLayerItemVisibility(layerId, visible);
       }
     }
+    if (command === "init" || command === "invalidateSize") {
+      if (payload.containerMetrics) rendererFrame = payload.containerMetrics;
+    }
+    if (command === "setView") {
+      if (payload.center) {
+        lastCameraCenter = {
+          lat: Number(payload.center.lat),
+          lon: Number(payload.center.lon),
+        };
+      }
+      if (payload.zoom != null) lastCameraZoom = Number(payload.zoom);
+    }
     if (command === "createTileOverlay") {
       const layerId = payload.layerId ?? payload.overlayId ?? payload.id;
       if (layerId) {
@@ -6738,6 +6756,9 @@ function installLocalNativeMapBridgeDebug() {
       tileOverlayVisibility.clear();
       pinTiers.clear();
       pinTierVisibility.clear();
+      rendererFrame = null;
+      lastCameraCenter = null;
+      lastCameraZoom = null;
     }
   };
   const bridge = {

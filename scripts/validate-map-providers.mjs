@@ -301,6 +301,9 @@ expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-command-
 expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-batch-sizes", "native bridge contract doc documents debug batch sizes");
 expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-layer-count", "native bridge contract doc documents debug layer count");
 expectIncludes(contents.nativeBridgeDocs, "renderer.layerMembership", "native bridge contract doc documents debug renderer layer membership");
+expectIncludes(contents.nativeBridgeDocs, "renderer.frame", "native bridge contract doc documents debug renderer frame");
+expectIncludes(contents.nativeBridgeDocs, "renderer.lastCameraCenter", "native bridge contract doc documents debug renderer camera center");
+expectIncludes(contents.nativeBridgeDocs, "renderer.lastCameraZoom", "native bridge contract doc documents debug renderer camera zoom");
 expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-layer-visibility", "native bridge contract doc documents debug renderer layer visibility data attribute");
 expectIncludes(contents.nativeBridgeDocs, "renderer.layerVisibility", "native bridge contract doc documents debug renderer layer visibility");
 expectIncludes(contents.nativeBridgeDocs, "data-native-map-bridge-debug-tile-overlay-count", "native bridge contract doc documents debug tile overlay count data attribute");
@@ -387,6 +390,12 @@ expectIncludes(contents.source, "document.documentElement.dataset.mapProviderDeb
 expectIncludes(contents.source, "commands: commands.slice(-80)", "source local native debug bridge returns recent command journal");
 expectIncludes(contents.source, "commandTypeCounts: commandTypeCounts()", "source local native debug bridge exposes command type counts");
 expectIncludes(contents.source, "renderer: debugRendererState(providerId)", "source local native debug bridge exposes renderer state");
+expectIncludes(contents.source, "let rendererFrame = null", "source local native debug bridge tracks renderer frame");
+expectIncludes(contents.source, "let lastCameraCenter = null", "source local native debug bridge tracks camera center");
+expectIncludes(contents.source, "let lastCameraZoom = null", "source local native debug bridge tracks camera zoom");
+expectIncludes(contents.source, "frame: rendererFrame", "source local native debug bridge exposes renderer frame");
+expectIncludes(contents.source, "lastCameraCenter", "source local native debug bridge exposes camera center");
+expectIncludes(contents.source, "lastCameraZoom", "source local native debug bridge exposes camera zoom");
 expectIncludes(contents.source, "layerMembershipState", "source local native debug bridge tracks layer membership");
 expectIncludes(contents.source, "layerChildrenState", "source local native debug bridge tracks child layer membership");
 expectIncludes(contents.source, "layerVisibilityState", "source local native debug bridge tracks layer visibility");
