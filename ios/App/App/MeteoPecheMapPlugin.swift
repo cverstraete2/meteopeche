@@ -428,10 +428,12 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
             "tileOverlayIds": Array(tileOverlays.keys).sorted(),
             "tileOverlayTypes": tileOverlayTypesDebugState(),
             "tileOverlayVisibility": tileOverlayVisibility,
+            "nativeTileOverlayCount": tileOverlays.count,
             "annotationCount": annotations.count,
             "annotationIds": Array(annotations.keys).sorted(),
             "markerCount": annotations.count,
             "markerIds": Array(annotations.keys).sorted(),
+            "nativeMarkerCount": annotations.count,
             "markerCalloutCount": markerCalloutCount(),
             "markerClassNames": markerClassNamesDebugState(),
             "markerAnchorCount": markerPayloadCount(for: "iconAnchor"),
@@ -441,6 +443,9 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
             "markerZIndexCount": markerPayloadCount(for: "zIndexOffset"),
             "shapeOverlayCount": shapeOverlays.count,
             "shapeOverlayIds": Array(shapeOverlays.keys).sorted(),
+            "nativeCircleCount": shapeTypeCount(["circle", "circle-marker"]),
+            "nativePolylineCount": shapeTypeCount(["polyline"]),
+            "nativePolygonCount": shapeTypeCount(["polygon"]),
             "shapeCount": shapeOverlays.count,
             "shapeIds": Array(shapeOverlays.keys).sorted(),
             "shapePopupCount": shapePayloadCount(for: "popup"),
@@ -493,6 +498,10 @@ class MeteoPecheMapPlugin: CAPPlugin, CAPBridgedPlugin, MKMapViewDelegate {
             counts[itemType] = (counts[itemType] ?? 0) + 1
         }
         return counts
+    }
+
+    private func shapeTypeCount(_ types: Set<String>) -> Int {
+        shapeItemTypes.values.filter { types.contains($0) }.count
     }
 
     private func shapePayloadCount(for key: String) -> Int {
