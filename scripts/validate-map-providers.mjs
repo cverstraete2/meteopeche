@@ -416,6 +416,9 @@ expectIncludes(contents.source, "mapProviderDebugSimulateEvents", "source local 
 expectIncludes(contents.source, "nativeEventCenter(payload)", "source normalizes native event centers");
 expectIncludes(contents.source, "nativeEventZoom(payload)", "source normalizes native event zoom");
 expectIncludes(contents.source, "nativePayloadLatLng", "source derives fallback native item-click coordinates from item payloads");
+expectIncludes(contents.source, "function mapProviderEventLatLng", "source centralizes provider event coordinate extraction");
+expectIncludes(contents.source, "const latlng = mapProviderEventLatLng(event);", "source uses normalized provider event coordinates for map selection");
+expectIncludes(contents.source, "latlng: mapProviderEventLatLng(payload)", "source normalizes native click payload coordinates through shared helper");
 expectIncludes(contents.source, "payload.latlng ?? this.itemEventLatLng(payload.itemId)", "source falls back native item events to stored item coordinates");
 expectIncludes(contents.source, "nativePayloadLatLng(itemPayloads.get(itemId))", "local native debug bridge simulates item clicks from stored item payloads");
 expectIncludes(contents.source, "bridge.simulateItemClick({\n          providerId,\n          itemId,\n        })", "local native debug bridge auto-simulates item-only clicks");

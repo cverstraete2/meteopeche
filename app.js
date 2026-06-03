@@ -3538,12 +3538,10 @@ class GoogleMapsWebProvider {
   }
 
   normalizeEvent(eventName, payload) {
-    if (eventName === "click" && payload?.latLng) {
+    const latlng = mapProviderEventLatLng(payload);
+    if (eventName === "click" && latlng) {
       return {
-        latlng: {
-          lat: payload.latLng.lat(),
-          lng: payload.latLng.lng(),
-        },
+        latlng,
         originalEvent: payload.domEvent,
       };
     }
@@ -4071,13 +4069,10 @@ class AppleMapsWebProvider {
   }
 
   normalizeEvent(eventName, payload) {
-    const coordinate = payload?.coordinate;
-    if (eventName === "click" && coordinate) {
+    const latlng = mapProviderEventLatLng(payload);
+    if (eventName === "click" && latlng) {
       return {
-        latlng: {
-          lat: coordinate.latitude,
-          lng: coordinate.longitude,
-        },
+        latlng,
         originalEvent: payload?.domEvent ?? payload?.originalEvent,
       };
     }
@@ -4789,11 +4784,9 @@ class NativeBridgeMapProvider {
   normalizeEvent(eventName, payload = {}) {
     const itemId = payload.itemId ?? payload.markerId ?? payload.shapeId ?? payload.id;
     if (eventName === "click") {
-      const lat = payload.lat ?? payload.latitude ?? payload.coordinate?.latitude;
-      const lon = payload.lon ?? payload.lng ?? payload.longitude ?? payload.coordinate?.longitude;
       return {
         itemId,
-        latlng: isValidNumber(lat) && isValidNumber(lon) ? { lat, lng: lon } : null,
+        latlng: mapProviderEventLatLng(payload),
         originalEvent: payload,
       };
     }
@@ -5061,6 +5054,27 @@ function mapProviderCoordinatePair(value) {
     return Number.isFinite(lat) && Number.isFinite(lon) ? [lat, lon] : null;
   }
 
+  return null;
+}
+
+function mapProviderEventLatLng(event = {}) {
+  const candidates = [
+    event.latlng,
+    event.latLng,
+    event.coordinate,
+    event.center,
+    event.target,
+    event.camera?.target,
+    event.camera?.center,
+    event.region?.center,
+    event,
+  ];
+  for (const candidate of candidates) {
+    const googleLiteral = mapProviderGoogleLatLngLiteral(candidate);
+    if (googleLiteral) return { lat: googleLiteral.lat, lng: googleLiteral.lng };
+    const pair = mapProviderCoordinatePair(candidate);
+    if (pair) return { lat: pair[0], lng: pair[1] };
+  }
   return null;
 }
 
@@ -9828,9 +9842,9 @@ function renderProviderMarkers() {
 }
 
 function selectProviderMapPoint(event) {
-  const lat = event.latlng.lat;
-  const lon = event.latlng.lng;
-  openSpotNameSheet(lat, lon);
+  const latlng = mapProviderEventLatLng(event);
+  if (!latlng) return;
+  openSpotNameSheet(latlng.lat, latlng.lng);
 }
 
 function syncProviderMapState() {
