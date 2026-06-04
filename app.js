@@ -2212,6 +2212,8 @@ const state = {
   profile: { ...DEFAULT_PROFILE },
   forecastExpanded: false,
   todaySpotMenuOpen: false,
+  todayFocusMode: "current",
+  todayCurveDrag: null,
   riggingDirty: false,
   renamingFavoriteId: null,
   pendingSpot: null,
@@ -11358,6 +11360,7 @@ function bindEvents() {
   els.todayCurveCanvas?.addEventListener("pointermove", handleTodayCurvePointer);
   els.todayCurveCanvas?.addEventListener("pointerup", handleTodayCurveRelease);
   els.todayCurveCanvas?.addEventListener("pointercancel", handleTodayCurveRelease);
+  els.todayCompassCanvas?.addEventListener("click", handleTodayCompassClick);
   els.todayPlayButton?.addEventListener("click", playTodayTimeline);
   els.todayLocationButton?.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -13142,7 +13145,7 @@ function renderTodayView(day) {
   const waveHeight = sample.waveHeight ?? day?.waveAvg;
   const swellHeight = sample.swellHeight ?? day?.swellAvg ?? waveHeight;
   const hasDepthCurrent = isValidNumber(depthCurrent);
-  const focusCurrent = hasDepthCurrent ? depthCurrent : surfaceCurrent;
+  const focus = todayFocusMetric(sample, day);
 
   if (els.todaySpotName) els.todaySpotName.textContent = getActiveSpot().name;
   renderTodaySpotMenu();
@@ -13155,8 +13158,8 @@ function renderTodayView(day) {
   if (els.todayTimeRange) els.todayTimeRange.value = String(Math.round(minute / 60));
   setText(els.todayWindBadge, isValidNumber(windSpeed) ? formatNumber(windSpeed, 0) : "--");
   setText(els.todaySwellBadge, isValidNumber(swellHeight) ? `${formatNumber(swellHeight, 1)} m` : "--");
-  setText(els.todayFocusLabel, isSeaMode() ? (hasDepthCurrent ? "Courant fond" : "Courant surface") : "Vent");
-  setText(els.todayFocusValue, isSeaMode() ? formatForceValue(focusCurrent, "kt", 2) : formatForceValue(windSpeed, "kt", 0));
+  setText(els.todayFocusLabel, focus.label);
+  setText(els.todayFocusValue, formatForceValue(focus.value, focus.unit, focus.decimals));
   setText(els.todayFocusDetail, todayFocusDetail(sample, day));
   setText(els.todaySelectedHour, formatHourCompact(minute));
   setText(els.todaySelectedSummary, todaySelectedSummary(sample, day));
@@ -13343,6 +13346,42 @@ function todayStrengthTone(score) {
   return { key: "low", label: "Faible" };
 }
 
+function todayFocusMetric(sample, day) {
+  const definitions = todayFocusDefinitions(sample, day);
+  const fallback = definitions.find((definition) => isValidNumber(definition.value)) ?? definitions[0];
+  return definitions.find((definition) => definition.key === state.todayFocusMode && isValidNumber(definition.value)) ?? fallback;
+}
+
+function todayFocusDefinitions(sample = {}, day = {}) {
+  const hasDepthCurrent = isValidNumber(sample.depthCurrent ?? day?.depthCurrent);
+  return [
+    {
+      key: hasDepthCurrent ? "depth" : "current",
+      label: hasDepthCurrent ? "Courant fond" : "Courant surface",
+      value: hasDepthCurrent ? sample.depthCurrent ?? day?.depthCurrent : sample.surfaceCurrent ?? day?.surfaceCurrent,
+      unit: "kt",
+      decimals: 2,
+      direction: hasDepthCurrent ? sample.depthDirection ?? day?.depthDirection : sample.currentDirection ?? day?.surfaceCurrentDirection,
+    },
+    {
+      key: "wind",
+      label: "Vent",
+      value: sample.windSpeed ?? day?.windAvg,
+      unit: "kt",
+      decimals: 0,
+      direction: reverseDirection(sample.windDirection ?? day?.windDirection),
+    },
+    {
+      key: "wave",
+      label: "Houle",
+      value: sample.waveHeight ?? day?.waveAvg,
+      unit: "m",
+      decimals: 1,
+      direction: reverseDirection(sample.waveDirection ?? day?.waveDirection),
+    },
+  ];
+}
+
 function todayFocusDetail(sample, day) {
   if (!day) return "--";
   const direction = sample.depthDirection ?? sample.currentDirection ?? day.depthDirection ?? day.surfaceCurrentDirection;
@@ -13394,28 +13433,21 @@ function drawTodayCompass(day, sample = {}) {
   const radius = Math.min(width, height) * 0.38;
   const tone = todayStrengthTone(todayStrengthScore(sample, day)).key;
   const palette = todayCompassPalette(tone);
+  const focus = todayFocusMetric(sample, day);
 
   ctx.clearRect(0, 0, width, height);
-  const bg = ctx.createRadialGradient(cx, cy, radius * 0.1, cx, cy, radius * 1.15);
-  bg.addColorStop(0, palette.center);
-  bg.addColorStop(0.62, palette.mid);
-  bg.addColorStop(1, palette.edge);
-  ctx.fillStyle = bg;
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius * 1.08, 0, Math.PI * 2);
-  ctx.fill();
 
   ctx.strokeStyle = palette.force;
-  ctx.lineWidth = 6;
+  ctx.lineWidth = 7;
   ctx.shadowColor = palette.glow;
-  ctx.shadowBlur = 14;
+  ctx.shadowBlur = 10;
   ctx.beginPath();
   ctx.arc(cx, cy, radius * 1.09, 0, Math.PI * 2);
   ctx.stroke();
   ctx.shadowBlur = 0;
 
-  ctx.strokeStyle = palette.ring;
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(44, 77, 112, 0.20)";
+  ctx.lineWidth = 1.5;
   [0.72, 0.92, 1.08].forEach((scale) => {
     ctx.beginPath();
     ctx.arc(cx, cy, radius * scale, 0, Math.PI * 2);
@@ -13425,15 +13457,15 @@ function drawTodayCompass(day, sample = {}) {
   for (let deg = 0; deg < 360; deg += 10) {
     const outer = polar(deg, radius);
     const inner = polar(deg, radius * (deg % 30 === 0 ? 0.90 : 0.95));
-    ctx.strokeStyle = deg % 90 === 0 ? palette.tickStrong : palette.tick;
-    ctx.lineWidth = deg % 90 === 0 ? 3 : 2;
+    ctx.strokeStyle = deg % 90 === 0 ? "rgba(7, 20, 42, 0.34)" : "rgba(44, 77, 112, 0.18)";
+    ctx.lineWidth = deg % 90 === 0 ? 2.5 : 1.5;
     ctx.beginPath();
     ctx.moveTo(cx + outer.x, cy + outer.y);
     ctx.lineTo(cx + inner.x, cy + inner.y);
     ctx.stroke();
   }
 
-  ctx.fillStyle = "#7fe8ff";
+  ctx.fillStyle = "#0058cc";
   ctx.font = "900 15px Inter, system-ui, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -13449,17 +13481,19 @@ function drawTodayCompass(day, sample = {}) {
     drawTodayCompassArrow(ctx, cx, cy, radius * 0.46, reverseDirection(sample.waveDirection ?? day.waveDirection), themeColor("wave"), true);
   }
 
-  ctx.fillStyle = "rgba(222, 237, 255, 0.62)";
+  ctx.save();
+  ctx.shadowColor = "rgba(255, 255, 255, 0.92)";
+  ctx.shadowBlur = 8;
+  ctx.fillStyle = "rgba(44, 77, 112, 0.72)";
   ctx.font = "800 15px Inter, system-ui, sans-serif";
-  const hasDepthCurrent = isValidNumber(sample.depthCurrent ?? day?.depthCurrent);
-  ctx.fillText(isSeaMode() ? (hasDepthCurrent ? "Courant fond" : "Courant surface") : "Vent", cx, cy - 42);
-  ctx.fillStyle = "#ffffff";
+  ctx.fillText(focus.label, cx, cy - 42);
+  ctx.fillStyle = "#07142a";
   ctx.font = "900 54px Montserrat, Inter, system-ui, sans-serif";
-  const focus = isSeaMode() ? (sample.depthCurrent ?? day?.depthCurrent ?? sample.surfaceCurrent) : sample.windSpeed;
-  ctx.fillText(isValidNumber(focus) ? formatNumber(focus, isSeaMode() ? 2 : 0) : "--", cx - 8, cy + 12);
-  ctx.fillStyle = "rgba(222, 237, 255, 0.72)";
+  ctx.fillText(isValidNumber(focus.value) ? formatNumber(focus.value, focus.decimals) : "--", cx - 8, cy + 12);
+  ctx.fillStyle = "rgba(44, 77, 112, 0.78)";
   ctx.font = "900 22px Inter, system-ui, sans-serif";
-  ctx.fillText(isSeaMode() ? "kt" : "NO", cx + 76, cy + 12);
+  ctx.fillText(focus.unit, cx + 76, cy + 12);
+  ctx.restore();
 }
 
 function todayCompassPalette(tone) {
@@ -13526,6 +13560,41 @@ function drawTodayCompassArrow(ctx, cx, cy, length, direction, color, dashed) {
   ctx.restore();
 }
 
+function handleTodayCompassClick(event) {
+  const day = getSelectedDay();
+  if (!day || !els.todayCompassCanvas) return;
+  const rect = els.todayCompassCanvas.getBoundingClientRect();
+  const x = event.clientX - rect.left - rect.width / 2;
+  const y = event.clientY - rect.top - rect.height / 2;
+  const distance = Math.hypot(x, y);
+  const sample = timelineSample(day, selectedTimelineMinute());
+  const definitions = todayFocusDefinitions(sample, day).filter((definition) => isValidNumber(definition.value));
+
+  if (!definitions.length) return;
+
+  if (distance < Math.min(rect.width, rect.height) * 0.18) {
+    const activeIndex = Math.max(0, definitions.findIndex((definition) => definition.key === state.todayFocusMode));
+    state.todayFocusMode = definitions[(activeIndex + 1) % definitions.length].key;
+  } else {
+    const angle = normalizeDirection((Math.atan2(x, -y) * 180) / Math.PI);
+    const nearest = definitions
+      .filter((definition) => isValidNumber(definition.direction))
+      .map((definition) => ({
+        definition,
+        delta: directionDelta(angle, definition.direction),
+      }))
+      .sort((a, b) => a.delta - b.delta)[0]?.definition;
+    state.todayFocusMode = nearest?.key ?? definitions[0].key;
+  }
+
+  renderTodayView(day);
+}
+
+function directionDelta(a, b) {
+  const diff = Math.abs(normalizeDirection(a) - normalizeDirection(b));
+  return Math.min(diff, 360 - diff);
+}
+
 function drawTodayCurve(day) {
   const canvas = els.todayCurveCanvas;
   if (!canvas) return;
@@ -13536,7 +13605,7 @@ function drawTodayCurve(day) {
   const height = rect.height;
   ctx.clearRect(0, 0, width, height);
 
-  const padding = { top: 32, right: 24, bottom: 58, left: 24 };
+  const padding = { top: 20, right: 24, bottom: 46, left: 24 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
   const rows = day?.rows ?? [];
@@ -13544,7 +13613,8 @@ function drawTodayCurve(day) {
 
   const series = todaySeries(rows);
   const selectedMinute = selectedTimelineMinute();
-  const xForMinute = (minute) => padding.left + (clamp(minute, 0, 1380) / 1380) * chartWidth;
+  const centerX = padding.left + chartWidth / 2;
+  const xForMinute = (minute) => centerX + ((minute - selectedMinute) / 1440) * chartWidth;
   const yForRatio = (ratio) => padding.top + (1 - clamp(ratio, 0, 1)) * chartHeight;
 
   const fill = ctx.createLinearGradient(0, padding.top, 0, height);
@@ -13558,6 +13628,7 @@ function drawTodayCurve(day) {
   ctx.lineWidth = 1;
   [0, 360, 720, 1080, 1380].forEach((minute) => {
     const x = xForMinute(minute);
+    if (x < padding.left - 24 || x > width - padding.right + 24) return;
     ctx.beginPath();
     ctx.moveTo(x, padding.top);
     ctx.lineTo(x, padding.top + chartHeight);
@@ -13566,26 +13637,41 @@ function drawTodayCurve(day) {
 
   series.forEach((serie) => drawTodaySeries(ctx, serie, xForMinute, yForRatio));
 
-  const selectedX = xForMinute(selectedMinute);
-  ctx.strokeStyle = "rgba(220, 245, 255, 0.70)";
+  const selectedX = centerX;
+  const focus = todayFocusMetric(timelineSample(day, selectedMinute), day);
+  const focusSeries = series.find((serie) => todaySeriesMatchesFocus(serie.key, focus.key));
+  const focusPoint = focusSeries?.points.reduce((nearest, point) => (
+    Math.abs(point.minute - selectedMinute) < Math.abs(nearest.minute - selectedMinute) ? point : nearest
+  ), focusSeries?.points[0]);
+  const markerY = focusPoint ? yForRatio(focusPoint.ratio) : padding.top + chartHeight * 0.62;
+
+  ctx.strokeStyle = "rgba(44, 77, 112, 0.34)";
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(selectedX, padding.top);
   ctx.lineTo(selectedX, padding.top + chartHeight);
   ctx.stroke();
 
-  ctx.fillStyle = "rgba(105, 214, 255, 0.42)";
+  ctx.fillStyle = "rgba(105, 214, 255, 0.36)";
   ctx.strokeStyle = "#a9f3ff";
   ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.arc(selectedX, padding.top + chartHeight * 0.72, 18, 0, Math.PI * 2);
+  ctx.arc(selectedX, markerY, 18, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
 
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "900 20px Inter, system-ui, sans-serif";
+  ctx.fillStyle = "#07142a";
+  ctx.font = "900 18px Inter, system-ui, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(formatHourCompact(selectedMinute), selectedX, padding.top + chartHeight + 34);
+  ctx.fillText(formatHourCompact(selectedMinute), selectedX, padding.top + chartHeight + 28);
+}
+
+function todaySeriesMatchesFocus(seriesKey, focusKey) {
+  if (focusKey === "current") return seriesKey === "surfaceCurrent";
+  if (focusKey === "depth") return seriesKey === "depthCurrent";
+  if (focusKey === "wind") return seriesKey === "windGust";
+  if (focusKey === "wave") return seriesKey === "waveHeight";
+  return false;
 }
 
 function todaySeries(rows) {
@@ -13636,19 +13722,38 @@ function drawTodaySeries(ctx, serie, xForMinute, yForRatio) {
 function handleTodayCurvePointer(event) {
   if (!els.todayCurveCanvas || (event.type === "pointermove" && event.buttons !== 1)) return;
   event.preventDefault();
+  const rect = els.todayCurveCanvas.getBoundingClientRect();
+
   if (event.pointerId != null && event.type === "pointerdown") {
     els.todayCurveCanvas.setPointerCapture?.(event.pointerId);
+    state.todayCurveDrag = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startMinute: selectedTimelineMinute(),
+      dragged: false,
+    };
+    return;
   }
-  const rect = els.todayCurveCanvas.getBoundingClientRect();
-  const ratio = clamp((event.clientX - rect.left) / Math.max(1, rect.width), 0, 1);
-  const hour = clamp(Math.round(ratio * 23), 0, 23);
-  state.timelineMinute = hour * 60;
+
+  const drag = state.todayCurveDrag;
+  if (!drag) return;
+  const deltaX = event.clientX - drag.startX;
+  const minutesPerPixel = 1440 / Math.max(1, rect.width);
+  drag.dragged = drag.dragged || Math.abs(deltaX) > 4;
+  state.timelineMinute = normalizeTimelineMinute(drag.startMinute - deltaX * minutesPerPixel);
   renderTodayView(getSelectedDay());
   renderDayTimeline(getSelectedDay());
   drawCompass();
 }
 
-function handleTodayCurveRelease() {
+function handleTodayCurveRelease(event) {
+  if (event?.type === "pointerup" && state.todayCurveDrag && !state.todayCurveDrag.dragged && els.todayCurveCanvas) {
+    const rect = els.todayCurveCanvas.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const minutesPerPixel = 1440 / Math.max(1, rect.width);
+    state.timelineMinute = normalizeTimelineMinute(state.todayCurveDrag.startMinute + (event.clientX - centerX) * minutesPerPixel);
+  }
+  state.todayCurveDrag = null;
   scheduleTimelineSelectionRender({ heavy: true });
 }
 
