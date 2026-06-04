@@ -183,7 +183,9 @@ node server.mjs 8090
 | `npm run map-provider:validate` | Validates provider ids, default-off config, bridge/debug contracts, asset cache versioning, and generated web/iOS/Android bundle propagation. |
 | `npm run deploy` | Builds and deploys `dist/` to Cloudflare Pages project `meteopeche` on branch `main`. |
 | `npm run mobile:sync` | Builds the web app and runs `npx cap sync`. |
+| `npm run mobile:sync:native` | Builds and syncs both mobile apps, then enables `apple-native` for iOS and `google-native` for Android in the generated native bundles. |
 | `npm run mobile:sync:ios-native` | Builds and syncs iOS, then enables the generated Xcode bundle to use `apple-native`. |
+| `npm run mobile:sync:android-native` | Builds and syncs Android, then enables the generated Android bundle to use `google-native`. |
 | `npm run mobile:add:ios` | Builds the web app and adds an iOS Capacitor project. |
 | `npm run mobile:add:android` | Builds the web app and adds an Android Capacitor project. |
 | `npm run mobile:open:ios` | Opens the iOS project with Capacitor. |
@@ -426,6 +428,12 @@ The root `Dockerfile` builds a Python 3.12 FastAPI image that serves `backend.ma
 ### Map provider experiments
 
 The production/default build keeps `experimentalMapProviders: []`, so `leaflet-openmap` remains the active provider and Apple/Google providers cannot replace the current map experience by accident.
+
+The recommended production split is:
+
+- Web/PWA: keep the default Cloudflare build on Leaflet/OpenStreetMap to avoid Google Maps JavaScript billing and Apple MapKit JS token infrastructure.
+- iOS app: run `npm run mobile:sync:ios-native` or `npm run mobile:sync:native` before opening Xcode so the generated bundle uses the free native `apple-native` MapKit renderer.
+- Android app: run `npm run mobile:sync:android-native` or `npm run mobile:sync:native` before opening Android Studio so the generated bundle prefers the native `google-native` Maps SDK renderer. Provide `METEOPECHE_GOOGLE_MAPS_ANDROID_API_KEY` or the `GOOGLE_MAPS_ANDROID_API_KEY` Gradle property for the Android Maps SDK key; no key is committed. Without the key, Android falls back to Leaflet.
 
 For local web experiments:
 
