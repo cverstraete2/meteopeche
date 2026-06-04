@@ -1,4 +1,4 @@
-const CACHE_NAME = "meteocatch-shell-20260603-native-cache-recovery";
+const CACHE_NAME = "meteocatch-shell-20260604-timeline-redraw";
 const APP_SHELL = [
   "./",
   "./index.html",

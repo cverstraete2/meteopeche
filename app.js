@@ -13064,6 +13064,21 @@ function renderAll() {
   renderSpotResolution();
   syncGlancePayload(selected);
   applyTranslations(document.body);
+  scheduleTimelineDataRepair();
+}
+
+function scheduleTimelineDataRepair() {
+  if (!window.requestAnimationFrame || !state.days.length || !els.dayTimeline) return;
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      const hasDays = state.days.length > 0;
+      const missingReadout = !els.dayTimelineTime?.textContent || els.dayTimelineTime.textContent.trim() === "--";
+      const missingPoints = Number(els.dayTimeline?.dataset.pointCount ?? 0) <= 0;
+      if (!hasDays || (!missingReadout && !missingPoints)) return;
+      invalidateLiveTimelineCache();
+      renderDayTimeline(getSelectedDay());
+    }, 80);
+  });
 }
 
 function renderSpotResolution() {
