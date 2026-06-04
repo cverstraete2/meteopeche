@@ -13477,33 +13477,33 @@ function drawTodayCompass(day, sample = {}) {
 function todayCompassPalette(tone) {
   if (tone === "high") {
     return {
-      center: "rgba(91, 22, 32, 0.96)",
-      mid: "rgba(143, 45, 39, 0.82)",
-      edge: "rgba(73, 21, 35, 0.64)",
-      ring: "rgba(255, 183, 164, 0.34)",
-      tick: "rgba(255, 218, 210, 0.18)",
-      tickStrong: "rgba(255, 233, 226, 0.42)",
+      center: "#dc2626",
+      mid: "#b91c1c",
+      edge: "#7f1d1d",
+      ring: "rgba(254, 202, 202, 0.48)",
+      tick: "rgba(254, 226, 226, 0.26)",
+      tickStrong: "rgba(255, 245, 245, 0.58)",
     };
   }
 
   if (tone === "medium") {
     return {
-      center: "rgba(84, 67, 21, 0.96)",
-      mid: "rgba(137, 99, 28, 0.82)",
-      edge: "rgba(58, 45, 28, 0.64)",
-      ring: "rgba(255, 223, 138, 0.34)",
-      tick: "rgba(255, 239, 198, 0.18)",
-      tickStrong: "rgba(255, 246, 221, 0.42)",
+      center: "#f59e0b",
+      mid: "#d97706",
+      edge: "#92400e",
+      ring: "rgba(254, 240, 138, 0.48)",
+      tick: "rgba(254, 243, 199, 0.26)",
+      tickStrong: "rgba(255, 251, 235, 0.58)",
     };
   }
 
   return {
-    center: "rgba(18, 73, 58, 0.96)",
-    mid: "rgba(22, 102, 82, 0.82)",
-    edge: "rgba(14, 50, 57, 0.64)",
-    ring: "rgba(139, 244, 196, 0.34)",
-    tick: "rgba(211, 255, 234, 0.18)",
-    tickStrong: "rgba(231, 255, 244, 0.42)",
+    center: "#22c55e",
+    mid: "#16a34a",
+    edge: "#166534",
+    ring: "rgba(187, 247, 208, 0.48)",
+    tick: "rgba(220, 252, 231, 0.26)",
+    tickStrong: "rgba(240, 253, 244, 0.58)",
   };
 }
 
