@@ -852,8 +852,8 @@ body.is-spot-name-open .mobile-tabbar {
 }
 
 .today-hero {
-  min-height: min(940px, 100dvh);
-  padding: calc(var(--safe-top) + 26px) clamp(16px, 4vw, 38px) calc(var(--safe-bottom) + var(--tabbar-h) + 34px);
+  min-height: 100dvh;
+  padding: calc(var(--safe-top) + 18px) clamp(16px, 4vw, 38px) calc(var(--safe-bottom) + var(--tabbar-h) + 18px);
   border-radius: 0;
   background:
     radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--accent-soft) 70%, transparent), transparent 35%),
@@ -863,7 +863,7 @@ body.is-spot-name-open .mobile-tabbar {
   position: relative;
   display: grid;
   align-content: start;
-  gap: 18px;
+  gap: 10px;
   box-sizing: border-box;
   max-width: 100%;
   overflow: hidden;
@@ -871,7 +871,7 @@ body.is-spot-name-open .mobile-tabbar {
 
 .today-topbar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 56px;
+  grid-template-columns: minmax(0, 1fr) 52px;
   gap: 12px;
   align-items: center;
   min-width: 0;
@@ -879,7 +879,7 @@ body.is-spot-name-open .mobile-tabbar {
 
 .today-icon-button,
 .today-location-pill {
-  min-height: 56px;
+  min-height: 52px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--bg-card) 82%, transparent);
   color: var(--text-1);
@@ -893,8 +893,8 @@ body.is-spot-name-open .mobile-tabbar {
   place-items: center;
   font-size: 1.8rem;
   min-width: 0;
-  width: 56px;
-  max-width: 56px;
+  width: 52px;
+  max-width: 52px;
   padding: 0;
 }
 
@@ -1086,7 +1086,7 @@ body.is-spot-name-open .mobile-tabbar {
 }
 
 .today-condition-strip {
-  min-height: 58px;
+  min-height: 50px;
   padding: 0 10px;
   border-radius: 999px;
   border: 1px solid var(--border);
@@ -1126,9 +1126,9 @@ body.is-spot-name-open .mobile-tabbar {
 
 .today-depth-control {
   display: grid;
-  gap: 8px;
-  padding: 12px 16px;
-  border-radius: 20px;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 18px;
   background: color-mix(in srgb, var(--bg-card) 76%, transparent);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
@@ -1155,16 +1155,16 @@ body.is-spot-name-open .mobile-tabbar {
 }
 
 .today-compass-wrap {
-  min-height: clamp(280px, 44dvh, 450px);
+  min-height: clamp(210px, 31dvh, 280px);
   display: grid;
   place-items: center;
   position: relative;
-  margin-top: 6px;
+  margin-top: 0;
 }
 
 .today-compass-wrap canvas {
-  width: min(420px, 78vw) !important;
-  height: min(420px, 78vw) !important;
+  width: min(300px, 66vw) !important;
+  height: min(300px, 66vw) !important;
   filter: drop-shadow(0 26px 54px rgba(9, 22, 46, 0.24));
 }
 
@@ -1182,8 +1182,8 @@ body.is-spot-name-open .mobile-tabbar {
 
 .today-compass-badge {
   position: absolute;
-  width: 66px;
-  height: 66px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -1196,12 +1196,12 @@ body.is-spot-name-open .mobile-tabbar {
 }
 
 .today-compass-badge strong {
-  font-size: 1.05rem;
+  font-size: 0.96rem;
   line-height: 1;
 }
 
 .today-compass-badge span {
-  font-size: 0.62rem;
+  font-size: 0.56rem;
   text-transform: uppercase;
   color: var(--text-3);
 }
@@ -1220,30 +1220,32 @@ body.is-spot-name-open .mobile-tabbar {
   width: min(330px, 78vw);
   justify-self: center;
   text-align: center;
-  margin-top: -14px;
-  display: grid;
-  gap: 3px;
+  margin-top: -34px;
+  display: none;
+  gap: 1px;
 }
 
 .today-focus-card span,
 .today-focus-card small {
   color: var(--text-2);
   font-weight: 800;
+  font-size: 0.76rem;
 }
 
 .today-focus-card strong {
-  font-size: clamp(2.4rem, 11vw, 4rem);
+  font-size: clamp(1.8rem, 7vw, 2.5rem);
   line-height: 1;
   letter-spacing: 0;
 }
 
 .today-strength-card {
+  order: 20;
   width: min(420px, 88vw);
   justify-self: center;
   display: grid;
-  gap: 8px;
-  padding: 12px 14px;
-  border-radius: 20px;
+  gap: 5px;
+  padding: 8px 12px;
+  border-radius: 16px;
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--bg-card) 80%, transparent);
   box-shadow: var(--shadow-sm);
@@ -1256,7 +1258,7 @@ body.is-spot-name-open .mobile-tabbar {
   align-items: center;
   gap: 12px;
   color: var(--text-3);
-  font-size: 0.78rem;
+  font-size: 0.68rem;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -1271,7 +1273,7 @@ body.is-spot-name-open .mobile-tabbar {
 
 .today-strength-track {
   position: relative;
-  height: 11px;
+  height: 8px;
   border-radius: 999px;
   background: linear-gradient(90deg, #3bd995 0 33%, #f5c84d 33% 66%, #ff5b5b 66% 100%);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24), 0 8px 20px rgba(8, 25, 55, 0.16);
@@ -1281,12 +1283,12 @@ body.is-spot-name-open .mobile-tabbar {
   position: absolute;
   top: 50%;
   left: clamp(0%, var(--today-strength-position), 100%);
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   background: #fff;
-  border: 5px solid #60cfff;
+  border: 4px solid #60cfff;
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
 }
 
@@ -1295,6 +1297,7 @@ body.is-spot-name-open .mobile-tabbar {
   color: var(--text-2);
   font-weight: 800;
   text-align: center;
+  font-size: 0.72rem;
 }
 
 .today-strength-card.is-low .today-strength-head strong {
@@ -1310,8 +1313,9 @@ body.is-spot-name-open .mobile-tabbar {
 }
 
 .today-curve-wrap {
-  min-height: clamp(230px, 34dvh, 360px);
-  margin-inline: 0;
+  order: 10;
+  min-height: clamp(220px, 32dvh, 310px);
+  margin: -10px 0 0;
   position: relative;
   display: grid;
   align-items: end;
@@ -1321,7 +1325,7 @@ body.is-spot-name-open .mobile-tabbar {
 
 .today-curve-wrap canvas {
   width: 100% !important;
-  height: clamp(220px, 32dvh, 350px) !important;
+  height: clamp(210px, 31dvh, 300px) !important;
   touch-action: none;
 }
 
@@ -1335,10 +1339,11 @@ body.is-spot-name-open .mobile-tabbar {
 }
 
 .today-hour-readout {
+  order: 30;
   display: grid;
   justify-items: center;
   gap: 4px;
-  margin-top: -10px;
+  margin-top: -16px;
 }
 
 .today-hour-readout strong {
@@ -1354,6 +1359,7 @@ body.is-spot-name-open .mobile-tabbar {
 }
 
 .today-series-legend {
+  order: 40;
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
