@@ -2093,6 +2093,8 @@ const riggingProfiles = {
   ],
 };
 
+const TODAY_CURVE_WINDOW_MINUTES = 12 * 60;
+
 const state = {
   waterMode: WATER_MODES.SEA,
   activeChart: "wind",
@@ -13659,7 +13661,7 @@ function drawTodayCurve(day) {
   const series = todaySeries(rows);
   const selectedMinute = selectedTimelineMinute();
   const centerX = padding.left + chartWidth / 2;
-  const xForMinute = (minute) => centerX + ((minute - selectedMinute) / 1440) * chartWidth;
+  const xForMinute = (minute) => centerX + ((minute - selectedMinute) / TODAY_CURVE_WINDOW_MINUTES) * chartWidth;
   const yForRatio = (ratio) => padding.top + (1 - clamp(ratio, 0, 1)) * chartHeight;
 
   const fill = ctx.createLinearGradient(0, padding.top, 0, height);
@@ -13673,7 +13675,7 @@ function drawTodayCurve(day) {
   ctx.lineWidth = 1;
   [0, 360, 720, 1080, 1380].forEach((minute) => {
     const x = xForMinute(minute);
-    if (x < padding.left - 24 || x > width - padding.right + 24) return;
+    if (x < padding.left - chartWidth * 0.16 || x > width - padding.right + chartWidth * 0.16) return;
     ctx.beginPath();
     ctx.moveTo(x, padding.top);
     ctx.lineTo(x, padding.top + chartHeight);
@@ -13783,7 +13785,7 @@ function handleTodayCurvePointer(event) {
   const drag = state.todayCurveDrag;
   if (!drag) return;
   const deltaX = event.clientX - drag.startX;
-  const minutesPerPixel = 1440 / Math.max(1, rect.width);
+  const minutesPerPixel = TODAY_CURVE_WINDOW_MINUTES / Math.max(1, rect.width);
   drag.dragged = drag.dragged || Math.abs(deltaX) > 4;
   state.timelineMinute = normalizeTimelineMinute(drag.startMinute - deltaX * minutesPerPixel);
   renderTodayView(getSelectedDay());
@@ -13795,7 +13797,7 @@ function handleTodayCurveRelease(event) {
   if (event?.type === "pointerup" && state.todayCurveDrag && !state.todayCurveDrag.dragged && els.todayCurveCanvas) {
     const rect = els.todayCurveCanvas.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
-    const minutesPerPixel = 1440 / Math.max(1, rect.width);
+    const minutesPerPixel = TODAY_CURVE_WINDOW_MINUTES / Math.max(1, rect.width);
     state.timelineMinute = normalizeTimelineMinute(state.todayCurveDrag.startMinute + (event.clientX - centerX) * minutesPerPixel);
   }
   state.todayCurveDrag = null;
