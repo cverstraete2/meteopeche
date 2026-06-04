@@ -5561,6 +5561,14 @@ html[data-current-mobile-view="weather"] .weather-top-tools {
   top: 82px;
 }
 
+html[data-current-mobile-view="activity"] .weather-top-tools {
+  top: 82px;
+}
+
+html[data-current-mobile-view="activity"] .weather-subtabs {
+  display: none;
+}
+
 html[data-current-weather-subtab="forces"] .chart-panel {
   overflow-x: auto;
   padding: 0 var(--sp-4) var(--sp-5);

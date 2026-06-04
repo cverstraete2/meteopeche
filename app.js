@@ -2103,9 +2103,14 @@ const state = {
   selectedDate: "",
   timelineMinute: 12 * 60,
   liveTimelineRenderKey: "",
+  liveTimelinePayloadKey: "",
+  liveTimelinePayload: null,
   liveTimelineAnimationFrame: 0,
   liveTimelineProgress: 1,
   liveTimelinePointerStart: null,
+  timelineRenderFrame: 0,
+  timelineRenderOptions: null,
+  timelineHeavyRenderTimer: 0,
   selectedSpotName: spots[0].name,
   forecastRequestId: 0,
   spotResolution: null,
@@ -11680,24 +11685,73 @@ function recomputeDepthSensitiveViews() {
   state.realDepthError = "";
   state.hours = state.hours.map((row) => clearDepthCurrent(row));
   state.days = buildDailySummaries(state.hours);
+  invalidateLiveTimelineCache();
   renderAll();
   saveSettings();
 }
 
-function setTimelineMinute(value) {
+function setTimelineMinute(value, options = {}) {
   state.timelineMinute = normalizeTimelineMinute(value);
+  scheduleTimelineSelectionRender(options);
+}
+
+function scheduleTimelineSelectionRender(options = {}) {
+  state.timelineRenderOptions = mergeTimelineRenderOptions(state.timelineRenderOptions, options);
+  if (state.timelineRenderFrame) return;
+  state.timelineRenderFrame = requestAnimationFrame(() => {
+    state.timelineRenderFrame = 0;
+    const pendingOptions = state.timelineRenderOptions ?? {};
+    state.timelineRenderOptions = null;
+    renderTimelineSelection(pendingOptions);
+  });
+}
+
+function mergeTimelineRenderOptions(previous, next) {
+  const merged = { ...(previous ?? {}), ...(next ?? {}) };
+  if (previous?.liveOnly && next && next.liveOnly !== true) {
+    merged.liveOnly = false;
+  }
+  if (next?.heavy === true) {
+    merged.heavy = true;
+  }
+  return merged;
+}
+
+function renderTimelineSelection(options = {}) {
   const selected = getSelectedDay();
   renderDayTimeline(selected);
+  if (options.liveOnly) {
+    return;
+  }
   renderTimingWindow(selected);
   renderConditionBrief(selected);
   renderMetrics(selected);
   renderWaterInsights(selected);
-  renderActivity(selected);
-  renderTides(selected);
-  renderChart();
-  renderAtmosphereChart();
-  renderAstro(selected);
-  drawCompass();
+
+  if (options.heavy !== false) {
+    scheduleTimelineHeavyRender(selected);
+  }
+}
+
+function scheduleTimelineHeavyRender(selected = getSelectedDay()) {
+  if (state.timelineHeavyRenderTimer) {
+    clearTimeout(state.timelineHeavyRenderTimer);
+  }
+  state.timelineHeavyRenderTimer = setTimeout(() => {
+    state.timelineHeavyRenderTimer = 0;
+    const day = selected ?? getSelectedDay();
+    renderActivity(day);
+    renderTides(day);
+    renderChart();
+    renderAtmosphereChart();
+    renderAstro(day);
+    drawCompass();
+  }, 120);
+}
+
+function invalidateLiveTimelineCache() {
+  state.liveTimelinePayloadKey = "";
+  state.liveTimelinePayload = null;
 }
 
 function shiftTimelineDay(direction) {
@@ -11732,7 +11786,7 @@ function handleLiveTimelinePointer(event) {
   const rect = els.liveTimelineCanvas.getBoundingClientRect();
   const x = clamp(event.clientX - rect.left, 0, rect.width);
   const minute = normalizeTimelineMinute((x / Math.max(1, rect.width)) * 1425);
-  setTimelineMinute(minute);
+  setTimelineMinute(minute, { heavy: false, liveOnly: true });
 }
 
 function handleLiveTimelineRelease(event) {
@@ -11741,9 +11795,14 @@ function handleLiveTimelineRelease(event) {
   if (!start) return;
   const dx = event.clientX - start.x;
   const dy = event.clientY - start.y;
-  if (Math.abs(dx) < 72 || Math.abs(dx) < Math.abs(dy) * 1.35) return;
+  if (Math.abs(dx) < 72 || Math.abs(dx) < Math.abs(dy) * 1.35) {
+    scheduleTimelineSelectionRender({ heavy: true });
+    scheduleTimelineHeavyRender();
+    return;
+  }
   state.timelineMinute = start.minute;
   shiftTimelineDay(dx < 0 ? 1 : -1);
+  scheduleTimelineHeavyRender();
 }
 
 function scheduleLiveTimelineAnimation() {
@@ -11764,7 +11823,10 @@ function scheduleLiveTimelineAnimation() {
   const tick = (timestamp) => {
     const raw = clamp((timestamp - start) / duration, 0, 1);
     state.liveTimelineProgress = 1 - Math.pow(1 - raw, 3);
-    renderDayTimeline(getSelectedDay());
+    renderLiveTimeline(hybridTimelinePayload(getSelectedDay()), {
+      isToday: getSelectedDay()?.date === localDateKey(),
+      nowMinute: normalizeTimelineMinute(new Date().getHours() * 60 + new Date().getMinutes()),
+    });
     if (raw < 1) {
       state.liveTimelineAnimationFrame = requestAnimationFrame(tick);
     } else {
@@ -12220,6 +12282,7 @@ async function loadForecast() {
     state.days = applyRiverForecastToDays(buildDailySummaries(state.hours), river);
     state.selectedDate = state.days[0]?.date ?? "";
     state.timelineMinute = defaultTimelineMinute(getSelectedDay());
+    invalidateLiveTimelineCache();
 
     if (!state.days.length) {
       throw new Error("Aucune donnée horaire exploitable pour ce spot.");
@@ -16733,9 +16796,28 @@ function hybridTimelinePayload(day, minute = selectedTimelineMinute()) {
     };
   }
 
+  const cacheKey = [
+    day.date,
+    state.activityFish,
+    isSeaMode() ? "sea" : "fresh",
+    day.rows.length,
+    day.rows[0]?.time ?? "",
+    day.rows.at(-1)?.time ?? "",
+  ].join("|");
+  let cached = state.liveTimelinePayloadKey === cacheKey ? state.liveTimelinePayload : null;
+  if (cached) {
+    return {
+      ...cached,
+      minute,
+      sample: timelineSample(day, minute),
+      selectedPoint: nearestTimelineRow(cached.points, minute),
+    };
+  }
+
   const rows = day.rows.filter((row) => minutesFromClockOrNull(row.hour) != null);
   const activity = activityRows(day, state.activityFish);
   const activityByHour = new Map(activity.map((row) => [row.hour, row]));
+  const windows = solunarWindows(day);
   const tideValues = rows.map((row) => row.seaLevel).filter(isValidNumber);
   const activityValues = activity.map((row) => row.score).filter(isValidNumber);
   const tideMin = min(tideValues);
@@ -16747,7 +16829,7 @@ function hybridTimelinePayload(day, minute = selectedTimelineMinute()) {
 
   const points = rows.map((row) => {
     const rowMinute = minutesFromClock(row.hour);
-    const activityScore = activityByHour.get(row.hour)?.score ?? fishActivityForHour(row, state.activityFish, solunarWindows(day));
+    const activityScore = activityByHour.get(row.hour)?.score ?? fishActivityForHour(row, state.activityFish, windows);
     const tideScore = tideRange == null || !isValidNumber(row.seaLevel)
       ? 0.52
       : (row.seaLevel - tideMin) / tideRange;
@@ -16770,7 +16852,6 @@ function hybridTimelinePayload(day, minute = selectedTimelineMinute()) {
   });
 
   const firstRow = rows[0] ?? {};
-  const windows = solunarWindows(day);
   const markers = [
     isValidNumber(day.bestWindow?.peakMinute)
       ? {
@@ -16823,16 +16904,22 @@ function hybridTimelinePayload(day, minute = selectedTimelineMinute()) {
     })),
   ].filter(Boolean);
 
-  return {
+  cached = {
     day,
-    minute,
     points,
     markers,
     windows: favorableWindows,
-    sample: timelineSample(day, minute),
-    selectedPoint: nearestTimelineRow(points, minute),
     hasTide: tideValues.length >= 2,
     hasActivity: activityValues.length >= 2,
+  };
+  state.liveTimelinePayloadKey = cacheKey;
+  state.liveTimelinePayload = cached;
+
+  return {
+    ...cached,
+    minute,
+    sample: timelineSample(day, minute),
+    selectedPoint: nearestTimelineRow(points, minute),
   };
 }
 
