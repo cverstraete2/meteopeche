@@ -3074,6 +3074,41 @@ body.is-map-fullscreen-active .mobile-tabbar {
   letter-spacing: 0;
 }
 
+.day-timeline-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.timeline-day-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(112, 190, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(225, 244, 255, 0.92);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.timeline-day-button:disabled {
+  opacity: 0.36;
+  cursor: not-allowed;
+}
+
+.timeline-day-button:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+.timeline-day-button.is-pro-target:not(:disabled) {
+  color: #ffffff;
+  border-color: rgba(91, 164, 255, 0.62);
+  background: rgba(45, 128, 230, 0.34);
+}
+
 .live-timeline-stage {
   position: relative;
   min-height: 158px;

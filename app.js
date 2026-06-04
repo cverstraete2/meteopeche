@@ -2348,6 +2348,8 @@ const els = {
   dayTimeline: document.querySelector("#dayTimeline"),
   liveTimelineCanvas: document.querySelector("#liveTimelineCanvas"),
   liveTimelineCards: document.querySelector("#liveTimelineCards"),
+  timelinePrevDay: document.querySelector("#timelinePrevDay"),
+  timelineNextDay: document.querySelector("#timelineNextDay"),
   dayTimeRange: document.querySelector("#dayTimeRange"),
   dayTimelineTime: document.querySelector("#dayTimelineTime"),
   dayTimelineReadout: document.querySelector("#dayTimelineReadout"),
@@ -11591,6 +11593,8 @@ function bindEvents() {
   els.liveTimelineCanvas?.addEventListener("pointerdown", handleLiveTimelinePointer);
   els.liveTimelineCanvas?.addEventListener("pointermove", handleLiveTimelinePointer);
   els.liveTimelineCanvas?.addEventListener("click", handleLiveTimelinePointer);
+  els.timelinePrevDay?.addEventListener("click", () => shiftTimelineDay(-1));
+  els.timelineNextDay?.addEventListener("click", () => shiftTimelineDay(1));
   ["input", "change"].forEach((eventName) => {
     els.riggingForm?.addEventListener(eventName, () => {
       state.riggingDirty = true;
@@ -11691,6 +11695,23 @@ function setTimelineMinute(value) {
   renderAtmosphereChart();
   renderAstro(selected);
   drawCompass();
+}
+
+function shiftTimelineDay(direction) {
+  const days = state.days.slice(0, 10);
+  if (!days.length) return;
+  const currentIndex = Math.max(0, days.findIndex((day) => day.date === state.selectedDate));
+  const nextIndex = clamp(currentIndex + direction, 0, days.length - 1);
+  const day = days[nextIndex];
+  if (!day || day.date === state.selectedDate) return;
+  const lockedForecast = !canUseFeature("planning.10day") && nextIndex >= FREE_FORECAST_DAY_LIMIT;
+  if (lockedForecast) {
+    showProGate("planning.10day");
+    return;
+  }
+  state.selectedDate = day.date;
+  state.timelineMinute = defaultTimelineMinute(day);
+  renderAll();
 }
 
 function handleLiveTimelinePointer(event) {
@@ -14348,6 +14369,7 @@ function renderDayTimeline(day) {
   els.dayTimeline.hidden = false;
   els.dayTimeline.classList.toggle("is-today", isToday);
   els.dayTimeline.classList.toggle("has-window-peak", isValidNumber(peakMinute));
+  updateTimelineDayButtons(day);
   els.dayTimeline.style.setProperty("--timeline-now", `${(nowMinute / 1425) * 100}%`);
   els.dayTimeline.style.setProperty("--timeline-window-peak", `${((peakMinute ?? minute) / 1425) * 100}%`);
   els.dayTimeRange.value = String(minute);
@@ -14364,6 +14386,20 @@ function renderDayTimeline(day) {
       payload.sample.weatherRow ? conditionToneLabel(sampleConditionTone(day, payload.sample)) : null,
     ].filter(Boolean);
     els.dayTimelineReadout.textContent = parts.join(" · ");
+  }
+}
+
+function updateTimelineDayButtons(day) {
+  const days = state.days.slice(0, 10);
+  const index = days.findIndex((candidate) => candidate.date === day?.date);
+  if (els.timelinePrevDay) {
+    els.timelinePrevDay.disabled = index <= 0;
+  }
+  if (els.timelineNextDay) {
+    const nextLocked = !canUseFeature("planning.10day") && index + 1 >= FREE_FORECAST_DAY_LIMIT;
+    els.timelineNextDay.disabled = index < 0 || index >= days.length - 1;
+    els.timelineNextDay.classList.toggle("is-pro-target", nextLocked);
+    els.timelineNextDay.title = nextLocked ? "Débloquer les jours suivants avec Pro" : "Jour suivant";
   }
 }
 

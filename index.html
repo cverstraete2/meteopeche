@@ -678,7 +678,15 @@ try {
             <span class="eyebrow">Timeline vivante</span>
             <strong id="dayTimelineTime">--</strong>
           </div>
-          <span class="day-timeline-mode">Hybride</span>
+          <div class="day-timeline-actions" aria-label="Navigation jour">
+            <button class="timeline-day-button" id="timelinePrevDay" type="button" aria-label="Jour précédent">
+              <i class="ti ti-chevron-left" aria-hidden="true"></i>
+            </button>
+            <span class="day-timeline-mode">Hybride</span>
+            <button class="timeline-day-button" id="timelineNextDay" type="button" aria-label="Jour suivant">
+              <i class="ti ti-chevron-right" aria-hidden="true"></i>
+            </button>
+          </div>
         </div>
         <div class="live-timeline-stage">
           <canvas id="liveTimelineCanvas" width="980" height="330"
