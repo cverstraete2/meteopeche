@@ -3021,36 +3021,120 @@ body.is-map-fullscreen-active .mobile-tabbar {
 }
 
 .weather-timeline {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  gap: 6px;
-  padding: 0 2px var(--sp-2);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 10%, rgba(80, 190, 255, 0.20), transparent 34%),
+    linear-gradient(145deg, rgba(13, 30, 61, 0.95), rgba(29, 68, 93, 0.88));
+  border: 1px solid rgba(128, 190, 232, 0.22);
+  border-radius: var(--r-lg);
+  box-shadow: 0 18px 48px rgba(10, 28, 52, 0.22);
+  gap: 8px;
+  padding: var(--sp-3);
   position: relative;
 }
 
 .weather-timeline .day-timeline-head {
-  justify-content: flex-end;
-  min-height: 20px;
+  justify-content: space-between;
+  min-height: 28px;
 }
 
 .weather-timeline .day-timeline-head .eyebrow {
-  display: none;
+  display: block;
+  color: rgba(199, 226, 245, 0.72);
 }
 
 .weather-timeline .day-timeline-head strong {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 46px;
-  border: 1px solid var(--border-focus);
+  min-width: 52px;
+  margin-top: 2px;
+  border: 1px solid rgba(103, 188, 255, 0.38);
   border-radius: var(--r-pill);
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: rgba(39, 126, 213, 0.24);
+  color: #dff4ff;
   font-size: 0.78rem;
   line-height: 1;
-  padding: 3px 8px;
+  padding: 4px 9px;
+  box-shadow: inset 0 0 18px rgba(75, 169, 255, 0.16);
+}
+
+.day-timeline-mode {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(112, 190, 255, 0.28);
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(225, 244, 255, 0.86);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.live-timeline-stage {
+  position: relative;
+  min-height: 158px;
+  border: 1px solid rgba(180, 222, 255, 0.13);
+  border-radius: var(--r-md);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 42%),
+    rgba(2, 13, 31, 0.24);
+}
+
+.live-timeline-stage canvas {
+  display: block;
+  width: 100%;
+  height: 164px;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.live-timeline-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 0 8px 8px;
+}
+
+.live-timeline-card {
+  min-width: 0;
+  border: 1px solid rgba(190, 226, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(7, 22, 45, 0.42);
+  padding: 7px 8px;
+  color: #f3fbff;
+}
+
+.live-timeline-card span,
+.live-timeline-card small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-timeline-card span {
+  color: rgba(207, 229, 244, 0.74);
+  font-size: 0.62rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.live-timeline-card strong {
+  display: block;
+  margin-top: 2px;
+  color: #ffffff;
+  font-family: var(--f-data);
+  font-size: 0.92rem;
+}
+
+.live-timeline-card small {
+  margin-top: 1px;
+  color: rgba(207, 229, 244, 0.70);
+  font-size: 0.62rem;
 }
 
 .weather-timeline input[type="range"] {
@@ -3080,18 +3164,43 @@ body.is-map-fullscreen-active .mobile-tabbar {
 }
 
 .weather-timeline .day-timeline-scale {
-  padding: 0;
+  padding: 0 4px;
 }
 
 .weather-timeline .day-timeline-readout {
   min-height: 18px;
   font-size: 0.72rem;
-  text-align: right;
-  color: var(--text-3);
+  text-align: left;
+  color: rgba(212, 232, 246, 0.72);
 }
 
 .weather-timeline:not(.is-today) input[type="range"] {
   --timeline-now: -10%;
+}
+
+.weather-timeline .day-timeline-scale span {
+  color: rgba(212, 232, 246, 0.58);
+}
+
+.timeline-backup-control {
+  border-top: 1px solid rgba(190, 226, 255, 0.12);
+  padding-top: 4px;
+}
+
+.timeline-backup-control summary {
+  cursor: pointer;
+  color: rgba(212, 232, 246, 0.64);
+  font-size: 0.68rem;
+  font-weight: 800;
+  list-style: none;
+}
+
+.timeline-backup-control summary::-webkit-details-marker {
+  display: none;
+}
+
+.timeline-backup-control input {
+  margin-top: 4px;
 }
 
 .weather-subtabs {

@@ -2343,6 +2343,8 @@ const els = {
   metricTemplate: document.querySelector("#metricTemplate"),
   waterInsights: document.querySelector("#waterInsights"),
   dayTimeline: document.querySelector("#dayTimeline"),
+  liveTimelineCanvas: document.querySelector("#liveTimelineCanvas"),
+  liveTimelineCards: document.querySelector("#liveTimelineCards"),
   dayTimeRange: document.querySelector("#dayTimeRange"),
   dayTimelineTime: document.querySelector("#dayTimelineTime"),
   dayTimelineReadout: document.querySelector("#dayTimelineReadout"),
@@ -11583,6 +11585,9 @@ function bindEvents() {
   els.dayTimeRange?.addEventListener("input", () => {
     setTimelineMinute(els.dayTimeRange.value);
   });
+  els.liveTimelineCanvas?.addEventListener("pointerdown", handleLiveTimelinePointer);
+  els.liveTimelineCanvas?.addEventListener("pointermove", handleLiveTimelinePointer);
+  els.liveTimelineCanvas?.addEventListener("click", handleLiveTimelinePointer);
   ["input", "change"].forEach((eventName) => {
     els.riggingForm?.addEventListener(eventName, () => {
       state.riggingDirty = true;
@@ -11683,6 +11688,19 @@ function setTimelineMinute(value) {
   renderAtmosphereChart();
   renderAstro(selected);
   drawCompass();
+}
+
+function handleLiveTimelinePointer(event) {
+  if (!els.liveTimelineCanvas) return;
+  if (event.type === "pointermove" && event.buttons !== 1) return;
+  event.preventDefault();
+  if (event.pointerId != null && event.type === "pointerdown") {
+    els.liveTimelineCanvas.setPointerCapture?.(event.pointerId);
+  }
+  const rect = els.liveTimelineCanvas.getBoundingClientRect();
+  const x = clamp(event.clientX - rect.left, 0, rect.width);
+  const minute = normalizeTimelineMinute((x / Math.max(1, rect.width)) * 1425);
+  setTimelineMinute(minute);
 }
 
 async function resolveSpotContext(lat, lon) {
@@ -14292,6 +14310,7 @@ function renderDayTimeline(day) {
   const nowMinute = normalizeTimelineMinute(now.getHours() * 60 + now.getMinutes());
   const isToday = day.date === today;
   const peakMinute = day.bestWindow?.peakMinute;
+  const payload = hybridTimelinePayload(day, minute);
 
   els.dayTimeline.hidden = false;
   els.dayTimeline.classList.toggle("is-today", isToday);
@@ -14302,14 +14321,220 @@ function renderDayTimeline(day) {
   els.dayTimeRange.style.setProperty("--timeline-progress", `${(minute / 1425) * 100}%`);
   els.dayTimeRange.setAttribute("aria-valuetext", `Sélection ${formatHourCompact(minute)}`);
   els.dayTimelineTime.textContent = formatHourCompact(minute);
+  renderLiveTimeline(payload, { isToday, nowMinute });
+  renderLiveTimelineCards(payload);
   if (els.dayTimelineReadout) {
     const parts = [
-      `Sélection ${formatHourCompact(minute)}`,
+      payload.hasTide ? `marée ${formatTideHeight(payload.sample.seaLevel)}` : `activité ${formatNumber(payload.sample.score, 0)}/100`,
       isToday ? `maintenant ${formatHourCompact(nowMinute)}` : null,
       isValidNumber(peakMinute) ? `pic ${formatHourCompact(peakMinute)}` : null,
+      payload.sample.weatherRow ? conditionToneLabel(sampleConditionTone(day, payload.sample)) : null,
     ].filter(Boolean);
     els.dayTimelineReadout.textContent = parts.join(" · ");
   }
+}
+
+function renderLiveTimeline(payload, options = {}) {
+  const canvas = els.liveTimelineCanvas;
+  if (!canvas) return;
+  const ctx = setupCanvas(canvas);
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  ctx.clearRect(0, 0, width, height);
+
+  const padding = { top: 18, right: 18, bottom: 24, left: 18 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  const points = payload.points ?? [];
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, height);
+  gradient.addColorStop(0, "rgba(109, 205, 255, 0.16)");
+  gradient.addColorStop(0.55, "rgba(51, 134, 209, 0.10)");
+  gradient.addColorStop(1, "rgba(5, 18, 38, 0.04)");
+  ctx.fillStyle = gradient;
+  roundRect(ctx, 0, 0, width, height, 10);
+  ctx.fill();
+
+  if (!points.length) {
+    ctx.fillStyle = "rgba(225, 244, 255, 0.70)";
+    ctx.font = "800 13px Inter, system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Timeline indisponible", width / 2, height / 2);
+    return;
+  }
+
+  const xForMinute = (value) => padding.left + (clamp(value, 0, 1425) / 1425) * chartWidth;
+  const yForValue = (value) => padding.top + (1 - clamp(value, 0, 1)) * chartHeight;
+
+  ctx.save();
+  ctx.strokeStyle = "rgba(218, 239, 255, 0.10)";
+  ctx.lineWidth = 1;
+  [0, 360, 720, 1080, 1425].forEach((tick) => {
+    const x = xForMinute(tick);
+    ctx.beginPath();
+    ctx.moveTo(x, padding.top);
+    ctx.lineTo(x, height - padding.bottom);
+    ctx.stroke();
+  });
+  ctx.restore();
+
+  payload.windows.forEach((window) => {
+    const x = xForMinute(window.start);
+    const w = Math.max(8, xForMinute(window.end) - x);
+    ctx.fillStyle = window.type === "best" ? "rgba(91, 214, 170, 0.16)" : "rgba(153, 119, 255, 0.12)";
+    roundRect(ctx, x, padding.top, w, chartHeight, 8);
+    ctx.fill();
+  });
+
+  drawHybridCurve(ctx, points, xForMinute, yForValue, "tide");
+  drawHybridCurve(ctx, points, xForMinute, yForValue, "activity");
+  drawHybridCurve(ctx, points, xForMinute, yForValue, "hybrid");
+
+  payload.markers.forEach((marker) => drawLiveTimelineMarker(ctx, marker, xForMinute, padding, chartHeight));
+
+  if (options.isToday && isValidNumber(options.nowMinute)) {
+    const nowX = xForMinute(options.nowMinute);
+    ctx.strokeStyle = "rgba(255, 214, 102, 0.56)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(nowX, padding.top);
+    ctx.lineTo(nowX, height - padding.bottom);
+    ctx.stroke();
+  }
+
+  const selectedX = xForMinute(payload.minute);
+  const selected = payload.selectedPoint ?? points[0];
+  const selectedY = yForValue(selected.hybrid);
+  ctx.strokeStyle = "rgba(236, 249, 255, 0.80)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(selectedX, padding.top);
+  ctx.lineTo(selectedX, height - padding.bottom);
+  ctx.stroke();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.strokeStyle = "#3fa2ff";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(selectedX, selectedY, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "rgba(225, 244, 255, 0.82)";
+  ctx.font = "900 11px Inter, system-ui, sans-serif";
+  ctx.textAlign = selectedX > width - 78 ? "right" : "left";
+  ctx.fillText(formatHourCompact(payload.minute), selectedX + (selectedX > width - 78 ? -10 : 10), Math.max(16, selectedY - 12));
+}
+
+function drawHybridCurve(ctx, points, xForMinute, yForValue, kind) {
+  const config = {
+    tide: { key: "tideRatio", color: "rgba(186, 230, 255, 0.55)", width: 2, dash: [4, 6] },
+    activity: { key: "activityRatio", color: "rgba(118, 232, 185, 0.50)", width: 2, dash: [1, 7] },
+    hybrid: { key: "hybrid", color: "#43b8ff", width: 4, dash: [] },
+  }[kind];
+  if (!config) return;
+
+  ctx.save();
+  ctx.strokeStyle = config.color;
+  ctx.lineWidth = config.width;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.setLineDash(config.dash);
+  ctx.beginPath();
+  points.forEach((point, index) => {
+    const x = xForMinute(point.minute);
+    const y = yForValue(point[config.key]);
+    if (index === 0) ctx.moveTo(x, y);
+    else {
+      const previous = points[index - 1];
+      const previousX = xForMinute(previous.minute);
+      const previousY = yForValue(previous[config.key]);
+      const midX = (previousX + x) / 2;
+      ctx.bezierCurveTo(midX, previousY, midX, y, x, y);
+    }
+  });
+  ctx.stroke();
+
+  if (kind === "hybrid") {
+    const last = points.at(-1);
+    ctx.lineTo(xForMinute(last.minute), yForValue(0));
+    ctx.lineTo(xForMinute(points[0].minute), yForValue(0));
+    ctx.closePath();
+    const fill = ctx.createLinearGradient(0, 0, 0, ctx.canvas.clientHeight);
+    fill.addColorStop(0, "rgba(67, 184, 255, 0.24)");
+    fill.addColorStop(1, "rgba(67, 184, 255, 0.02)");
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawLiveTimelineMarker(ctx, marker, xForMinute, padding, chartHeight) {
+  const x = xForMinute(marker.minute);
+  const colorsByType = {
+    best: "#65d6a8",
+    high: "#d9f2ff",
+    low: "#6bbcff",
+    sunrise: "#f8c95a",
+    sunset: "#f59e5f",
+    moon: "#b69cff",
+  };
+  const color = colorsByType[marker.type] ?? "#dff4ff";
+  const y = marker.type === "best" ? padding.top + 10 : padding.top + chartHeight + 2;
+
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.strokeStyle = "rgba(3, 16, 32, 0.60)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(x, y, marker.type === "best" ? 5 : 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "rgba(225, 244, 255, 0.72)";
+  ctx.font = "800 9px Inter, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(marker.label, x, marker.type === "best" ? y + 15 : y - 8);
+  ctx.restore();
+}
+
+function renderLiveTimelineCards(payload) {
+  if (!els.liveTimelineCards) return;
+  const day = payload.day;
+  const sample = payload.sample;
+  const trend = rowTideTrend(sample.weatherRow, day?.rows);
+  const tideLabel = trend === "rising" ? "Montante" : trend === "falling" ? "Descendante" : "Stable";
+  const water = isSeaMode()
+    ? {
+        label: "Marée",
+        value: formatTideHeight(sample.seaLevel),
+        detail: tideLabel,
+      }
+    : {
+        label: "Débit",
+        value: formatRiverFlow(day?.riverFlow),
+        detail: riverTrendLabel(day),
+      };
+  const cards = [
+    water,
+    {
+      label: "Activité",
+      value: `${formatNumber(sample.score, 0)}/100`,
+      detail: getFishLabel(state.activityFish),
+    },
+    {
+      label: "Météo",
+      value: `${formatNumber(sample.windSpeed ?? day?.windAvg, 0)} kt`,
+      detail: isSeaMode() ? `houle ${formatNumber(sample.waveHeight ?? day?.waveAvg, 1)} m` : `${formatNumber(sample.pressure ?? day?.pressureAvg, 0)} hPa`,
+    },
+  ];
+
+  els.liveTimelineCards.innerHTML = cards.map((card) => `
+    <article class="live-timeline-card">
+      <span>${escapeHtml(card.label)}</span>
+      <strong>${escapeHtml(card.value)}</strong>
+      <small>${escapeHtml(card.detail)}</small>
+    </article>
+  `).join("");
 }
 
 function renderRiggingCalculator(day) {
@@ -16370,6 +16595,123 @@ function timelineSample(day, minute = selectedTimelineMinute()) {
     depthCurrent: interpolateTimelineValue(day.rows, minute, "depthCurrent"),
     depthDirection: interpolateTimelineDirection(day.rows, minute, "depthDirection"),
     depthSource: nearestWeatherRow?.depthSource ?? day.depthSource,
+  };
+}
+
+function hybridTimelinePayload(day, minute = selectedTimelineMinute()) {
+  if (!day?.rows?.length) {
+    return {
+      day,
+      minute,
+      points: [],
+      markers: [],
+      windows: [],
+      sample: timelineSample(day, minute),
+      hasTide: false,
+      hasActivity: false,
+    };
+  }
+
+  const rows = day.rows.filter((row) => minutesFromClockOrNull(row.hour) != null);
+  const activity = activityRows(day, state.activityFish);
+  const activityByHour = new Map(activity.map((row) => [row.hour, row]));
+  const tideValues = rows.map((row) => row.seaLevel).filter(isValidNumber);
+  const activityValues = activity.map((row) => row.score).filter(isValidNumber);
+  const tideMin = min(tideValues);
+  const tideMax = max(tideValues);
+  const tideRange = isValidNumber(tideMin) && isValidNumber(tideMax) ? Math.max(0.01, tideMax - tideMin) : null;
+  const activityMin = min(activityValues);
+  const activityMax = max(activityValues);
+  const activityRange = isValidNumber(activityMin) && isValidNumber(activityMax) ? Math.max(1, activityMax - activityMin) : null;
+
+  const points = rows.map((row) => {
+    const rowMinute = minutesFromClock(row.hour);
+    const activityScore = activityByHour.get(row.hour)?.score ?? fishActivityForHour(row, state.activityFish, solunarWindows(day));
+    const tideScore = tideRange == null || !isValidNumber(row.seaLevel)
+      ? 0.52
+      : (row.seaLevel - tideMin) / tideRange;
+    const activityRatio = activityRange == null || !isValidNumber(activityScore)
+      ? 0.52
+      : (activityScore - activityMin) / activityRange;
+    const hybrid = clamp(tideScore * 0.58 + activityRatio * 0.42, 0, 1);
+
+    return {
+      minute: rowMinute,
+      hour: row.hour,
+      row,
+      seaLevel: row.seaLevel,
+      activityScore,
+      weatherTone: sampleConditionTone(day, timelineSample(day, rowMinute)),
+      tideRatio: tideScore,
+      activityRatio,
+      hybrid,
+    };
+  });
+
+  const firstRow = rows[0] ?? {};
+  const windows = solunarWindows(day);
+  const markers = [
+    isValidNumber(day.bestWindow?.peakMinute)
+      ? {
+          type: "best",
+          minute: day.bestWindow.peakMinute,
+          label: "Pic",
+          detail: day.bestWindow.label,
+        }
+      : null,
+    ...tideEvents(rows).slice(0, 6).map((event) => ({
+      type: event.type === "high" ? "high" : "low",
+      minute: minutesFromClockOrNull(event.hour),
+      label: event.type === "high" ? "PM" : "BM",
+      detail: `${event.hour} · ${formatTideHeight(event.seaLevel)}`,
+    })),
+    {
+      type: "sunrise",
+      minute: minutesFromDateTime(firstRow.sunrise),
+      label: "Lever",
+      detail: "Soleil",
+    },
+    {
+      type: "sunset",
+      minute: minutesFromDateTime(firstRow.sunset),
+      label: "Coucher",
+      detail: "Soleil",
+    },
+    ...windows.major.slice(0, 2).map((window) => ({
+      type: "moon",
+      minute: window.center,
+      label: "Lune",
+      detail: window.label,
+    })),
+  ].filter((marker) => marker && isValidNumber(marker.minute));
+
+  const favorableWindows = [
+    isValidNumber(day.bestWindow?.startMinute) && isValidNumber(day.bestWindow?.endMinute)
+      ? {
+          type: "best",
+          start: day.bestWindow.startMinute,
+          end: day.bestWindow.endMinute,
+          label: day.bestWindow.label,
+        }
+      : null,
+    ...windows.major.map((window) => ({
+      type: "major",
+      start: window.start,
+      end: window.end,
+      label: window.label,
+    })),
+  ].filter(Boolean);
+
+  return {
+    day,
+    minute,
+    points,
+    markers,
+    windows: favorableWindows,
+    sample: timelineSample(day, minute),
+    selectedPoint: nearestTimelineRow(points, minute),
+    hasTide: tideValues.length >= 2,
+    hasActivity: activityValues.length >= 2,
   };
 }
 
