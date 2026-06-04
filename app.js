@@ -13173,11 +13173,12 @@ function renderTodayView(day) {
 
 function setTodaySpotMenuOpen(open) {
   state.todaySpotMenuOpen = Boolean(open);
+  els.todayLocationButton?.parentElement?.classList.toggle("is-open", state.todaySpotMenuOpen);
   renderTodaySpotMenu();
 }
 
 function todaySpotOptions() {
-  const favorites = state.favorites.map((favorite) => ({
+  const favorites = state.favorites.slice(0, 2).map((favorite) => ({
     id: favorite.id,
     name: favorite.name,
     detail: formatCoordinates(favorite.lat, favorite.lon),
@@ -13189,7 +13190,7 @@ function todaySpotOptions() {
   return spots
     .map((spot, index) => ({ spot, index }))
     .filter(({ spot }) => !spot.custom)
-    .slice(0, 8)
+    .slice(0, 2)
     .map(({ spot, index }) => ({
       id: spotFavoriteId(spot),
       name: spot.name,
@@ -13203,30 +13204,62 @@ function renderTodaySpotMenu() {
   const active = getActiveSpot();
   const options = todaySpotOptions();
   els.todayLocationButton.setAttribute("aria-expanded", String(state.todaySpotMenuOpen));
+  els.todayLocationButton.parentElement?.classList.toggle("is-open", state.todaySpotMenuOpen);
   els.todaySpotMenu.hidden = !state.todaySpotMenuOpen;
   els.todaySpotMenu.innerHTML = "";
 
+  const current = document.createElement("button");
+  current.type = "button";
+  current.className = "today-menu-row today-menu-current";
+  current.innerHTML = `
+    <i class="ti ti-sailboat" aria-hidden="true"></i>
+    <span>
+      <strong>${escapeHtml(active.name)}</strong>
+      <small>${escapeHtml(active.group || formatCoordinates(active.lat, active.lon))}</small>
+    </span>
+    <i class="ti ti-check" aria-hidden="true"></i>
+  `;
+  current.addEventListener("click", () => setTodaySpotMenuOpen(false));
+
+  const manage = document.createElement("button");
+  manage.type = "button";
+  manage.className = "today-menu-row";
+  manage.innerHTML = `
+    <i class="ti ti-list-details" aria-hidden="true"></i>
+    <span><strong>Gérer</strong><small>Favoris et stations enregistrées</small></span>
+    <i class="ti ti-chevron-right" aria-hidden="true"></i>
+  `;
+  manage.addEventListener("click", openTodaySpotManager);
+
+  const list = document.createElement("div");
+  list.className = "today-menu-list";
+
+  const heading = document.createElement("div");
+  heading.className = "today-menu-heading";
+  heading.innerHTML = `<span>${state.favorites.length ? "Favoris" : "Stations proches"}</span>`;
+  list.append(heading);
+
   if (!options.length) {
     const empty = document.createElement("div");
-    empty.className = "today-spot-option";
-    empty.textContent = "Aucun favori";
-    els.todaySpotMenu.append(empty);
-    return;
+    empty.className = "today-menu-empty";
+    empty.textContent = "Aucune station enregistrée";
+    list.append(empty);
   }
 
   options.forEach((option) => {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "today-spot-option";
+    button.className = "today-menu-row today-spot-option";
     button.setAttribute("role", "option");
     button.setAttribute("aria-selected", String(option.id === active.id));
     button.classList.toggle("is-active", option.id === active.id);
     button.innerHTML = `
+      <i class="ti ti-sailboat" aria-hidden="true"></i>
       <span>
         <strong>${escapeHtml(option.name)}</strong>
-        <span>${escapeHtml(option.detail)}</span>
+        <small>${escapeHtml(option.detail)}</small>
       </span>
-      <i class="ti ti-check" aria-hidden="true"></i>
+      <i class="ti ${option.id === active.id ? "ti-check" : "ti-chevron-right"}" aria-hidden="true"></i>
     `;
     button.addEventListener("click", () => {
       setTodaySpotMenuOpen(false);
@@ -13236,8 +13269,56 @@ function renderTodaySpotMenu() {
       }
       if (Number.isInteger(option.index)) selectSpot(option.index, { load: true });
     });
-    els.todaySpotMenu.append(button);
+    list.append(button);
   });
+
+  const actions = document.createElement("div");
+  actions.className = "today-menu-actions";
+  actions.innerHTML = `
+    <button class="today-menu-row" type="button" data-today-spot-action="add">
+      <i class="ti ti-plus" aria-hidden="true"></i>
+      <span><strong>Ajouter une station</strong><small>Recherche, GPS ou carte</small></span>
+      <i class="ti ti-chevron-right" aria-hidden="true"></i>
+    </button>
+    <button class="today-menu-row" type="button" data-today-spot-action="map">
+      <i class="ti ti-map" aria-hidden="true"></i>
+      <span><strong>Carte des stations</strong><small>Explorer autour du spot</small></span>
+      <i class="ti ti-chevron-right" aria-hidden="true"></i>
+    </button>
+    <button class="today-menu-row" type="button" data-today-spot-action="settings">
+      <i class="ti ti-adjustments-horizontal" aria-hidden="true"></i>
+      <span><strong>Personnaliser</strong><small>Profil, profondeur et préférences</small></span>
+      <i class="ti ti-chevron-right" aria-hidden="true"></i>
+    </button>
+  `;
+  actions.querySelector('[data-today-spot-action="add"]')?.addEventListener("click", openTodayAddSpot);
+  actions.querySelector('[data-today-spot-action="map"]')?.addEventListener("click", openTodayStationMap);
+  actions.querySelector('[data-today-spot-action="settings"]')?.addEventListener("click", openTodaySettings);
+
+  els.todaySpotMenu.append(current, manage, list, actions);
+}
+
+function openTodaySpotManager() {
+  setTodaySpotMenuOpen(false);
+  setMobileView("map");
+  setFavoritesOverlayOpen(true);
+}
+
+function openTodayAddSpot() {
+  setTodaySpotMenuOpen(false);
+  setMobileView("map");
+  setSpotPanelOpen(true);
+  window.requestAnimationFrame(() => els.spotSearchInput?.focus());
+}
+
+function openTodayStationMap() {
+  setTodaySpotMenuOpen(false);
+  setMobileView("map");
+}
+
+function openTodaySettings() {
+  setTodaySpotMenuOpen(false);
+  setMobileView("more");
 }
 
 function renderTodayStrength(sample, day) {

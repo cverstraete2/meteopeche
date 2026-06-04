@@ -910,7 +910,16 @@ body.is-spot-name-open .mobile-tabbar {
 .today-location-menu {
   position: relative;
   min-width: 0;
-  z-index: 8;
+  z-index: 80;
+}
+
+.today-location-menu.is-open::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: rgba(12, 10, 24, 0.22);
+  backdrop-filter: blur(2px);
 }
 
 .today-location-pill strong {
@@ -921,69 +930,156 @@ body.is-spot-name-open .mobile-tabbar {
 
 .today-spot-menu {
   position: absolute;
-  top: calc(100% + 10px);
-  left: 0;
-  right: 0;
+  top: calc(100% + 12px);
+  left: 50%;
+  width: min(560px, calc(100vw - 32px));
   display: grid;
-  gap: 6px;
-  max-height: min(340px, 52dvh);
+  gap: 10px;
+  max-height: min(620px, calc(100dvh - 150px));
   overflow: auto;
-  padding: 8px;
-  border-radius: 22px;
-  border: 1px solid rgba(157, 203, 255, 0.28);
-  background: rgba(13, 31, 58, 0.94);
-  box-shadow: 0 24px 60px rgba(4, 18, 42, 0.34);
-  backdrop-filter: blur(18px);
+  padding: 18px;
+  border-radius: 28px;
+  border: 1px solid rgba(171, 126, 230, 0.42);
+  background: rgba(36, 25, 54, 0.94);
+  box-shadow: 0 30px 80px rgba(4, 8, 28, 0.42);
+  backdrop-filter: blur(24px);
+  transform: translateX(-50%);
 }
 
 .today-spot-menu[hidden] {
   display: none;
 }
 
-.today-spot-option {
+.today-menu-row {
   min-width: 0;
-  min-height: 54px;
+  min-height: 58px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 22px;
+  grid-template-columns: 42px minmax(0, 1fr) 26px;
   align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
+  gap: 12px;
+  padding: 10px 12px;
   border: 0;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.05);
+  border-radius: 18px;
+  background: transparent;
   color: #f8fbff;
   text-align: left;
 }
 
-.today-spot-option strong,
-.today-spot-option span {
+.today-menu-row > i:first-child {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(65, 151, 221, 0.62);
+  color: #eaf8ff;
+  font-size: 1.45rem;
+}
+
+.today-menu-row > i:last-child {
+  color: rgba(240, 245, 255, 0.64);
+  font-size: 1.35rem;
+}
+
+.today-menu-row span,
+.today-menu-row strong,
+.today-menu-row small {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.today-spot-option strong {
-  font-size: 0.95rem;
+.today-menu-row span {
+  display: grid;
+  gap: 2px;
 }
 
-.today-spot-option span {
-  color: rgba(224, 239, 255, 0.62);
-  font-size: 0.78rem;
+.today-menu-row strong {
+  color: #fff;
+  font-size: 1.08rem;
+  line-height: 1.15;
+}
+
+.today-menu-row small {
+  color: rgba(224, 218, 235, 0.62);
+  font-size: 0.82rem;
   font-weight: 800;
 }
 
-.today-spot-option i {
+.today-menu-current,
+.today-menu-list,
+.today-menu-actions {
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.today-menu-current {
+  background: rgba(76, 57, 105, 0.72);
+}
+
+.today-menu-current > i:last-child,
+.today-spot-option.is-active > i:last-child {
   color: #8ceaff;
-  opacity: 0;
+}
+
+.today-menu-list,
+.today-menu-actions {
+  display: grid;
+  overflow: hidden;
+}
+
+.today-menu-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px 6px;
+  color: rgba(230, 224, 241, 0.58);
+  font-size: 0.92rem;
+  font-weight: 900;
+}
+
+.today-menu-empty {
+  padding: 14px 18px 18px;
+  color: rgba(230, 224, 241, 0.58);
+  font-weight: 800;
 }
 
 .today-spot-option.is-active {
-  background: rgba(68, 148, 255, 0.30);
+  background: rgba(82, 154, 232, 0.18);
 }
 
-.today-spot-option.is-active i {
-  opacity: 1;
+.today-menu-list .today-menu-row,
+.today-menu-actions .today-menu-row {
+  border-radius: 0;
+}
+
+.today-menu-list .today-menu-row + .today-menu-row,
+.today-menu-actions .today-menu-row + .today-menu-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.today-menu-actions {
+  background: rgba(17, 14, 28, 0.20);
+}
+
+@media (max-width: 520px) {
+  .today-spot-menu {
+    width: min(430px, calc(100vw - 28px));
+    padding: 14px;
+    border-radius: 26px;
+  }
+
+  .today-menu-row {
+    grid-template-columns: 38px minmax(0, 1fr) 24px;
+    min-height: 56px;
+    padding-inline: 10px;
+  }
+
+  .today-menu-row > i:first-child {
+    width: 38px;
+    height: 38px;
+  }
 }
 
 .today-condition-strip {
