@@ -2535,6 +2535,7 @@ body.is-map-fullscreen-active .mobile-tabbar {
 }
 
 .planning-row {
+  position: relative;
   width: 100%;
   min-height: 96px;
   display: grid;
@@ -2549,6 +2550,43 @@ body.is-map-fullscreen-active .mobile-tabbar {
   text-align: left;
   cursor: pointer;
   transition: border-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+
+.planning-row.is-pro-locked {
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 38%, var(--bg-soft));
+}
+
+.planning-row.is-pro-locked .planning-score,
+.planning-row.is-pro-locked .planning-main,
+.planning-row.is-pro-locked .planning-facts,
+.planning-row.is-pro-locked .planning-risk,
+.planning-row.is-pro-locked .planning-sources {
+  filter: blur(3px);
+  opacity: 0.48;
+}
+
+.pro-lock-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid color-mix(in srgb, var(--accent) 36%, transparent);
+  border-radius: var(--r-pill);
+  padding: 4px 9px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--bg-card) 78%, var(--accent-soft));
+  font-family: var(--f-display);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: var(--shadow-sm);
 }
 
 .planning-row:hover,
@@ -3268,6 +3306,10 @@ body.is-map-fullscreen-active .mobile-tabbar {
   padding-bottom: var(--sp-4);
 }
 
+.journal-pro-tools {
+  padding: 0 var(--sp-4) var(--sp-3);
+}
+
 .catch-form {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3385,6 +3427,139 @@ body.is-map-fullscreen-active .mobile-tabbar {
   padding: 4px 7px;
 }
 
+.is-pro-locked {
+  cursor: pointer;
+}
+
+.pro-feature-card.is-pro-locked::after,
+.journal-pro-card.is-pro-locked::after,
+.smart-alert-preferences.is-pro-locked::after {
+  content: "Pro";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--r-pill);
+  padding: 4px 9px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--bg-card) 78%, var(--accent-soft));
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  font-family: var(--f-display);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pro-feature-card.is-pro-locked > *,
+.journal-pro-card.is-pro-locked > * {
+  filter: blur(1.8px);
+  opacity: 0.62;
+}
+
+.pro-feature-card.is-pro-locked::before,
+.journal-pro-card.is-pro-locked::before {
+  content: "\eb55";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  font-family: "tabler-icons";
+  font-size: 1.45rem;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.smart-alert-preferences {
+  position: relative;
+}
+
+.smart-alert-preferences.is-pro-locked .smart-alert-grid,
+.smart-alert-preferences.is-pro-locked .smart-alert-preview {
+  filter: blur(1.6px);
+}
+
+.pro-gate-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(15, 23, 42, 0.46);
+  backdrop-filter: blur(8px);
+}
+
+.pro-gate {
+  position: fixed;
+  left: max(var(--sp-4), env(safe-area-inset-left));
+  right: max(var(--sp-4), env(safe-area-inset-right));
+  bottom: max(var(--sp-4), env(safe-area-inset-bottom));
+  z-index: 90;
+  display: grid;
+  gap: var(--sp-3);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  border-radius: var(--r-lg);
+  padding: var(--sp-5);
+  color: var(--text-1);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-lg);
+}
+
+.pro-gate[hidden],
+.pro-gate-backdrop[hidden] {
+  display: none;
+}
+
+.pro-gate-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.pro-gate-badge {
+  width: max-content;
+  border-radius: var(--r-pill);
+  padding: 5px 10px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-family: var(--f-display);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.pro-gate h2 {
+  max-width: calc(100% - 44px);
+  font-size: 1.45rem;
+  line-height: 1.08;
+}
+
+.pro-gate p {
+  color: var(--text-2);
+  line-height: 1.45;
+}
+
+.pro-gate-benefits {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.pro-gate-benefits span {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 34px;
+  color: var(--text-2);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.pro-gate-benefits i {
+  color: var(--accent);
+}
+
 /* ── 21. PREFERENCES PANEL ────────────────────────────────── */
 .preferences-panel {
   padding-bottom: var(--sp-6);
@@ -3467,6 +3642,47 @@ body.is-map-fullscreen-active .mobile-tabbar {
 
 .more-subscription-card {
   order: 20;
+}
+
+.pro-feature-preview {
+  order: 24;
+}
+
+.pro-feature-grid,
+.journal-pro-tools {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+
+.pro-feature-card,
+.journal-pro-card {
+  position: relative;
+  min-height: 96px;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: var(--sp-3);
+  color: var(--text-1);
+  background: var(--bg-card);
+  text-align: left;
+  box-shadow: var(--shadow-sm);
+}
+
+.pro-feature-card strong,
+.journal-pro-card strong {
+  font-family: var(--f-display);
+  font-size: 0.94rem;
+  line-height: 1.1;
+}
+
+.pro-feature-card small,
+.journal-pro-card span {
+  color: var(--text-2);
+  font-size: 0.78rem;
+  line-height: 1.35;
 }
 
 .native-preferences {

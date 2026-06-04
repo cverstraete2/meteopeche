@@ -334,6 +334,28 @@ try {
           </div>
           <small class="smart-alert-status" id="smartAlertStatus">Aucune alerte programmée.</small>
         </div>
+
+        <div class="preference-control pro-feature-preview" aria-label="Fonctions MeteoCatch Pro">
+          <span>Fonctions Pro</span>
+          <div class="pro-feature-grid">
+            <button class="pro-feature-card" type="button" data-pro-feature="glance.widgets">
+              <strong>Widgets</strong>
+              <small>Marée, météo et fenêtre pêche sur l'écran d'accueil.</small>
+            </button>
+            <button class="pro-feature-card" type="button" data-pro-feature="glance.liveActivity">
+              <strong>Activités en direct</strong>
+              <small>Suivi marée et créneau depuis l'écran verrouillé.</small>
+            </button>
+            <button class="pro-feature-card" type="button" data-pro-feature="glance.watch">
+              <strong>Apple Watch</strong>
+              <small>Complications et suivi rapide au poignet.</small>
+            </button>
+            <button class="pro-feature-card" type="button" data-pro-feature="planning.monthly">
+              <strong>Cycles mensuels</strong>
+              <small>Lecture longue des marées, lune et fenêtres fortes.</small>
+            </button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -877,6 +899,16 @@ try {
           <h2>Journal de prises</h2>
         </div>
       </div>
+      <div class="journal-pro-tools">
+        <button class="journal-pro-card" type="button" data-pro-feature="journal.analytics">
+          <strong>Analytics Pro</strong>
+          <span>Espèces, spots, météo gagnante et tendances par cycle.</span>
+        </button>
+        <button class="journal-pro-card" type="button" data-pro-feature="trip.export">
+          <strong>Export sorties</strong>
+          <span>Partager un résumé propre avec photos, spot et conditions.</span>
+        </button>
+      </div>
       <form class="catch-form" id="catchForm">
         <label class="field" for="catchSpecies">
           <span>Espèce</span>
@@ -952,6 +984,21 @@ try {
   </nav>
 
 </div>
+
+<div class="pro-gate-backdrop" id="proGateBackdrop" hidden></div>
+<section class="pro-gate" id="proGate" role="dialog" aria-modal="true" aria-labelledby="proGateTitle" aria-hidden="true" hidden>
+  <button class="sheet-close pro-gate-close" id="proGateClose" type="button" aria-label="Fermer l'offre Pro">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 6l12 12"/><path d="M18 6 6 18"/>
+    </svg>
+  </button>
+  <span class="pro-gate-badge">MeteoCatch Pro</span>
+  <h2 id="proGateTitle">Débloquer les fonctions Pro</h2>
+  <p id="proGateCopy">Accède aux prévisions longues, alertes avancées et surfaces natives.</p>
+  <div class="pro-gate-benefits" id="proGateBenefits"></div>
+  <button class="primary-button" id="proGateCta" type="button">Passer à Pro</button>
+  <button class="ghost-button" id="proGateLater" type="button">Continuer en gratuit</button>
+</section>
 
 <template id="metricTemplate">
   <article class="metric-card">

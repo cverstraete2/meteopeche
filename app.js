@@ -80,6 +80,53 @@ const FEATURE_ENTITLEMENTS = {
   "journal.analytics": "pro",
   "trip.export": "pro",
 };
+const PRO_FEATURE_DETAILS = {
+  "planning.10day": {
+    title: "Planification 10 jours",
+    copy: "Compare les meilleurs créneaux de la semaine avec météo, marée, lune et risque de sortie.",
+    benefits: ["Vue 10 jours complète", "Scores et go/no-go par jour", "Lecture marée, lune et météo au même endroit"],
+  },
+  "planning.monthly": {
+    title: "Cycles mensuels",
+    copy: "Repère les grandes fenêtres autour des marées, phases lunaires et tendances météo.",
+    benefits: ["Marées longues", "Cycles lune et soleil", "Préparation des sorties à l'avance"],
+  },
+  "alerts.windDrop": {
+    title: "Alerte baisse du vent",
+    copy: "Reçois une alerte quand une fenêtre plus calme apparaît sur ton spot.",
+    benefits: ["Seuils météo avancés", "Rappels locaux", "Moins de vérifications manuelles"],
+  },
+  "alerts.speciesActivity": {
+    title: "Alerte activité espèce",
+    copy: "Déclenche une alerte quand l'espèce ciblée entre dans une fenêtre forte.",
+    benefits: ["Score par espèce", "Solunar + météo", "Alertes orientées action"],
+  },
+  "glance.widgets": {
+    title: "Widgets écran d'accueil",
+    copy: "Garde marée, météo et prochaine fenêtre sous les yeux sans ouvrir l'app.",
+    benefits: ["Widgets configurables", "Vue rapide du spot", "Météo marine glanceable"],
+  },
+  "glance.liveActivity": {
+    title: "Activités en direct",
+    copy: "Suis la progression marée et solunar depuis l'écran verrouillé et Dynamic Island.",
+    benefits: ["Suivi temps réel", "Écran verrouillé", "Progression du créneau"],
+  },
+  "glance.watch": {
+    title: "Apple Watch",
+    copy: "Consulte marée, météo et complications directement au poignet.",
+    benefits: ["Complications Watch", "App native Watch", "Sortie plus légère"],
+  },
+  "journal.analytics": {
+    title: "Analytics journal",
+    copy: "Transforme tes prises en tendances utiles: spots, espèces, météo et cycles gagnants.",
+    benefits: ["Stats par espèce", "Conditions qui reviennent", "Historique exploitable"],
+  },
+  "trip.export": {
+    title: "Export de sortie",
+    copy: "Génère un résumé propre à partager ou archiver avec spot, photos et conditions.",
+    benefits: ["Export partageable", "Photos et météo", "Compte rendu de sortie"],
+  },
+};
 const SMART_ALERT_DEFAULTS = {
   quietHours: { start: "21:00", end: "07:00" },
   maxPerDay: 2,
@@ -2211,6 +2258,15 @@ const els = {
   languageSelect: document.querySelector("#languageSelect"),
   proStatusLabel: document.querySelector("#proStatusLabel"),
   proToggle: document.querySelector("#proToggle"),
+  proGate: document.querySelector("#proGate"),
+  proGateBackdrop: document.querySelector("#proGateBackdrop"),
+  proGateTitle: document.querySelector("#proGateTitle"),
+  proGateCopy: document.querySelector("#proGateCopy"),
+  proGateBenefits: document.querySelector("#proGateBenefits"),
+  proGateCta: document.querySelector("#proGateCta"),
+  proGateClose: document.querySelector("#proGateClose"),
+  proGateLater: document.querySelector("#proGateLater"),
+  proFeatureCards: [...document.querySelectorAll("[data-pro-feature]")],
   themeButtons: [...document.querySelectorAll("[data-theme-value]")],
   profileButtons: [...document.querySelectorAll("[data-profile-control] [data-profile-value]")],
   preferenceSpecies: document.querySelector("#preferenceSpecies"),
@@ -7436,6 +7492,39 @@ function isProUser() {
 
 function applySubscriptionState() {
   document.documentElement.dataset.plan = isProUser() ? "pro" : "free";
+  updateProLockedSurfaces();
+}
+
+function updateProLockedSurfaces() {
+  document.querySelectorAll("[data-pro-feature]").forEach((element) => {
+    const feature = element.dataset.proFeature;
+    const locked = Boolean(feature && !canUseFeature(feature));
+    element.classList.toggle("is-pro-locked", locked);
+    element.dataset.locked = String(locked);
+  });
+}
+
+function showProGate(feature = "planning.10day") {
+  const details = PRO_FEATURE_DETAILS[feature] ?? PRO_FEATURE_DETAILS["planning.10day"];
+  if (els.proGateTitle) els.proGateTitle.textContent = details.title;
+  if (els.proGateCopy) els.proGateCopy.textContent = details.copy;
+  if (els.proGateBenefits) {
+    els.proGateBenefits.innerHTML = details.benefits
+      .map((benefit) => `<span><i class="ti ti-lock-open" aria-hidden="true"></i>${escapeHtml(benefit)}</span>`)
+      .join("");
+  }
+  if (els.proGateCta) els.proGateCta.textContent = "Passer à Pro";
+  els.proGateBackdrop?.removeAttribute("hidden");
+  els.proGate?.removeAttribute("hidden");
+  els.proGate?.setAttribute("aria-hidden", "false");
+  document.documentElement.classList.add("has-pro-gate");
+}
+
+function hideProGate() {
+  els.proGateBackdrop?.setAttribute("hidden", "");
+  els.proGate?.setAttribute("hidden", "");
+  els.proGate?.setAttribute("aria-hidden", "true");
+  document.documentElement.classList.remove("has-pro-gate");
 }
 
 function initNativeAppShell() {
@@ -11171,7 +11260,17 @@ function bindEvents() {
   });
   els.nativeOnboardingButton?.addEventListener("click", () => showOnboarding({ force: true }));
   els.smartAlertType?.addEventListener("change", renderSmartAlertSetup);
-  els.smartAlertEnabled?.addEventListener("change", () => updateSelectedSmartAlert({ enabled: els.smartAlertEnabled.checked }));
+  els.smartAlertEnabled?.addEventListener("change", () => {
+    const type = SMART_ALERT_TYPES.includes(els.smartAlertType?.value) ? els.smartAlertType.value : SMART_ALERT_TYPES[0];
+    const feature = smartAlertFeature(type);
+    if (!canUseFeature(feature)) {
+      els.smartAlertEnabled.checked = false;
+      showProGate(feature);
+      renderSmartAlertSetup();
+      return;
+    }
+    updateSelectedSmartAlert({ enabled: els.smartAlertEnabled.checked });
+  });
   els.smartAlertQuietStart?.addEventListener("change", updateSmartAlertQuietHours);
   els.smartAlertQuietEnd?.addEventListener("change", updateSmartAlertQuietHours);
   els.smartAlertScheduleButton?.addEventListener("click", handleSmartAlertSchedule);
@@ -11181,6 +11280,19 @@ function bindEvents() {
   });
   els.proToggle?.addEventListener("change", () => {
     setProStatus(els.proToggle.checked);
+  });
+  els.proGateClose?.addEventListener("click", hideProGate);
+  els.proGateLater?.addEventListener("click", hideProGate);
+  els.proGateBackdrop?.addEventListener("click", hideProGate);
+  els.proGateCta?.addEventListener("click", () => {
+    setProStatus(true);
+    hideProGate();
+  });
+  els.proFeatureCards.forEach((card) => {
+    card.addEventListener("click", () => {
+      const feature = card.dataset.proFeature;
+      if (feature && !canUseFeature(feature)) showProGate(feature);
+    });
   });
 
   els.spotPanelButton.addEventListener("click", () => setSpotPanelOpen(!state.spotPanelOpen));
@@ -12923,9 +13035,16 @@ function renderSmartAlertSetup() {
   if (els.smartAlertEnabled) els.smartAlertEnabled.checked = Boolean(alertSettings?.enabled);
   if (els.smartAlertQuietStart) els.smartAlertQuietStart.value = state.smartAlerts.quietHours.start;
   if (els.smartAlertQuietEnd) els.smartAlertQuietEnd.value = state.smartAlerts.quietHours.end;
+  const feature = smartAlertFeature(type);
+  const locked = config.proRequired && !canUseFeature(feature);
+  const panel = els.smartAlertType.closest(".smart-alert-preferences");
+  panel?.classList.toggle("is-pro-locked", locked);
+  panel?.setAttribute("data-pro-feature", locked ? feature : "");
+  if (els.smartAlertEnabled) els.smartAlertEnabled.disabled = locked;
+  if (els.smartAlertScheduleButton) els.smartAlertScheduleButton.classList.toggle("is-pro-locked", locked);
   if (els.smartAlertPreview) {
     const mode = config.proRequired ? "Pro" : "Inclus";
-    const lock = config.proRequired && !canUseFeature(smartAlertFeature(type)) ? ` ${proFeatureReason(smartAlertFeature(type))}` : "";
+    const lock = locked ? ` ${proFeatureReason(feature)}` : "";
     const lead = config.deliveryTime ? `à ${config.deliveryTime}` : `${alertSettings.leadMinutes} min avant`;
     els.smartAlertPreview.textContent = `${config.label} · ${mode} · ${lead}. ${config.description} ${config.uncertaintyNote}${lock}`;
   }
@@ -12978,6 +13097,13 @@ function updateSmartAlertQuietHours() {
 }
 
 async function handleSmartAlertSchedule() {
+  const type = SMART_ALERT_TYPES.includes(els.smartAlertType?.value) ? els.smartAlertType.value : SMART_ALERT_TYPES[0];
+  const feature = smartAlertFeature(type);
+  if (!canUseFeature(feature)) {
+    showProGate(feature);
+    return;
+  }
+
   if (!state.notificationsEnabled || state.native.notificationPermission !== "granted") {
     await requestNotificationPermission();
   }
@@ -13081,6 +13207,7 @@ function setProStatus(isPro) {
 
   state.isPro = nextValue;
   applySubscriptionState();
+  renderAll();
   renderPreferenceControls(getSelectedDay());
   saveSettings();
 }
@@ -13545,11 +13672,14 @@ function renderPlanningView() {
   if (!els.planningPanel || !els.planningList) return;
 
   const summaries = dailyPlanningSummaries(state.days.slice(0, 10));
+  const lockedPlanning = !canUseFeature("planning.10day");
   if (els.planningContext) {
     els.planningContext.textContent = summaries.length
       ? `${getFishLabel(normalizeActivityFish(state.activityFish))} · ${getActiveSpot().name}`
       : "Prévisions indisponibles";
   }
+  els.planningPanel.classList.toggle("is-pro-preview", lockedPlanning);
+  els.planningPanel.dataset.proFeature = "planning.10day";
 
   if (!summaries.length) {
     els.planningList.innerHTML = `
@@ -13560,28 +13690,34 @@ function renderPlanningView() {
     return;
   }
 
-  els.planningList.innerHTML = summaries.map((summary) => planningRowMarkup(summary)).join("");
+  els.planningList.innerHTML = summaries.map((summary, index) => planningRowMarkup(summary, { locked: lockedPlanning && index >= 2 })).join("");
   els.planningList.querySelectorAll("[data-planning-date]").forEach((button) => {
     button.addEventListener("click", () => {
+      if (button.dataset.locked === "true") {
+        showProGate("planning.10day");
+        return;
+      }
       state.selectedDate = button.dataset.planningDate;
       renderAll();
     });
   });
 }
 
-function planningRowMarkup(summary) {
+function planningRowMarkup(summary, options = {}) {
   const active = summary.date === state.selectedDate;
+  const locked = Boolean(options.locked);
   const weather = summary.weather.icon ?? { icon: "ti-sun", label: "Météo" };
   const risk = summary.weatherRisk ?? {};
   const sourceBadges = planningSourceBadges(summary);
 
   return `
-    <button class="planning-row ${escapeHtml(summary.tone)} ${active ? "is-active" : ""}" type="button"
-      data-planning-date="${escapeHtml(summary.date)}" aria-pressed="${active}">
+    <button class="planning-row ${escapeHtml(summary.tone)} ${active ? "is-active" : ""} ${locked ? "is-pro-locked" : ""}" type="button"
+      data-planning-date="${escapeHtml(summary.date)}" data-locked="${locked}" aria-pressed="${active}">
       <span class="planning-date">
         <strong>${escapeHtml(formatWeekday3(summary.date))}</strong>
         <em>${escapeHtml(formatShortDateNoWeekday(summary.date))}</em>
       </span>
+      ${locked ? `<span class="pro-lock-badge"><i class="ti ti-lock" aria-hidden="true"></i>Pro</span>` : ""}
       <span class="planning-score ${escapeHtml(summary.tone)}">${escapeHtml(String(summary.score))}</span>
       <span class="planning-main">
         <strong>${escapeHtml(summary.bestWindow.label)}</strong>
@@ -17179,6 +17315,7 @@ function normalizeEntitlementState(entitlements) {
 }
 
 function hasEntitlement(entitlement = "pro") {
+  if (entitlement === "pro" && isProUser()) return true;
   const entitlements = normalizeEntitlementState(state.entitlements);
   if (entitlement === "free") return true;
   if (entitlements.tier !== entitlement) return false;
