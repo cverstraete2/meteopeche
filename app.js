@@ -13325,6 +13325,7 @@ function renderTodayStrength(sample, day) {
   if (!els.todayStrengthCard) return;
   const score = todayStrengthScore(sample, day);
   const tone = todayStrengthTone(score);
+  if (els.todayPanel) els.todayPanel.dataset.todayStrength = tone.key;
   els.todayStrengthCard.classList.toggle("is-low", tone.key === "low");
   els.todayStrengthCard.classList.toggle("is-medium", tone.key === "medium");
   els.todayStrengthCard.classList.toggle("is-high", tone.key === "high");
@@ -13412,17 +13413,20 @@ function drawTodayCompass(day, sample = {}) {
   const cx = width / 2;
   const cy = height / 2;
   const radius = Math.min(width, height) * 0.38;
+  const tone = todayStrengthTone(todayStrengthScore(sample, day)).key;
+  const palette = todayCompassPalette(tone);
 
   ctx.clearRect(0, 0, width, height);
   const bg = ctx.createRadialGradient(cx, cy, radius * 0.1, cx, cy, radius * 1.15);
-  bg.addColorStop(0, "rgba(31, 52, 88, 0.94)");
-  bg.addColorStop(1, "rgba(17, 37, 69, 0.62)");
+  bg.addColorStop(0, palette.center);
+  bg.addColorStop(0.62, palette.mid);
+  bg.addColorStop(1, palette.edge);
   ctx.fillStyle = bg;
   ctx.beginPath();
   ctx.arc(cx, cy, radius * 1.08, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.strokeStyle = "rgba(205, 231, 255, 0.20)";
+  ctx.strokeStyle = palette.ring;
   ctx.lineWidth = 2;
   [0.72, 0.92, 1.08].forEach((scale) => {
     ctx.beginPath();
@@ -13433,7 +13437,7 @@ function drawTodayCompass(day, sample = {}) {
   for (let deg = 0; deg < 360; deg += 10) {
     const outer = polar(deg, radius);
     const inner = polar(deg, radius * (deg % 30 === 0 ? 0.90 : 0.95));
-    ctx.strokeStyle = deg % 90 === 0 ? "rgba(214, 238, 255, 0.32)" : "rgba(214, 238, 255, 0.14)";
+    ctx.strokeStyle = deg % 90 === 0 ? palette.tickStrong : palette.tick;
     ctx.lineWidth = deg % 90 === 0 ? 3 : 2;
     ctx.beginPath();
     ctx.moveTo(cx + outer.x, cy + outer.y);
@@ -13468,6 +13472,39 @@ function drawTodayCompass(day, sample = {}) {
   ctx.fillStyle = "rgba(222, 237, 255, 0.72)";
   ctx.font = "900 22px Inter, system-ui, sans-serif";
   ctx.fillText(isSeaMode() ? "kt" : "NO", cx + 76, cy + 12);
+}
+
+function todayCompassPalette(tone) {
+  if (tone === "high") {
+    return {
+      center: "rgba(91, 22, 32, 0.96)",
+      mid: "rgba(143, 45, 39, 0.82)",
+      edge: "rgba(73, 21, 35, 0.64)",
+      ring: "rgba(255, 183, 164, 0.34)",
+      tick: "rgba(255, 218, 210, 0.18)",
+      tickStrong: "rgba(255, 233, 226, 0.42)",
+    };
+  }
+
+  if (tone === "medium") {
+    return {
+      center: "rgba(84, 67, 21, 0.96)",
+      mid: "rgba(137, 99, 28, 0.82)",
+      edge: "rgba(58, 45, 28, 0.64)",
+      ring: "rgba(255, 223, 138, 0.34)",
+      tick: "rgba(255, 239, 198, 0.18)",
+      tickStrong: "rgba(255, 246, 221, 0.42)",
+    };
+  }
+
+  return {
+    center: "rgba(18, 73, 58, 0.96)",
+    mid: "rgba(22, 102, 82, 0.82)",
+    edge: "rgba(14, 50, 57, 0.64)",
+    ring: "rgba(139, 244, 196, 0.34)",
+    tick: "rgba(211, 255, 234, 0.18)",
+    tickStrong: "rgba(231, 255, 244, 0.42)",
+  };
 }
 
 function drawTodayCompassArrow(ctx, cx, cy, length, direction, color, dashed) {

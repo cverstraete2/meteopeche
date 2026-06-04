@@ -846,8 +846,9 @@ body.is-spot-name-open .mobile-tabbar {
 
 /* ── TODAY IMMERSIVE VIEW ─────────────────────────────────── */
 .today-panel {
-  color: #f6fbff;
+  color: var(--text-1);
   overflow: hidden;
+  background: var(--bg);
 }
 
 .today-hero {
@@ -855,8 +856,9 @@ body.is-spot-name-open .mobile-tabbar {
   padding: calc(var(--safe-top) + 26px) clamp(16px, 4vw, 38px) calc(var(--safe-bottom) + var(--tabbar-h) + 34px);
   border-radius: 0;
   background:
-    radial-gradient(circle at 50% 34%, rgba(108, 162, 231, 0.20), transparent 34%),
-    linear-gradient(180deg, #314d7a 0%, #35547e 42%, #2d628f 100%);
+    radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--accent-soft) 70%, transparent), transparent 35%),
+    radial-gradient(circle at 12% 8%, rgba(56, 189, 248, 0.10), transparent 28%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg) 92%, #ffffff 8%) 0%, var(--bg) 100%);
   overflow: hidden;
   position: relative;
   display: grid;
@@ -879,10 +881,11 @@ body.is-spot-name-open .mobile-tabbar {
 .today-location-pill {
   min-height: 56px;
   border-radius: 999px;
-  background: rgba(14, 31, 58, 0.58);
-  color: #f8fbff;
-  border: 1px solid rgba(127, 184, 244, 0.34);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 12px 26px rgba(10, 30, 60, 0.18);
+  background: color-mix(in srgb, var(--bg-card) 82%, transparent);
+  color: var(--text-1);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(18px);
 }
 
 .today-icon-button {
@@ -1086,8 +1089,9 @@ body.is-spot-name-open .mobile-tabbar {
   min-height: 58px;
   padding: 0 10px;
   border-radius: 999px;
-  border: 1px solid rgba(157, 203, 255, 0.42);
-  background: rgba(73, 107, 159, 0.60);
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-card) 82%, transparent);
+  box-shadow: var(--shadow-sm);
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: center;
@@ -1102,18 +1106,18 @@ body.is-spot-name-open .mobile-tabbar {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  color: rgba(241, 248, 255, 0.78);
+  color: var(--text-2);
   overflow: hidden;
 }
 
 .today-condition-strip i {
-  color: #8ceaff;
+  color: var(--accent);
   font-size: clamp(0.9rem, 3.2vw, 1.15rem);
   flex-shrink: 0;
 }
 
 .today-condition-strip strong {
-  color: #fff;
+  color: var(--text-1);
   font-size: clamp(0.9rem, 3.6vw, 1.2rem);
   white-space: nowrap;
   overflow: hidden;
@@ -1125,8 +1129,9 @@ body.is-spot-name-open .mobile-tabbar {
   gap: 8px;
   padding: 12px 16px;
   border-radius: 20px;
-  background: rgba(14, 31, 58, 0.32);
-  border: 1px solid rgba(157, 203, 255, 0.18);
+  background: color-mix(in srgb, var(--bg-card) 76%, transparent);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .today-depth-control label {
@@ -1134,12 +1139,12 @@ body.is-spot-name-open .mobile-tabbar {
   justify-content: space-between;
   gap: 14px;
   font-weight: 800;
-  color: rgba(239, 247, 255, 0.72);
+  color: var(--text-2);
   min-width: 0;
 }
 
 .today-depth-control strong {
-  color: #fff;
+  color: var(--text-1);
   flex-shrink: 0;
 }
 
@@ -1160,7 +1165,19 @@ body.is-spot-name-open .mobile-tabbar {
 .today-compass-wrap canvas {
   width: min(420px, 78vw) !important;
   height: min(420px, 78vw) !important;
-  filter: drop-shadow(0 26px 54px rgba(9, 22, 46, 0.26));
+  filter: drop-shadow(0 26px 54px rgba(9, 22, 46, 0.24));
+}
+
+.today-panel[data-today-strength="low"] .today-compass-wrap canvas {
+  filter: drop-shadow(0 26px 54px rgba(21, 128, 61, 0.20));
+}
+
+.today-panel[data-today-strength="medium"] .today-compass-wrap canvas {
+  filter: drop-shadow(0 26px 54px rgba(180, 83, 9, 0.20));
+}
+
+.today-panel[data-today-strength="high"] .today-compass-wrap canvas {
+  filter: drop-shadow(0 26px 54px rgba(185, 28, 28, 0.22));
 }
 
 .today-compass-badge {
@@ -1171,10 +1188,11 @@ body.is-spot-name-open .mobile-tabbar {
   display: grid;
   place-items: center;
   align-content: center;
-  border: 1px solid rgba(210, 232, 255, 0.26);
-  background: rgba(16, 31, 56, 0.42);
-  color: #fff;
-  box-shadow: 0 12px 28px rgba(8, 25, 55, 0.20);
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-card) 78%, transparent);
+  color: var(--text-1);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(16px);
 }
 
 .today-compass-badge strong {
@@ -1185,7 +1203,7 @@ body.is-spot-name-open .mobile-tabbar {
 .today-compass-badge span {
   font-size: 0.62rem;
   text-transform: uppercase;
-  color: rgba(232, 243, 255, 0.58);
+  color: var(--text-3);
 }
 
 .today-compass-badge-wind {
@@ -1209,7 +1227,7 @@ body.is-spot-name-open .mobile-tabbar {
 
 .today-focus-card span,
 .today-focus-card small {
-  color: rgba(229, 241, 255, 0.62);
+  color: var(--text-2);
   font-weight: 800;
 }
 
@@ -1226,9 +1244,9 @@ body.is-spot-name-open .mobile-tabbar {
   gap: 8px;
   padding: 12px 14px;
   border-radius: 20px;
-  border: 1px solid rgba(157, 203, 255, 0.22);
-  background: rgba(13, 30, 56, 0.28);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-card) 80%, transparent);
+  box-shadow: var(--shadow-sm);
   --today-strength-position: 0%;
 }
 
@@ -1237,7 +1255,7 @@ body.is-spot-name-open .mobile-tabbar {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  color: rgba(229, 241, 255, 0.68);
+  color: var(--text-3);
   font-size: 0.78rem;
   font-weight: 900;
   text-transform: uppercase;
@@ -1245,7 +1263,7 @@ body.is-spot-name-open .mobile-tabbar {
 }
 
 .today-strength-head strong {
-  color: #fff;
+  color: var(--text-1);
   font-size: 0.92rem;
   text-transform: none;
   letter-spacing: 0;
@@ -1274,7 +1292,7 @@ body.is-spot-name-open .mobile-tabbar {
 
 .today-strength-card small {
   min-height: 1em;
-  color: rgba(229, 241, 255, 0.64);
+  color: var(--text-2);
   font-weight: 800;
   text-align: center;
 }
@@ -1331,7 +1349,7 @@ body.is-spot-name-open .mobile-tabbar {
 .today-hour-readout span {
   max-width: min(640px, 90vw);
   text-align: center;
-  color: rgba(235, 245, 255, 0.68);
+  color: var(--text-2);
   font-weight: 800;
 }
 
@@ -1340,7 +1358,7 @@ body.is-spot-name-open .mobile-tabbar {
   justify-content: center;
   flex-wrap: wrap;
   gap: 9px;
-  color: rgba(236, 247, 255, 0.76);
+  color: var(--text-2);
   font-size: 0.78rem;
   font-weight: 800;
 }
@@ -1351,7 +1369,8 @@ body.is-spot-name-open .mobile-tabbar {
   gap: 6px;
   padding: 6px 9px;
   border-radius: 999px;
-  background: rgba(13, 30, 56, 0.26);
+  background: color-mix(in srgb, var(--bg-card) 76%, transparent);
+  border: 1px solid var(--border);
 }
 
 .today-series-legend i {
