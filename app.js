@@ -2102,6 +2102,9 @@ const state = {
   hours: [],
   selectedDate: "",
   timelineMinute: 12 * 60,
+  liveTimelineRenderKey: "",
+  liveTimelineAnimationFrame: 0,
+  liveTimelineProgress: 1,
   selectedSpotName: spots[0].name,
   forecastRequestId: 0,
   spotResolution: null,
@@ -11703,6 +11706,30 @@ function handleLiveTimelinePointer(event) {
   setTimelineMinute(minute);
 }
 
+function scheduleLiveTimelineAnimation() {
+  if (!window.requestAnimationFrame) {
+    state.liveTimelineProgress = 1;
+    return;
+  }
+  if (state.liveTimelineAnimationFrame) {
+    cancelAnimationFrame(state.liveTimelineAnimationFrame);
+  }
+  const start = performance.now();
+  const duration = 620;
+  const tick = (timestamp) => {
+    const raw = clamp((timestamp - start) / duration, 0, 1);
+    state.liveTimelineProgress = 1 - Math.pow(1 - raw, 3);
+    renderDayTimeline(getSelectedDay());
+    if (raw < 1) {
+      state.liveTimelineAnimationFrame = requestAnimationFrame(tick);
+    } else {
+      state.liveTimelineAnimationFrame = 0;
+      state.liveTimelineProgress = 1;
+    }
+  };
+  state.liveTimelineAnimationFrame = requestAnimationFrame(tick);
+}
+
 async function resolveSpotContext(lat, lon) {
   const requestId = state.spotResolutionRequestId + 1;
   const previousResolution = state.spotResolution;
@@ -14311,6 +14338,12 @@ function renderDayTimeline(day) {
   const isToday = day.date === today;
   const peakMinute = day.bestWindow?.peakMinute;
   const payload = hybridTimelinePayload(day, minute);
+  const renderKey = `${day.date}:${state.activityFish}:${isSeaMode() ? "sea" : "fresh"}`;
+  if (state.liveTimelineRenderKey !== renderKey) {
+    state.liveTimelineRenderKey = renderKey;
+    state.liveTimelineProgress = 0;
+    scheduleLiveTimelineAnimation();
+  }
 
   els.dayTimeline.hidden = false;
   els.dayTimeline.classList.toggle("is-today", isToday);
@@ -14386,9 +14419,10 @@ function renderLiveTimeline(payload, options = {}) {
     ctx.fill();
   });
 
-  drawHybridCurve(ctx, points, xForMinute, yForValue, "tide");
-  drawHybridCurve(ctx, points, xForMinute, yForValue, "activity");
-  drawHybridCurve(ctx, points, xForMinute, yForValue, "hybrid");
+  const progress = isValidNumber(state.liveTimelineProgress) ? state.liveTimelineProgress : 1;
+  drawHybridCurve(ctx, points, xForMinute, yForValue, "tide", progress);
+  drawHybridCurve(ctx, points, xForMinute, yForValue, "activity", progress);
+  drawHybridCurve(ctx, points, xForMinute, yForValue, "hybrid", progress);
 
   payload.markers.forEach((marker) => drawLiveTimelineMarker(ctx, marker, xForMinute, padding, chartHeight));
 
@@ -14426,7 +14460,7 @@ function renderLiveTimeline(payload, options = {}) {
   ctx.fillText(formatHourCompact(payload.minute), selectedX + (selectedX > width - 78 ? -10 : 10), Math.max(16, selectedY - 12));
 }
 
-function drawHybridCurve(ctx, points, xForMinute, yForValue, kind) {
+function drawHybridCurve(ctx, points, xForMinute, yForValue, kind, progress = 1) {
   const config = {
     tide: { key: "tideRatio", color: "rgba(186, 230, 255, 0.55)", width: 2, dash: [4, 6] },
     activity: { key: "activityRatio", color: "rgba(118, 232, 185, 0.50)", width: 2, dash: [1, 7] },
@@ -14440,13 +14474,19 @@ function drawHybridCurve(ctx, points, xForMinute, yForValue, kind) {
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   ctx.setLineDash(config.dash);
+  const animatedPoints = animatedTimelinePoints(points, config.key, progress);
+  if (!animatedPoints.length) {
+    ctx.restore();
+    return;
+  }
+
   ctx.beginPath();
-  points.forEach((point, index) => {
+  animatedPoints.forEach((point, index) => {
     const x = xForMinute(point.minute);
     const y = yForValue(point[config.key]);
     if (index === 0) ctx.moveTo(x, y);
     else {
-      const previous = points[index - 1];
+      const previous = animatedPoints[index - 1];
       const previousX = xForMinute(previous.minute);
       const previousY = yForValue(previous[config.key]);
       const midX = (previousX + x) / 2;
@@ -14456,9 +14496,9 @@ function drawHybridCurve(ctx, points, xForMinute, yForValue, kind) {
   ctx.stroke();
 
   if (kind === "hybrid") {
-    const last = points.at(-1);
+    const last = animatedPoints.at(-1);
     ctx.lineTo(xForMinute(last.minute), yForValue(0));
-    ctx.lineTo(xForMinute(points[0].minute), yForValue(0));
+    ctx.lineTo(xForMinute(animatedPoints[0].minute), yForValue(0));
     ctx.closePath();
     const fill = ctx.createLinearGradient(0, 0, 0, ctx.canvas.clientHeight);
     fill.addColorStop(0, "rgba(67, 184, 255, 0.24)");
@@ -14467,6 +14507,27 @@ function drawHybridCurve(ctx, points, xForMinute, yForValue, kind) {
     ctx.fill();
   }
   ctx.restore();
+}
+
+function animatedTimelinePoints(points, key, progress) {
+  const safeProgress = clamp(progress, 0, 1);
+  if (safeProgress >= 0.995) return points;
+  const maxMinute = 1425 * safeProgress;
+  const visible = points.filter((point) => point.minute <= maxMinute);
+  const next = points.find((point) => point.minute > maxMinute);
+  const previous = visible.at(-1);
+
+  if (!previous) return points.length ? [{ ...points[0], minute: Math.min(points[0].minute, maxMinute) }] : [];
+  if (!next) return visible;
+
+  const span = Math.max(1, next.minute - previous.minute);
+  const ratio = clamp((maxMinute - previous.minute) / span, 0, 1);
+  visible.push({
+    ...next,
+    minute: maxMinute,
+    [key]: previous[key] + (next[key] - previous[key]) * ratio,
+  });
+  return visible;
 }
 
 function drawLiveTimelineMarker(ctx, marker, xForMinute, padding, chartHeight) {
