@@ -1,4 +1,4 @@
-const CACHE_NAME = "meteocatch-shell-20260604-today-scrollable-curve";
+const CACHE_NAME = "meteocatch-shell-20260604-today-orbital-badges";
 const APP_SHELL = [
   "./",
   "./index.html",

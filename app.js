@@ -2324,7 +2324,9 @@ const els = {
   todayDepthRange: document.querySelector("#todayDepthRange"),
   todayDepthValue: document.querySelector("#todayDepthValue"),
   todayCompassCanvas: document.querySelector("#todayCompassCanvas"),
+  todayWindBadgeShell: document.querySelector(".today-compass-badge-wind"),
   todayWindBadge: document.querySelector("#todayWindBadge"),
+  todaySwellBadgeShell: document.querySelector(".today-compass-badge-swell"),
   todaySwellBadge: document.querySelector("#todaySwellBadge"),
   todayFocusLabel: document.querySelector("#todayFocusLabel"),
   todayFocusValue: document.querySelector("#todayFocusValue"),
@@ -13158,6 +13160,7 @@ function renderTodayView(day) {
   if (els.todayTimeRange) els.todayTimeRange.value = String(Math.round(minute / 60));
   setText(els.todayWindBadge, isValidNumber(windSpeed) ? formatNumber(windSpeed, 0) : "--");
   setText(els.todaySwellBadge, isValidNumber(swellHeight) ? `${formatNumber(swellHeight, 1)} m` : "--");
+  positionTodayCompassBadges(day, sample);
   setText(els.todayFocusLabel, focus.label);
   setText(els.todayFocusValue, formatForceValue(focus.value, focus.unit, focus.decimals));
   setText(els.todayFocusDetail, todayFocusDetail(sample, day));
@@ -13477,8 +13480,6 @@ function drawTodayCompass(day, sample = {}) {
   if (day) {
     drawTodayCompassArrow(ctx, cx, cy, radius * 0.86, sample.currentDirection ?? day.surfaceCurrentDirection, themeColor("current"), false);
     drawTodayCompassArrow(ctx, cx, cy, radius * 0.72, sample.depthDirection ?? day.depthDirection, themeColor("depth"), false);
-    drawTodayCompassArrow(ctx, cx, cy, radius * 0.58, reverseDirection(sample.windDirection ?? day.windDirection), themeColor("wind"), true);
-    drawTodayCompassArrow(ctx, cx, cy, radius * 0.46, reverseDirection(sample.waveDirection ?? day.waveDirection), themeColor("wave"), true);
   }
 
   ctx.save();
@@ -13494,6 +13495,50 @@ function drawTodayCompass(day, sample = {}) {
   ctx.font = "900 22px Inter, system-ui, sans-serif";
   ctx.fillText(focus.unit, cx + 76, cy + 12);
   ctx.restore();
+}
+
+function positionTodayCompassBadges(day, sample = {}) {
+  const wrap = els.todayCompassCanvas?.parentElement;
+  if (!wrap) return;
+
+  const items = [
+    {
+      element: els.todayWindBadgeShell,
+      direction: reverseDirection(sample.windDirection ?? day?.windDirection),
+      color: themeColor("wind"),
+    },
+    {
+      element: els.todaySwellBadgeShell,
+      direction: reverseDirection(sample.waveDirection ?? day?.waveDirection),
+      color: themeColor("wave"),
+    },
+  ];
+
+  const wrapRect = wrap.getBoundingClientRect();
+  const canvasRect = els.todayCompassCanvas?.getBoundingClientRect();
+  const orbit = Math.min(canvasRect?.width ?? wrapRect.width, canvasRect?.height ?? wrapRect.height) * 0.43;
+  const visibleItems = items.filter(({ element, direction }) => element && isValidNumber(direction));
+
+  if (visibleItems.length === 2 && directionDelta(visibleItems[0].direction, visibleItems[1].direction) < 48) {
+    const spread = 26;
+    visibleItems[0].positionDirection = normalizeDirection(visibleItems[0].direction - spread);
+    visibleItems[1].positionDirection = normalizeDirection(visibleItems[1].direction + spread);
+  }
+
+  items.forEach(({ element, direction, positionDirection, color }) => {
+    if (!element) return;
+    if (!isValidNumber(direction)) {
+      element.hidden = true;
+      return;
+    }
+
+    const point = polar(positionDirection ?? direction, orbit);
+    element.hidden = false;
+    element.style.setProperty("--badge-x", `${point.x}px`);
+    element.style.setProperty("--badge-y", `${point.y}px`);
+    element.style.setProperty("--badge-arrow", `${normalizeDirection(direction)}deg`);
+    element.style.setProperty("--badge-color", color);
+  });
 }
 
 function todayCompassPalette(tone) {

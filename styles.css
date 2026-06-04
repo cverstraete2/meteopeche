@@ -1184,17 +1184,37 @@ body.is-spot-name-open .mobile-tabbar {
 
 .today-compass-badge {
   position: absolute;
-  width: 50px;
-  height: 50px;
+  left: calc(50% + var(--badge-x, -74px));
+  top: calc(50% + var(--badge-y, 84px));
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   align-content: center;
-  border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--bg-card) 78%, transparent);
+  border: 2px solid color-mix(in srgb, var(--badge-color, var(--accent)) 72%, white);
+  background: color-mix(in srgb, var(--bg-card) 88%, transparent);
   color: var(--text-1);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--badge-color, var(--accent)) 22%, transparent);
   backdrop-filter: blur(16px);
+  transform: translate(-50%, -50%);
+  transition: left 220ms ease, top 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+  z-index: 2;
+}
+
+.today-compass-badge::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 12px solid color-mix(in srgb, var(--badge-color, var(--accent)) 72%, white);
+  transform: translate(-50%, -50%) rotate(var(--badge-arrow, 0deg)) translateY(-42px);
+  transform-origin: center;
+  filter: drop-shadow(0 4px 8px rgba(15, 23, 42, 0.16));
 }
 
 .today-compass-badge strong {
@@ -1206,16 +1226,6 @@ body.is-spot-name-open .mobile-tabbar {
   font-size: 0.56rem;
   text-transform: uppercase;
   color: var(--text-3);
-}
-
-.today-compass-badge-wind {
-  top: 2%;
-  left: 25%;
-}
-
-.today-compass-badge-swell {
-  bottom: 4%;
-  left: 18%;
 }
 
 .today-focus-card {
