@@ -2105,6 +2105,7 @@ const state = {
   liveTimelineRenderKey: "",
   liveTimelineAnimationFrame: 0,
   liveTimelineProgress: 1,
+  liveTimelinePointerStart: null,
   selectedSpotName: spots[0].name,
   forecastRequestId: 0,
   spotResolution: null,
@@ -11592,6 +11593,8 @@ function bindEvents() {
   });
   els.liveTimelineCanvas?.addEventListener("pointerdown", handleLiveTimelinePointer);
   els.liveTimelineCanvas?.addEventListener("pointermove", handleLiveTimelinePointer);
+  els.liveTimelineCanvas?.addEventListener("pointerup", handleLiveTimelineRelease);
+  els.liveTimelineCanvas?.addEventListener("pointercancel", handleLiveTimelineRelease);
   els.liveTimelineCanvas?.addEventListener("click", handleLiveTimelinePointer);
   els.timelinePrevDay?.addEventListener("click", () => shiftTimelineDay(-1));
   els.timelineNextDay?.addEventListener("click", () => shiftTimelineDay(1));
@@ -11710,7 +11713,7 @@ function shiftTimelineDay(direction) {
     return;
   }
   state.selectedDate = day.date;
-  state.timelineMinute = defaultTimelineMinute(day);
+  state.timelineMinute = selectedTimelineMinute();
   renderAll();
 }
 
@@ -11720,6 +11723,11 @@ function handleLiveTimelinePointer(event) {
   event.preventDefault();
   if (event.pointerId != null && event.type === "pointerdown") {
     els.liveTimelineCanvas.setPointerCapture?.(event.pointerId);
+    state.liveTimelinePointerStart = {
+      x: event.clientX,
+      y: event.clientY,
+      minute: selectedTimelineMinute(),
+    };
   }
   const rect = els.liveTimelineCanvas.getBoundingClientRect();
   const x = clamp(event.clientX - rect.left, 0, rect.width);
@@ -11727,7 +11735,23 @@ function handleLiveTimelinePointer(event) {
   setTimelineMinute(minute);
 }
 
+function handleLiveTimelineRelease(event) {
+  const start = state.liveTimelinePointerStart;
+  state.liveTimelinePointerStart = null;
+  if (!start) return;
+  const dx = event.clientX - start.x;
+  const dy = event.clientY - start.y;
+  if (Math.abs(dx) < 72 || Math.abs(dx) < Math.abs(dy) * 1.35) return;
+  state.timelineMinute = start.minute;
+  shiftTimelineDay(dx < 0 ? 1 : -1);
+}
+
 function scheduleLiveTimelineAnimation() {
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) {
+    state.liveTimelineProgress = 1;
+    renderDayTimeline(getSelectedDay());
+    return;
+  }
   if (!window.requestAnimationFrame) {
     state.liveTimelineProgress = 1;
     return;
