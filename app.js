@@ -44,6 +44,7 @@ const MAP_PROVIDER_IDS = {
   GOOGLE_WEB: "google-web",
   GOOGLE_NATIVE: "google-native",
 };
+const ENABLE_HYBRID_TIMELINE = false;
 const MAP_PROVIDER_DEFAULT_SUPPORT = {
   [MAP_PROVIDER_IDS.LEAFLET_OPENMAP]: true,
   [MAP_PROVIDER_IDS.APPLE_WEB]: false,
@@ -11661,11 +11662,13 @@ function bindEvents() {
   els.dayTimeRange?.addEventListener("input", () => {
     setTimelineMinute(els.dayTimeRange.value);
   });
-  els.liveTimelineCanvas?.addEventListener("pointerdown", handleLiveTimelinePointer);
-  els.liveTimelineCanvas?.addEventListener("pointermove", handleLiveTimelinePointer);
-  els.liveTimelineCanvas?.addEventListener("pointerup", handleLiveTimelineRelease);
-  els.liveTimelineCanvas?.addEventListener("pointercancel", handleLiveTimelineRelease);
-  els.liveTimelineCanvas?.addEventListener("click", handleLiveTimelinePointer);
+  if (ENABLE_HYBRID_TIMELINE) {
+    els.liveTimelineCanvas?.addEventListener("pointerdown", handleLiveTimelinePointer);
+    els.liveTimelineCanvas?.addEventListener("pointermove", handleLiveTimelinePointer);
+    els.liveTimelineCanvas?.addEventListener("pointerup", handleLiveTimelineRelease);
+    els.liveTimelineCanvas?.addEventListener("pointercancel", handleLiveTimelineRelease);
+    els.liveTimelineCanvas?.addEventListener("click", handleLiveTimelinePointer);
+  }
   els.timelinePrevDay?.addEventListener("click", () => shiftTimelineDay(-1));
   els.timelineNextDay?.addEventListener("click", () => shiftTimelineDay(1));
   ["input", "change"].forEach((eventName) => {
@@ -13421,6 +13424,7 @@ function playTodayTimeline() {
 }
 
 function scheduleTimelineDataRepair() {
+  if (!ENABLE_HYBRID_TIMELINE) return;
   if (!window.requestAnimationFrame || !state.days.length || !els.dayTimeline) return;
   requestAnimationFrame(() => {
     setTimeout(() => {
@@ -14822,6 +14826,10 @@ function renderWaterInsights(day) {
 
 function renderDayTimeline(day) {
   if (!els.dayTimeline || !els.dayTimeRange || !els.dayTimelineTime) return;
+  if (!ENABLE_HYBRID_TIMELINE) {
+    els.dayTimeline.hidden = true;
+    return;
+  }
 
   if (!day) {
     els.dayTimeline.hidden = true;
@@ -14983,6 +14991,7 @@ function renderLiveTimeline(payload, options = {}) {
 }
 
 function scheduleLiveTimelineVisibilityRedraw() {
+  if (!ENABLE_HYBRID_TIMELINE) return;
   if (state.liveTimelineVisibilityFrame || !window.requestAnimationFrame) return;
   state.liveTimelineVisibilityFrame = requestAnimationFrame(() => {
     state.liveTimelineVisibilityFrame = 0;
@@ -14993,6 +15002,7 @@ function scheduleLiveTimelineVisibilityRedraw() {
 }
 
 function installLiveTimelineResizeObserver() {
+  if (!ENABLE_HYBRID_TIMELINE) return;
   if (state.liveTimelineResizeObserver || !window.ResizeObserver || !els.dayTimeline) return;
   state.liveTimelineResizeObserver = new ResizeObserver(() => {
     if (els.dayTimeline?.hidden) return;
