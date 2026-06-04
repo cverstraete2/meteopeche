@@ -12284,7 +12284,7 @@ function forecastStatusLabel({ weather, marine, river, weatherError, marineError
   }
   if (weatherError || marineError) return { label: "Partiel", mode: "warning" };
   if (realDepthApplied) return { label: "Copernicus", mode: "ready" };
-  return { label: isSeaMode() ? "Copernicus indispo" : "À jour", mode: isSeaMode() ? "warning" : "ready" };
+  return { label: isSeaMode() ? "Partiel" : "À jour", mode: isSeaMode() ? "warning" : "ready" };
 }
 
 function formatForecastLoadError(weatherError, marineError) {
@@ -12583,7 +12583,7 @@ function dailyPlanningSummary(day, options = {}) {
   const peakSample = timelineSample(day, best?.peakMinute ?? selectedTimelineMinute());
   const goNoGo = day ? weatherGoNoGo(day, peakSample) : null;
   const windows = solunarWindows(day);
-  const tideList = (day?.tideEvents ?? tideEvents(rows)).slice(0, 4);
+  const tideList = tideEventList(day?.tideEvents, rows).slice(0, 4);
   const sourceAvailability = best?.sourceAvailability ?? timingSourceAvailability(day, rows, state.waterMode);
 
   return {
@@ -12639,6 +12639,28 @@ function dailyPlanningSummary(day, options = {}) {
     },
     sourceAvailability,
   };
+}
+
+function tideEventList(events, rows = []) {
+  const source = events ?? tideEvents(rows);
+  const rawEvents = Array.isArray(source)
+    ? source
+    : [
+        source?.high ? { ...source.high, type: "high" } : null,
+        source?.low ? { ...source.low, type: "low" } : null,
+      ].filter(Boolean);
+
+  return rawEvents
+    .map((event) => ({
+      type: event.type === "low" ? "low" : "high",
+      hour: event.hour ?? (typeof event.time === "string" ? event.time.slice(11, 16) : "--"),
+      height: event.height ?? event.seaLevel ?? null,
+      time: event.time ?? null,
+    }))
+    .sort((a, b) => {
+      if (!a.time || !b.time) return 0;
+      return Date.parse(a.time) - Date.parse(b.time);
+    });
 }
 
 function syncGlancePayload(day = getSelectedDay()) {

@@ -1,4 +1,4 @@
-import { copyFile, cp, mkdir, rm, writeFile } from "node:fs/promises";
+import { copyFile, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 
@@ -78,5 +78,14 @@ async function copyVendor(target) {
     copyFile(join(root, "node_modules", "@tabler", "icons-webfont", "dist", "fonts", "tabler-icons.ttf"), join(target, "tabler", "fonts", "tabler-icons.ttf")),
   ]);
 
+  await patchGeolocationPlugin(join(target, "capacitor", "geolocation.js"));
   await cp(join(root, "node_modules", "leaflet", "dist", "images"), join(target, "leaflet", "images"), { recursive: true });
+}
+
+async function patchGeolocationPlugin(target) {
+  const source = await readFile(target, "utf8");
+  const patched = source
+    .replace("    synapse.exposeSynapse();", "    if (synapse?.exposeSynapse) {\n        synapse.exposeSynapse();\n    }")
+    .replace("})({}, capacitorExports, synapse);", "})({}, capacitorExports, typeof synapse !== 'undefined' ? synapse : null);");
+  await writeFile(target, patched);
 }
