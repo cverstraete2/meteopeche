@@ -1,4 +1,4 @@
-const CACHE_NAME = "meteocatch-shell-20260604-today-unified-tabbar";
+const CACHE_NAME = "meteocatch-shell-20260604-today-outline-strength";
 const APP_SHELL = [
   "./",
   "./index.html",

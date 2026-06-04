@@ -2327,10 +2327,6 @@ const els = {
   todayFocusLabel: document.querySelector("#todayFocusLabel"),
   todayFocusValue: document.querySelector("#todayFocusValue"),
   todayFocusDetail: document.querySelector("#todayFocusDetail"),
-  todayStrengthCard: document.querySelector("#todayStrengthCard"),
-  todayStrengthLabel: document.querySelector("#todayStrengthLabel"),
-  todayStrengthMarker: document.querySelector("#todayStrengthMarker"),
-  todayStrengthDetail: document.querySelector("#todayStrengthDetail"),
   todayCurveCanvas: document.querySelector("#todayCurveCanvas"),
   todayTimeRange: document.querySelector("#todayTimeRange"),
   todaySelectedHour: document.querySelector("#todaySelectedHour"),
@@ -13322,16 +13318,9 @@ function openTodaySettings() {
 }
 
 function renderTodayStrength(sample, day) {
-  if (!els.todayStrengthCard) return;
   const score = todayStrengthScore(sample, day);
   const tone = todayStrengthTone(score);
   if (els.todayPanel) els.todayPanel.dataset.todayStrength = tone.key;
-  els.todayStrengthCard.classList.toggle("is-low", tone.key === "low");
-  els.todayStrengthCard.classList.toggle("is-medium", tone.key === "medium");
-  els.todayStrengthCard.classList.toggle("is-high", tone.key === "high");
-  els.todayStrengthCard.style.setProperty("--today-strength-position", `${Math.round(score)}%`);
-  setText(els.todayStrengthLabel, tone.label);
-  setText(els.todayStrengthDetail, todayStrengthDetail(sample, day));
 }
 
 function todayStrengthScore(sample, day) {
@@ -13352,16 +13341,6 @@ function todayStrengthTone(score) {
   if (score >= 68) return { key: "high", label: "Fort" };
   if (score >= 38) return { key: "medium", label: "Modéré" };
   return { key: "low", label: "Faible" };
-}
-
-function todayStrengthDetail(sample, day) {
-  if (!day) return "--";
-  const current = (sample.depthCurrent ?? day.depthCurrent) ?? (sample.surfaceCurrent ?? day.surfaceCurrent);
-  return [
-    `courant ${formatForceValue(current, "kt", 2)}`,
-    `houle ${formatForceValue(sample.waveHeight ?? day.waveAvg, "m", 1)}`,
-    `rafales ${formatForceValue(sample.windGust ?? day.windGust, "kt", 0)}`,
-  ].join(" · ");
 }
 
 function todayFocusDetail(sample, day) {
@@ -13426,6 +13405,15 @@ function drawTodayCompass(day, sample = {}) {
   ctx.arc(cx, cy, radius * 1.08, 0, Math.PI * 2);
   ctx.fill();
 
+  ctx.strokeStyle = palette.force;
+  ctx.lineWidth = 6;
+  ctx.shadowColor = palette.glow;
+  ctx.shadowBlur = 14;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius * 1.09, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
   ctx.strokeStyle = palette.ring;
   ctx.lineWidth = 2;
   [0.72, 0.92, 1.08].forEach((scale) => {
@@ -13477,33 +13465,39 @@ function drawTodayCompass(day, sample = {}) {
 function todayCompassPalette(tone) {
   if (tone === "high") {
     return {
-      center: "#dc2626",
-      mid: "#b91c1c",
-      edge: "#7f1d1d",
-      ring: "rgba(254, 202, 202, 0.48)",
-      tick: "rgba(254, 226, 226, 0.26)",
-      tickStrong: "rgba(255, 245, 245, 0.58)",
+      force: "#ff5b5b",
+      glow: "rgba(255, 91, 91, 0.46)",
+      center: "rgba(31, 52, 88, 0.94)",
+      mid: "rgba(28, 48, 82, 0.84)",
+      edge: "rgba(17, 37, 69, 0.70)",
+      ring: "rgba(255, 91, 91, 0.30)",
+      tick: "rgba(220, 236, 255, 0.16)",
+      tickStrong: "rgba(245, 250, 255, 0.36)",
     };
   }
 
   if (tone === "medium") {
     return {
-      center: "#f59e0b",
-      mid: "#d97706",
-      edge: "#92400e",
-      ring: "rgba(254, 240, 138, 0.48)",
-      tick: "rgba(254, 243, 199, 0.26)",
-      tickStrong: "rgba(255, 251, 235, 0.58)",
+      force: "#f5c84d",
+      glow: "rgba(245, 200, 77, 0.42)",
+      center: "rgba(31, 52, 88, 0.94)",
+      mid: "rgba(28, 48, 82, 0.84)",
+      edge: "rgba(17, 37, 69, 0.70)",
+      ring: "rgba(245, 200, 77, 0.30)",
+      tick: "rgba(220, 236, 255, 0.16)",
+      tickStrong: "rgba(245, 250, 255, 0.36)",
     };
   }
 
   return {
-    center: "#22c55e",
-    mid: "#16a34a",
-    edge: "#166534",
-    ring: "rgba(187, 247, 208, 0.48)",
-    tick: "rgba(220, 252, 231, 0.26)",
-    tickStrong: "rgba(240, 253, 244, 0.58)",
+    force: "#3bd995",
+    glow: "rgba(59, 217, 149, 0.42)",
+    center: "rgba(31, 52, 88, 0.94)",
+    mid: "rgba(28, 48, 82, 0.84)",
+    edge: "rgba(17, 37, 69, 0.70)",
+    ring: "rgba(59, 217, 149, 0.30)",
+    tick: "rgba(220, 236, 255, 0.16)",
+    tickStrong: "rgba(245, 250, 255, 0.36)",
   };
 }
 
