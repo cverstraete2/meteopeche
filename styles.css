@@ -4009,6 +4009,7 @@ body.is-map-fullscreen-active .mobile-tabbar {
 }
 
 .day-tab {
+  position: relative;
   display: grid;
   min-width: 0;
   min-height: 148px;
@@ -4022,6 +4023,28 @@ body.is-map-fullscreen-active .mobile-tabbar {
   color: var(--text-1);
   padding: var(--sp-3) var(--sp-2);
   text-align: center;
+}
+
+.day-tab.is-pro-locked {
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--day-tone-border));
+}
+
+.day-tab.is-pro-locked .day-tab-date,
+.day-tab.is-pro-locked .day-tab-weather,
+.day-tab.is-pro-locked .day-tab-temperatures,
+.day-tab.is-pro-locked .day-tab-stats,
+.day-tab.is-pro-locked .day-tab-score {
+  filter: blur(2.2px);
+  opacity: 0.5;
+}
+
+.day-tab-lock {
+  top: 6px;
+  right: 6px;
+  min-height: 24px;
+  padding: 3px 7px;
+  font-size: 0.62rem;
 }
 
 .day-tab:last-child {

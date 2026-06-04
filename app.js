@@ -33,6 +33,7 @@ const WATER_MODES = {
 const MOBILE_VIEWS = ["map", "weather", "activity", "journal", "more"];
 const WEATHER_SUBTABS = ["overview", "forces", "sun"];
 const ATMOSPHERE_CHARTS = ["cloud", "pressure"];
+const FREE_FORECAST_DAY_LIMIT = 3;
 const MARINE_OVERLAY_MODES = ["none", "surface", "depth", "wave"];
 const THEME_MODES = ["light", "dark"];
 const LANGUAGE_MODES = ["fr", "en", "es", "de", "pt"];
@@ -13234,6 +13235,7 @@ function renderDayTabs() {
   els.dayTabs.innerHTML = "";
   els.dayTabs.classList.toggle("is-forecast-expanded", state.forecastExpanded);
   const days = state.days.slice(0, 10);
+  const lockedForecast = !canUseFeature("planning.10day");
 
   if (!days.length) {
     els.dayTabs.innerHTML = `
@@ -13266,23 +13268,27 @@ function renderDayTabs() {
   const grid = document.createElement("div");
   grid.className = "forecast-strip-grid";
 
-  days.forEach((day) => {
+  days.forEach((day, index) => {
     const activityScore = dayActivityScore(day);
     const weather = dailyWeatherIcon(day);
     const waterTemperature = dailyWaterTemperature(day);
     const conditionTone = dayConditionTone(day);
+    const locked = lockedForecast && index >= FREE_FORECAST_DAY_LIMIT;
     const button = document.createElement("button");
     button.type = "button";
     button.className = "day-tab";
     button.classList.add(`condition-${conditionTone}`);
+    button.classList.toggle("is-pro-locked", locked);
     button.classList.toggle("is-active", day.date === state.selectedDate);
     button.setAttribute("aria-pressed", String(day.date === state.selectedDate));
+    button.dataset.locked = String(locked);
     button.title = `${weather.label} · ${conditionToneLabel(conditionTone)}`;
     button.innerHTML = `
       <span class="day-tab-date">
         <strong>${escapeHtml(formatWeekday3(day.date))}</strong>
         <em>${escapeHtml(formatShortDateNoWeekday(day.date))}</em>
       </span>
+      ${locked ? `<span class="pro-lock-badge day-tab-lock"><i class="ti ti-lock" aria-hidden="true"></i>Pro</span>` : ""}
       <i class="ti ${weather.icon} day-tab-weather" aria-hidden="true"></i>
       <span class="day-tab-temperatures">
         <span>Air ${escapeHtml(formatTemperatureBrief(day.airTemperature))}</span>
@@ -13299,6 +13305,10 @@ function renderDayTabs() {
       <span class="day-tab-score ${scoreClass(activityScore)}">${activityScore}</span>
     `;
     button.addEventListener("click", () => {
+      if (button.dataset.locked === "true") {
+        showProGate("planning.10day");
+        return;
+      }
       state.selectedDate = day.date;
       renderAll();
     });
@@ -13690,7 +13700,7 @@ function renderPlanningView() {
     return;
   }
 
-  els.planningList.innerHTML = summaries.map((summary, index) => planningRowMarkup(summary, { locked: lockedPlanning && index >= 2 })).join("");
+  els.planningList.innerHTML = summaries.map((summary, index) => planningRowMarkup(summary, { locked: lockedPlanning && index >= FREE_FORECAST_DAY_LIMIT })).join("");
   els.planningList.querySelectorAll("[data-planning-date]").forEach((button) => {
     button.addEventListener("click", () => {
       if (button.dataset.locked === "true") {
