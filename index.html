@@ -33,7 +33,7 @@ try {
 <script>
 (() => {
   const isLocalHost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname);
-  const alreadyCleaned = new URLSearchParams(window.location.search).get("localCacheClean") === "20260604-timeline-redraw";
+  const alreadyCleaned = new URLSearchParams(window.location.search).get("localCacheClean") === "20260604-today-view";
   if (!isLocalHost || alreadyCleaned || !("serviceWorker" in navigator)) return;
 
   Promise.all([
@@ -45,7 +45,7 @@ try {
       .catch(() => []),
   ]).then(() => {
     const url = new URL(window.location.href);
-    url.searchParams.set("localCacheClean", "20260604-timeline-redraw");
+    url.searchParams.set("localCacheClean", "20260604-today-view");
     window.location.replace(url.toString());
   }).catch(() => {});
 })();
@@ -58,7 +58,7 @@ try {
 
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
 <link rel="stylesheet" href="vendor/tabler/tabler-icons.min.css" />
-<link rel="stylesheet" href="styles.css?v=20260604-timeline-redraw" />
+<link rel="stylesheet" href="styles.css?v=20260604-today-view" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon-v2.png" />
 </head>
@@ -658,6 +658,70 @@ try {
       </section>
     </section>
 
+    <section class="today-panel" id="todayPanel" data-mobile-view="today" aria-label="Aujourd'hui">
+      <div class="today-hero" data-i18n-skip>
+        <div class="today-topbar">
+          <button class="today-icon-button" type="button" data-mobile-tab="map" aria-label="Retour carte">
+            <i class="ti ti-menu-2" aria-hidden="true"></i>
+          </button>
+          <button class="today-location-pill" id="todayLocationButton" type="button" data-mobile-tab="map">
+            <i class="ti ti-sailboat" aria-hidden="true"></i>
+            <strong id="todaySpotName">--</strong>
+            <i class="ti ti-chevron-down" aria-hidden="true"></i>
+          </button>
+          <button class="today-icon-button" id="todayPlayButton" type="button" aria-label="Animer la journée">
+            <i class="ti ti-player-play" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div class="today-condition-strip" aria-label="Conditions actuelles">
+          <span><i class="ti ti-sun" aria-hidden="true"></i><strong id="todayAirTemp">--</strong></span>
+          <span><i class="ti ti-temperature" aria-hidden="true"></i><strong id="todayWaterTemp">--</strong></span>
+          <span><i class="ti ti-wind" aria-hidden="true"></i><strong id="todayWind">--</strong></span>
+          <span><i class="ti ti-waves-electricity" aria-hidden="true"></i><strong id="todaySwell">--</strong></span>
+        </div>
+
+        <div class="today-depth-control">
+          <label for="todayDepthRange">
+            <span>Profondeur cible</span>
+            <strong id="todayDepthValue">--</strong>
+          </label>
+          <input id="todayDepthRange" type="range" min="0" max="80" step="1" value="5" />
+        </div>
+
+        <div class="today-compass-wrap">
+          <canvas id="todayCompassCanvas" width="720" height="720" aria-label="Rosace des forces"></canvas>
+          <div class="today-compass-badge today-compass-badge-wind">
+            <strong id="todayWindBadge">--</strong>
+            <span>Vent</span>
+          </div>
+          <div class="today-compass-badge today-compass-badge-swell">
+            <strong id="todaySwellBadge">--</strong>
+            <span>Houle</span>
+          </div>
+        </div>
+
+        <div class="today-focus-card">
+          <span id="todayFocusLabel">Courant fond</span>
+          <strong id="todayFocusValue">--</strong>
+          <small id="todayFocusDetail">--</small>
+        </div>
+
+        <div class="today-curve-wrap">
+          <canvas id="todayCurveCanvas" width="1120" height="520" aria-label="Courbes horaires des forces"></canvas>
+          <input id="todayTimeRange" type="range" min="0" max="23" step="1" value="12"
+            aria-label="Naviguer heure par heure" />
+        </div>
+
+        <div class="today-hour-readout">
+          <strong id="todaySelectedHour">--</strong>
+          <span id="todaySelectedSummary">--</span>
+        </div>
+
+        <div class="today-series-legend" id="todaySeriesLegend" aria-label="Légende des forces"></div>
+      </div>
+    </section>
+
     <section class="day-strip" id="dayTabs"
       data-mobile-view="activity weather"
       aria-label="Prévisions 10 jours"></section>
@@ -978,12 +1042,13 @@ try {
       </svg>
       <span>Prévision</span>
     </button>
-    <button class="mobile-tab" type="button" data-mobile-tab="activity">
+    <button class="mobile-tab" type="button" data-mobile-tab="today">
       <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 13c3.2-4 8.7-5 14-2.4l3-2.2v7.2l-3-2.2C12.7 16 7.2 15 4 11Z"/>
-        <path d="M4 13 2 16"/><circle cx="15.5" cy="11.2" r="0.7"/>
+        <path d="M12 3a9 9 0 1 0 9 9"/>
+        <path d="M12 7v5l3 2"/>
+        <path d="M18 3v5h-5"/>
       </svg>
-      <span>Activité</span>
+      <span>Aujourd'hui</span>
     </button>
     <button class="mobile-tab" type="button" data-mobile-tab="journal">
       <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1040,9 +1105,9 @@ try {
 <script src="mobile-runtime.js" defer></script>
 <script src="vendor/leaflet/leaflet.js"></script>
 <script src="config.js"></script>
-<script src="spots-db.js?v=20260604-timeline-redraw" defer></script>
+<script src="spots-db.js?v=20260604-today-view" defer></script>
 <script src="overpass-spots.js?v=20260528-global-spots-v2" defer></script>
-<script src="app.js?v=20260604-timeline-redraw" defer></script>
+<script src="app.js?v=20260604-today-view" defer></script>
 
 </body>
 </html>
