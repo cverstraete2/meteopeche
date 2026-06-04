@@ -2108,6 +2108,8 @@ const state = {
   liveTimelineAnimationFrame: 0,
   liveTimelineProgress: 1,
   liveTimelinePointerStart: null,
+  liveTimelineResizeObserver: null,
+  liveTimelineVisibilityFrame: 0,
   timelineRenderFrame: 0,
   timelineRenderOptions: null,
   timelineHeavyRenderTimer: 0,
@@ -2643,6 +2645,7 @@ async function init() {
   populateRiggingTechniques();
   await initMapEngine();
   bindEvents();
+  installLiveTimelineResizeObserver();
   updateDepth();
   applyWaterModeUI();
   applyDefaultWeatherChart();
@@ -14474,6 +14477,11 @@ function renderDayTimeline(day) {
   els.dayTimeline.hidden = false;
   els.dayTimeline.classList.toggle("is-today", isToday);
   els.dayTimeline.classList.toggle("has-window-peak", isValidNumber(peakMinute));
+  els.dayTimeline.dataset.pointCount = String(payload.points?.length ?? 0);
+  els.dayTimeline.dataset.markerCount = String(payload.markers?.length ?? 0);
+  els.dayTimeline.dataset.hasTide = String(Boolean(payload.hasTide));
+  els.dayTimeline.dataset.hasActivity = String(Boolean(payload.hasActivity));
+  els.dayTimeline.dataset.selectedMinute = String(minute);
   updateTimelineDayButtons(day);
   els.dayTimeline.style.setProperty("--timeline-now", `${(nowMinute / 1425) * 100}%`);
   els.dayTimeline.style.setProperty("--timeline-window-peak", `${((peakMinute ?? minute) / 1425) * 100}%`);
@@ -14511,9 +14519,14 @@ function updateTimelineDayButtons(day) {
 function renderLiveTimeline(payload, options = {}) {
   const canvas = els.liveTimelineCanvas;
   if (!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width < 2 || rect.height < 2) {
+    scheduleLiveTimelineVisibilityRedraw();
+    return;
+  }
   const ctx = setupCanvas(canvas);
-  const width = canvas.clientWidth;
-  const height = canvas.clientHeight;
+  const width = rect.width;
+  const height = rect.height;
   ctx.clearRect(0, 0, width, height);
 
   const padding = { top: 18, right: 18, bottom: 24, left: 18 };
@@ -14599,6 +14612,28 @@ function renderLiveTimeline(payload, options = {}) {
   ctx.font = "900 11px Inter, system-ui, sans-serif";
   ctx.textAlign = selectedX > width - 78 ? "right" : "left";
   ctx.fillText(formatHourCompact(payload.minute), selectedX + (selectedX > width - 78 ? -10 : 10), Math.max(16, selectedY - 12));
+}
+
+function scheduleLiveTimelineVisibilityRedraw() {
+  if (state.liveTimelineVisibilityFrame || !window.requestAnimationFrame) return;
+  state.liveTimelineVisibilityFrame = requestAnimationFrame(() => {
+    state.liveTimelineVisibilityFrame = 0;
+    const canvas = els.liveTimelineCanvas;
+    if (!canvas || canvas.getBoundingClientRect().width < 2) return;
+    renderDayTimeline(getSelectedDay());
+  });
+}
+
+function installLiveTimelineResizeObserver() {
+  if (state.liveTimelineResizeObserver || !window.ResizeObserver || !els.dayTimeline) return;
+  state.liveTimelineResizeObserver = new ResizeObserver(() => {
+    if (els.dayTimeline?.hidden) return;
+    scheduleLiveTimelineVisibilityRedraw();
+  });
+  state.liveTimelineResizeObserver.observe(els.dayTimeline);
+  if (els.liveTimelineCanvas) {
+    state.liveTimelineResizeObserver.observe(els.liveTimelineCanvas);
+  }
 }
 
 function drawHybridCurve(ctx, points, xForMinute, yForValue, kind, progress = 1) {
