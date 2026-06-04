@@ -7496,8 +7496,26 @@ function applyTheme(options = {}) {
   document.documentElement.style.colorScheme = state.theme;
 
   if (options.render) {
-    renderAll();
+    safeRenderAll();
   }
+}
+
+function safeRenderAll() {
+  try {
+    renderAll();
+  } catch (error) {
+    console.error("Render failed after forecast load", error);
+    setStatus("Données chargées, affichage partiel", "warning");
+    renderCoreForecastFallback();
+  }
+}
+
+function renderCoreForecastFallback() {
+  const selected = getSelectedDay();
+  try { renderDayTabs(); } catch (error) { console.warn("Fallback day tabs failed", error); }
+  try { renderDayTimeline(selected); } catch (error) { console.warn("Fallback timeline failed", error); }
+  try { renderConditionBrief(selected); } catch (error) { console.warn("Fallback condition failed", error); }
+  try { renderMetrics(selected); } catch (error) { console.warn("Fallback metrics failed", error); }
 }
 
 function isProUser() {
@@ -8282,7 +8300,7 @@ function setWaterMode(mode, options = {}) {
   if (options.load !== false) {
     loadForecast();
   } else if (state.days.length) {
-    renderAll();
+    safeRenderAll();
   }
 
   state.osmSpotsLastFetchedBounds = null;
@@ -12288,7 +12306,7 @@ async function loadForecast() {
       throw new Error("Aucune donnée horaire exploitable pour ce spot.");
     }
 
-    renderAll();
+    safeRenderAll();
     const preliminaryStatus = forecastStatusLabel({ weather, marine, river, weatherError, marineError, riverError, realDepthApplied: false });
     setStatus(preliminaryStatus.label, preliminaryStatus.mode);
     const realDepthApplied = isSeaMode() ? await loadRealDepthCurrents(lat, lon, requestId) : false;
@@ -14640,7 +14658,7 @@ function animatedTimelinePoints(points, key, progress) {
   const next = points.find((point) => point.minute > maxMinute);
   const previous = visible.at(-1);
 
-  if (!previous) return points.length ? [{ ...points[0], minute: Math.min(points[0].minute, maxMinute) }] : [];
+  if (!previous) return points.length ? [{ ...points[0], minute: Math.min(points[0].minute, maxMinute), [key]: points[0][key] }] : [];
   if (!next) return visible;
 
   const span = Math.max(1, next.minute - previous.minute);
@@ -16852,6 +16870,21 @@ function hybridTimelinePayload(day, minute = selectedTimelineMinute()) {
   });
 
   const firstRow = rows[0] ?? {};
+  const extrema = tideValues.length >= 2 ? tideExtrema(rows.filter((row) => isValidNumber(row.seaLevel))) : { highs: [], lows: [] };
+  const tideMarkers = [
+    ...extrema.highs.slice(0, 3).map((row) => ({
+      type: "high",
+      minute: minutesFromClockOrNull(row.hour),
+      label: "PM",
+      detail: `${row.hour} · ${formatTideHeight(row.seaLevel)}`,
+    })),
+    ...extrema.lows.slice(0, 3).map((row) => ({
+      type: "low",
+      minute: minutesFromClockOrNull(row.hour),
+      label: "BM",
+      detail: `${row.hour} · ${formatTideHeight(row.seaLevel)}`,
+    })),
+  ].sort((a, b) => a.minute - b.minute);
   const markers = [
     isValidNumber(day.bestWindow?.peakMinute)
       ? {
@@ -16861,12 +16894,7 @@ function hybridTimelinePayload(day, minute = selectedTimelineMinute()) {
           detail: day.bestWindow.label,
         }
       : null,
-    ...tideEvents(rows).slice(0, 6).map((event) => ({
-      type: event.type === "high" ? "high" : "low",
-      minute: minutesFromClockOrNull(event.hour),
-      label: event.type === "high" ? "PM" : "BM",
-      detail: `${event.hour} · ${formatTideHeight(event.seaLevel)}`,
-    })),
+    ...tideMarkers,
     {
       type: "sunrise",
       minute: minutesFromDateTime(firstRow.sunrise),
