@@ -2211,6 +2211,7 @@ const state = {
   isPro: false,
   profile: { ...DEFAULT_PROFILE },
   forecastExpanded: false,
+  todaySpotMenuOpen: false,
   riggingDirty: false,
   renamingFavoriteId: null,
   pendingSpot: null,
@@ -2310,6 +2311,8 @@ const els = {
   smartAlertCancelButton: document.querySelector("#smartAlertCancelButton"),
   smartAlertStatus: document.querySelector("#smartAlertStatus"),
   todayPanel: document.querySelector("#todayPanel"),
+  todayLocationButton: document.querySelector("#todayLocationButton"),
+  todaySpotMenu: document.querySelector("#todaySpotMenu"),
   todaySpotName: document.querySelector("#todaySpotName"),
   todayPlayButton: document.querySelector("#todayPlayButton"),
   todayAirTemp: document.querySelector("#todayAirTemp"),
@@ -2324,6 +2327,10 @@ const els = {
   todayFocusLabel: document.querySelector("#todayFocusLabel"),
   todayFocusValue: document.querySelector("#todayFocusValue"),
   todayFocusDetail: document.querySelector("#todayFocusDetail"),
+  todayStrengthCard: document.querySelector("#todayStrengthCard"),
+  todayStrengthLabel: document.querySelector("#todayStrengthLabel"),
+  todayStrengthMarker: document.querySelector("#todayStrengthMarker"),
+  todayStrengthDetail: document.querySelector("#todayStrengthDetail"),
   todayCurveCanvas: document.querySelector("#todayCurveCanvas"),
   todayTimeRange: document.querySelector("#todayTimeRange"),
   todaySelectedHour: document.querySelector("#todaySelectedHour"),
@@ -8751,6 +8758,7 @@ function renderSpotTools() {
   renderMapTiles();
   renderMapMarkers();
   renderFavorites();
+  renderTodaySpotMenu();
   updateFavoriteButton();
   updateMapZoomControls();
   updateMapScale();
@@ -11355,6 +11363,15 @@ function bindEvents() {
   els.todayCurveCanvas?.addEventListener("pointerup", handleTodayCurveRelease);
   els.todayCurveCanvas?.addEventListener("pointercancel", handleTodayCurveRelease);
   els.todayPlayButton?.addEventListener("click", playTodayTimeline);
+  els.todayLocationButton?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setTodaySpotMenuOpen(!state.todaySpotMenuOpen);
+  });
+  document.addEventListener("click", (event) => {
+    if (!state.todaySpotMenuOpen) return;
+    if (event.target.closest?.(".today-location-menu")) return;
+    setTodaySpotMenuOpen(false);
+  });
   els.languageSelect?.addEventListener("change", () => {
     setLanguagePreference(els.languageSelect.value);
   });
@@ -13132,6 +13149,7 @@ function renderTodayView(day) {
   const focusCurrent = hasDepthCurrent ? depthCurrent : surfaceCurrent;
 
   if (els.todaySpotName) els.todaySpotName.textContent = getActiveSpot().name;
+  renderTodaySpotMenu();
   setText(els.todayAirTemp, formatTemperatureBrief(sample.airTemperature ?? day?.airTemperature));
   setText(els.todayWaterTemp, formatTemperatureBrief(waterTemperature));
   setText(els.todayWind, `${formatNumber(windSpeed, 0)} kt`);
@@ -13147,9 +13165,121 @@ function renderTodayView(day) {
   setText(els.todaySelectedHour, formatHourCompact(minute));
   setText(els.todaySelectedSummary, todaySelectedSummary(sample, day));
 
+  renderTodayStrength(sample, day);
   renderTodayLegend();
   drawTodayCompass(day, sample);
   drawTodayCurve(day);
+}
+
+function setTodaySpotMenuOpen(open) {
+  state.todaySpotMenuOpen = Boolean(open);
+  renderTodaySpotMenu();
+}
+
+function todaySpotOptions() {
+  const favorites = state.favorites.map((favorite) => ({
+    id: favorite.id,
+    name: favorite.name,
+    detail: formatCoordinates(favorite.lat, favorite.lon),
+    favorite,
+  }));
+
+  if (favorites.length) return favorites;
+
+  return spots
+    .map((spot, index) => ({ spot, index }))
+    .filter(({ spot }) => !spot.custom)
+    .slice(0, 8)
+    .map(({ spot, index }) => ({
+      id: spotFavoriteId(spot),
+      name: spot.name,
+      detail: spot.group || formatCoordinates(spot.lat, spot.lon),
+      index,
+    }));
+}
+
+function renderTodaySpotMenu() {
+  if (!els.todayLocationButton || !els.todaySpotMenu) return;
+  const active = getActiveSpot();
+  const options = todaySpotOptions();
+  els.todayLocationButton.setAttribute("aria-expanded", String(state.todaySpotMenuOpen));
+  els.todaySpotMenu.hidden = !state.todaySpotMenuOpen;
+  els.todaySpotMenu.innerHTML = "";
+
+  if (!options.length) {
+    const empty = document.createElement("div");
+    empty.className = "today-spot-option";
+    empty.textContent = "Aucun favori";
+    els.todaySpotMenu.append(empty);
+    return;
+  }
+
+  options.forEach((option) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "today-spot-option";
+    button.setAttribute("role", "option");
+    button.setAttribute("aria-selected", String(option.id === active.id));
+    button.classList.toggle("is-active", option.id === active.id);
+    button.innerHTML = `
+      <span>
+        <strong>${escapeHtml(option.name)}</strong>
+        <span>${escapeHtml(option.detail)}</span>
+      </span>
+      <i class="ti ti-check" aria-hidden="true"></i>
+    `;
+    button.addEventListener("click", () => {
+      setTodaySpotMenuOpen(false);
+      if (option.favorite) {
+        selectFavorite(option.favorite);
+        return;
+      }
+      if (Number.isInteger(option.index)) selectSpot(option.index, { load: true });
+    });
+    els.todaySpotMenu.append(button);
+  });
+}
+
+function renderTodayStrength(sample, day) {
+  if (!els.todayStrengthCard) return;
+  const score = todayStrengthScore(sample, day);
+  const tone = todayStrengthTone(score);
+  els.todayStrengthCard.classList.toggle("is-low", tone.key === "low");
+  els.todayStrengthCard.classList.toggle("is-medium", tone.key === "medium");
+  els.todayStrengthCard.classList.toggle("is-high", tone.key === "high");
+  els.todayStrengthCard.style.setProperty("--today-strength-position", `${Math.round(score)}%`);
+  setText(els.todayStrengthLabel, tone.label);
+  setText(els.todayStrengthDetail, todayStrengthDetail(sample, day));
+}
+
+function todayStrengthScore(sample, day) {
+  if (!day) return 0;
+  const current = Math.max(
+    isValidNumber(sample.depthCurrent ?? day.depthCurrent) ? sample.depthCurrent ?? day.depthCurrent : 0,
+    isValidNumber(sample.surfaceCurrent ?? day.surfaceCurrent) ? sample.surfaceCurrent ?? day.surfaceCurrent : 0,
+  );
+  const wave = sample.waveHeight ?? day.waveAvg;
+  const gust = sample.windGust ?? day.windGust;
+  const currentScore = isValidNumber(current) ? clamp((current / 1.4) * 42, 0, 42) : 0;
+  const waveScore = isValidNumber(wave) ? clamp((wave / 2.2) * 28, 0, 28) : 0;
+  const gustScore = isValidNumber(gust) ? clamp((gust / 34) * 30, 0, 30) : 0;
+  return clamp(currentScore + waveScore + gustScore, 0, 100);
+}
+
+function todayStrengthTone(score) {
+  if (score >= 68) return { key: "high", label: "Fort" };
+  if (score >= 38) return { key: "medium", label: "Modéré" };
+  return { key: "low", label: "Faible" };
+}
+
+function todayStrengthDetail(sample, day) {
+  if (!day) return "--";
+  const current = (sample.depthCurrent ?? day.depthCurrent) ?? (sample.surfaceCurrent ?? day.surfaceCurrent);
+  return [
+    `courant ${formatForceValue(current, "kt", 2)}`,
+    `houle ${formatForceValue(sample.waveHeight ?? day.waveAvg, "m", 1)}`,
+    `rafales ${formatForceValue(sample.windGust ?? day.windGust, "kt", 0)}`,
+  ].join(" · ");
 }
 
 function todayFocusDetail(sample, day) {

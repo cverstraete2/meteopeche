@@ -33,7 +33,7 @@ try {
 <script>
 (() => {
   const isLocalHost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname);
-  const alreadyCleaned = new URLSearchParams(window.location.search).get("localCacheClean") === "20260604-today-no-hybrid";
+  const alreadyCleaned = new URLSearchParams(window.location.search).get("localCacheClean") === "20260604-today-favorites-strength";
   if (!isLocalHost || alreadyCleaned || !("serviceWorker" in navigator)) return;
 
   Promise.all([
@@ -45,7 +45,7 @@ try {
       .catch(() => []),
   ]).then(() => {
     const url = new URL(window.location.href);
-    url.searchParams.set("localCacheClean", "20260604-today-no-hybrid");
+    url.searchParams.set("localCacheClean", "20260604-today-favorites-strength");
     window.location.replace(url.toString());
   }).catch(() => {});
 })();
@@ -58,7 +58,7 @@ try {
 
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
 <link rel="stylesheet" href="vendor/tabler/tabler-icons.min.css" />
-<link rel="stylesheet" href="styles.css?v=20260604-today-no-hybrid" />
+<link rel="stylesheet" href="styles.css?v=20260604-today-favorites-strength" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon-v2.png" />
 </head>
@@ -664,11 +664,14 @@ try {
           <button class="today-icon-button" type="button" data-mobile-tab="map" aria-label="Retour carte">
             <i class="ti ti-menu-2" aria-hidden="true"></i>
           </button>
-          <button class="today-location-pill" id="todayLocationButton" type="button" data-mobile-tab="map">
-            <i class="ti ti-sailboat" aria-hidden="true"></i>
-            <strong id="todaySpotName">--</strong>
-            <i class="ti ti-chevron-down" aria-hidden="true"></i>
-          </button>
+          <div class="today-location-menu">
+            <button class="today-location-pill" id="todayLocationButton" type="button" aria-expanded="false" aria-controls="todaySpotMenu">
+              <i class="ti ti-sailboat" aria-hidden="true"></i>
+              <strong id="todaySpotName">--</strong>
+              <i class="ti ti-chevron-down" aria-hidden="true"></i>
+            </button>
+            <div class="today-spot-menu" id="todaySpotMenu" role="listbox" hidden></div>
+          </div>
           <button class="today-icon-button" id="todayPlayButton" type="button" aria-label="Animer la journée">
             <i class="ti ti-player-play" aria-hidden="true"></i>
           </button>
@@ -705,6 +708,17 @@ try {
           <span id="todayFocusLabel">Courant fond</span>
           <strong id="todayFocusValue">--</strong>
           <small id="todayFocusDetail">--</small>
+        </div>
+
+        <div class="today-strength-card" id="todayStrengthCard">
+          <div class="today-strength-head">
+            <span>Force globale</span>
+            <strong id="todayStrengthLabel">--</strong>
+          </div>
+          <div class="today-strength-track" aria-hidden="true">
+            <i id="todayStrengthMarker"></i>
+          </div>
+          <small id="todayStrengthDetail">--</small>
         </div>
 
         <div class="today-curve-wrap">
@@ -1105,9 +1119,9 @@ try {
 <script src="mobile-runtime.js" defer></script>
 <script src="vendor/leaflet/leaflet.js"></script>
 <script src="config.js"></script>
-<script src="spots-db.js?v=20260604-today-no-hybrid" defer></script>
+<script src="spots-db.js?v=20260604-today-favorites-strength" defer></script>
 <script src="overpass-spots.js?v=20260528-global-spots-v2" defer></script>
-<script src="app.js?v=20260604-today-no-hybrid" defer></script>
+<script src="app.js?v=20260604-today-favorites-strength" defer></script>
 
 </body>
 </html>
