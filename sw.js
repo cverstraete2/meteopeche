@@ -1,4 +1,4 @@
-const CACHE_NAME = "meteocatch-shell-20260604-today-app-bg-rosace";
+const CACHE_NAME = "meteocatch-shell-20260604-today-no-hamburger";
 const APP_SHELL = [
   "./",
   "./index.html",

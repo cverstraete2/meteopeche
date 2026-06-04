@@ -33,7 +33,7 @@ try {
 <script>
 (() => {
   const isLocalHost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname);
-  const alreadyCleaned = new URLSearchParams(window.location.search).get("localCacheClean") === "20260604-today-app-bg-rosace";
+  const alreadyCleaned = new URLSearchParams(window.location.search).get("localCacheClean") === "20260604-today-no-hamburger";
   if (!isLocalHost || alreadyCleaned || !("serviceWorker" in navigator)) return;
 
   Promise.all([
@@ -45,7 +45,7 @@ try {
       .catch(() => []),
   ]).then(() => {
     const url = new URL(window.location.href);
-    url.searchParams.set("localCacheClean", "20260604-today-app-bg-rosace");
+    url.searchParams.set("localCacheClean", "20260604-today-no-hamburger");
     window.location.replace(url.toString());
   }).catch(() => {});
 })();
@@ -58,7 +58,7 @@ try {
 
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
 <link rel="stylesheet" href="vendor/tabler/tabler-icons.min.css" />
-<link rel="stylesheet" href="styles.css?v=20260604-today-app-bg-rosace" />
+<link rel="stylesheet" href="styles.css?v=20260604-today-no-hamburger" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon-v2.png" />
 </head>
@@ -661,9 +661,6 @@ try {
     <section class="today-panel" id="todayPanel" data-mobile-view="today" aria-label="Aujourd'hui">
       <div class="today-hero" data-i18n-skip>
         <div class="today-topbar">
-          <button class="today-icon-button" type="button" data-mobile-tab="map" aria-label="Retour carte">
-            <i class="ti ti-menu-2" aria-hidden="true"></i>
-          </button>
           <div class="today-location-menu">
             <button class="today-location-pill" id="todayLocationButton" type="button" aria-expanded="false" aria-controls="todaySpotMenu">
               <i class="ti ti-sailboat" aria-hidden="true"></i>
@@ -1119,9 +1116,9 @@ try {
 <script src="mobile-runtime.js" defer></script>
 <script src="vendor/leaflet/leaflet.js"></script>
 <script src="config.js"></script>
-<script src="spots-db.js?v=20260604-today-app-bg-rosace" defer></script>
+<script src="spots-db.js?v=20260604-today-no-hamburger" defer></script>
 <script src="overpass-spots.js?v=20260528-global-spots-v2" defer></script>
-<script src="app.js?v=20260604-today-app-bg-rosace" defer></script>
+<script src="app.js?v=20260604-today-no-hamburger" defer></script>
 
 </body>
 </html>
