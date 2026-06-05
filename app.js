@@ -2330,6 +2330,7 @@ const els = {
   todayDepthButton: document.querySelector("#todayDepthButton"),
   todayDepthRange: document.querySelector("#todayDepthRange"),
   todayDepthValue: document.querySelector("#todayDepthValue"),
+  todayDepthWheelList: document.querySelector("#todayDepthWheelList"),
   todayCompassCanvas: document.querySelector("#todayCompassCanvas"),
   todayWindBadgeShell: document.querySelector(".today-compass-badge-wind"),
   todayWindBadge: document.querySelector("#todayWindBadge"),
@@ -13218,6 +13219,7 @@ function renderTodayView(day) {
   if (els.todayDepthRange) {
     const depthValue = Math.round(state.depth);
     els.todayDepthRange.value = String(depthValue);
+    renderTodayDepthWheel(depthValue);
   }
   if (els.todayTimeRange) els.todayTimeRange.value = String(Math.round(minute / 60));
   setText(els.todayWindBadge, isValidNumber(windSpeed) ? formatNumber(windSpeed, 0) : "--");
@@ -13244,6 +13246,21 @@ function setTodaySpotMenuOpen(open) {
 function setTodayDepthPickerOpen(open) {
   state.todayDepthPickerOpen = Boolean(open);
   renderTodayView(getSelectedDay());
+}
+
+function renderTodayDepthWheel(depthValue = Math.round(state.depth)) {
+  if (!els.todayDepthWheelList) return;
+  const value = clamp(Number(depthValue) || 0, 0, 80);
+  const rows = [];
+  for (let offset = -3; offset <= 3; offset += 1) {
+    const rowValue = clamp(value + offset, 0, 80);
+    rows.push(`
+      <span class="today-depth-wheel-item ${offset === 0 ? "is-selected" : ""}" data-offset="${offset}">
+        ${formatNumber(rowValue, 0)}
+      </span>
+    `);
+  }
+  els.todayDepthWheelList.innerHTML = rows.join("");
 }
 
 function todaySpotOptions() {
