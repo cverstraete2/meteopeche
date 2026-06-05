@@ -1,4 +1,4 @@
-const CACHE_NAME = "meteocatch-shell-20260605-today-native-depth-wheel";
+const CACHE_NAME = "meteocatch-shell-20260605-today-depth-wheel-interactive";
 const APP_SHELL = [
   "./",
   "./index.html",

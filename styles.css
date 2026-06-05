@@ -1188,7 +1188,8 @@ body.is-spot-name-open .mobile-tabbar {
   z-index: 3;
 }
 
-.today-panel.is-depth-focus .today-depth-control {
+.today-panel.is-depth-focus .today-depth-control,
+.today-depth-control.is-depth-focus {
   opacity: 1;
   pointer-events: auto;
   transform: translateY(-50%) translateX(0);
@@ -1229,7 +1230,8 @@ body.is-spot-name-open .mobile-tabbar {
   text-shadow: 0 2px 10px rgba(246, 199, 68, 0.18);
 }
 
-.today-panel.is-depth-picker-open .today-depth-trigger {
+.today-panel.is-depth-picker-open .today-depth-trigger,
+.today-depth-control.is-depth-picker-open .today-depth-trigger {
   opacity: 0;
   pointer-events: none;
   transform: translateY(-8px);
@@ -1256,6 +1258,7 @@ body.is-spot-name-open .mobile-tabbar {
   transform-origin: center;
   max-height: none;
   overflow: hidden;
+  touch-action: none;
   transition:
     opacity var(--dur-sm) var(--ease-out),
     transform var(--dur-sm) var(--ease-out);
@@ -1280,7 +1283,8 @@ body.is-spot-name-open .mobile-tabbar {
   top: calc(50% + 18px);
 }
 
-.today-panel.is-depth-picker-open .today-depth-picker {
+.today-panel.is-depth-picker-open .today-depth-picker,
+.today-depth-control.is-depth-picker-open .today-depth-picker {
   opacity: 1;
   pointer-events: auto;
   transform: translate(-50%, -50%) scale(1);
@@ -1293,7 +1297,10 @@ body.is-spot-name-open .mobile-tabbar {
   grid-template-rows: repeat(7, 1fr);
   align-items: center;
   justify-items: center;
-  pointer-events: none;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  z-index: 2;
 }
 
 .today-depth-wheel-item {
@@ -1302,6 +1309,7 @@ body.is-spot-name-open .mobile-tabbar {
   font-size: 1.35rem;
   font-weight: 800;
   line-height: 1;
+  cursor: ns-resize;
   transition: color var(--dur-sm) var(--ease-out), font-size var(--dur-sm) var(--ease-out), opacity var(--dur-sm) var(--ease-out);
 }
 
@@ -1338,6 +1346,7 @@ body.is-spot-name-open .mobile-tabbar {
   appearance: none;
   background: transparent;
   opacity: 0.001;
+  pointer-events: none;
   writing-mode: vertical-lr;
   direction: rtl;
   z-index: 3;
