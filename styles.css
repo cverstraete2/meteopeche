@@ -1507,6 +1507,41 @@ body.is-spot-name-open .mobile-tabbar {
   letter-spacing: 0;
 }
 
+.today-curve-caption {
+  order: 9;
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: calc(100vw - 42px);
+  min-height: 28px;
+  margin-top: -12px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-card) 56%, transparent);
+  border: 1px solid color-mix(in srgb, var(--today-curve-color, var(--accent)) 24%, transparent);
+  color: var(--text-2);
+  font-size: 0.72rem;
+  font-weight: 850;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  white-space: nowrap;
+}
+
+.today-curve-caption span {
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.58rem;
+}
+
+.today-curve-caption strong {
+  color: var(--today-curve-color, var(--accent));
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
 .today-curve-wrap {
   order: 10;
   min-height: clamp(218px, 32dvh, 280px);

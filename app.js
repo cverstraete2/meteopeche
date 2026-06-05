@@ -2343,6 +2343,7 @@ const els = {
   todayFocusLabel: document.querySelector("#todayFocusLabel"),
   todayFocusValue: document.querySelector("#todayFocusValue"),
   todayFocusDetail: document.querySelector("#todayFocusDetail"),
+  todayCurveLabel: document.querySelector("#todayCurveLabel"),
   todayCurveCanvas: document.querySelector("#todayCurveCanvas"),
   todayTimeRange: document.querySelector("#todayTimeRange"),
   todaySelectedHour: document.querySelector("#todaySelectedHour"),
@@ -13238,6 +13239,7 @@ function renderTodayView(day) {
   setText(els.todayFocusLabel, focus.label);
   setText(els.todayFocusValue, formatForceValue(focus.value, focus.unit, focus.decimals));
   setText(els.todayFocusDetail, todayFocusDetail(sample, sampleDay ?? day));
+  setText(els.todayCurveLabel, activeSeries.label);
   setText(els.todaySelectedHour, formatTodayCurveTimeLabel(curveOffset));
   setText(els.todaySelectedSummary, todaySelectedSummary(sample, sampleDay ?? day));
 
