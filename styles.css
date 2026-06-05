@@ -775,6 +775,16 @@ footer {
   transition: transform var(--dur-md) var(--ease-out), opacity var(--dur-sm) var(--ease-out), box-shadow var(--dur-sm) var(--ease-out);
 }
 
+html[data-current-mobile-view="today"] .mobile-tabbar {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--bg-card) 74%, transparent),
+      color-mix(in srgb, var(--today-curve-color, var(--accent)) 20%, var(--tab-bg) 80%)
+    );
+  border-color: color-mix(in srgb, var(--today-curve-color, var(--accent)) 28%, var(--glass-border));
+}
+
 body.is-spot-name-open .mobile-tabbar {
   opacity: 0;
   pointer-events: none;
@@ -849,6 +859,7 @@ body.is-spot-name-open .mobile-tabbar {
   color: var(--text-1);
   overflow: hidden;
   background: var(--bg);
+  --today-curve-color: var(--accent);
 }
 
 .today-hero {
@@ -868,6 +879,28 @@ body.is-spot-name-open .mobile-tabbar {
   box-sizing: border-box;
   max-width: 100%;
   overflow: hidden;
+}
+
+.today-hero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--safe-bottom) + var(--tabbar-h) + 52px);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--today-curve-color) 10%, transparent) 0%,
+      color-mix(in srgb, var(--today-curve-color) 38%, var(--bg) 62%) 100%
+    );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.today-hero > * {
+  position: relative;
+  z-index: 1;
 }
 
 .today-topbar {
@@ -1258,13 +1291,32 @@ body.is-spot-name-open .mobile-tabbar {
   display: grid;
   align-items: end;
   max-width: none;
-  overflow: hidden;
+  overflow: visible;
+}
+
+.today-curve-wrap::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% - 52px);
+  bottom: calc((var(--safe-bottom) + var(--tabbar-h) + 34px) * -1);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--today-curve-color) 42%, transparent) 0%,
+      color-mix(in srgb, var(--today-curve-color) 46%, var(--bg) 54%) 100%
+    );
+  pointer-events: none;
+  z-index: 0;
 }
 
 .today-curve-wrap canvas {
   width: 100% !important;
   height: clamp(212px, 31dvh, 270px) !important;
   touch-action: none;
+  position: relative;
+  z-index: 1;
 }
 
 .today-curve-wrap input {
@@ -1274,6 +1326,7 @@ body.is-spot-name-open .mobile-tabbar {
   bottom: 12px;
   width: 82%;
   opacity: 0.001;
+  z-index: 2;
 }
 
 .today-hour-readout {

@@ -13187,8 +13187,11 @@ function renderTodayView(day) {
   const swellHeight = sample.swellHeight ?? sampleDay?.swellAvg ?? day?.swellAvg ?? waveHeight;
   const hasDepthCurrent = isValidNumber(depthCurrent);
   const focus = todayFocusMetric(sample, sampleDay ?? day);
+  const activeSeries = todayActiveSeries(focus);
 
   if (els.todaySpotName) els.todaySpotName.textContent = getActiveSpot().name;
+  els.todayPanel?.style.setProperty("--today-curve-color", activeSeries.color);
+  document.documentElement.style.setProperty("--today-curve-color", activeSeries.color);
   renderTodaySpotMenu();
   setText(els.todayAirTemp, formatTemperatureBrief(sample.airTemperature ?? sampleDay?.airTemperature ?? day?.airTemperature));
   setText(els.todayWaterTemp, formatTemperatureBrief(waterTemperature));
@@ -13704,8 +13707,6 @@ function drawTodayCurve(day) {
   const activeSeries = todayActiveSeries(focus);
   const serie = todayCurveSeries(activeSeries);
 
-  drawTodayCurveBackground(ctx, width, height, padding, centerX, activeSeries.color);
-
   ctx.strokeStyle = "rgba(44, 77, 112, 0.10)";
   ctx.lineWidth = 1;
   todayCurveGridOffsets(selectedDay).forEach((offset) => {
@@ -13719,6 +13720,7 @@ function drawTodayCurve(day) {
 
   const selectedX = centerX;
   const selectedPoint = nearestTodayCurvePoint(serie.points, selectedOffset);
+  drawTodayCurveFloor(ctx, serie, selectedOffset, xForMinute, yForRatio, padding, width, height);
   drawTodaySingleSeries(ctx, serie, selectedOffset, xForMinute, yForRatio, chartHeight, padding);
   drawTodayCurveLabels(ctx, selectedDay, selectedOffset, xForMinute, height);
   const focusPoint = selectedPoint;
@@ -13817,22 +13819,6 @@ function todayCurveSeries(definition) {
   };
 }
 
-function drawTodayCurveBackground(ctx, width, height, padding, centerX, color) {
-  ctx.save();
-  const past = ctx.createLinearGradient(0, padding.top, centerX, height);
-  past.addColorStop(0, "rgba(255, 255, 255, 0.82)");
-  past.addColorStop(1, "rgba(255, 255, 255, 0.28)");
-  ctx.fillStyle = past;
-  ctx.fillRect(0, 0, centerX, height);
-
-  const future = ctx.createLinearGradient(centerX, padding.top, width, height);
-  future.addColorStop(0, colorWithAlpha(color, 0.18));
-  future.addColorStop(1, colorWithAlpha(color, 0.04));
-  ctx.fillStyle = future;
-  ctx.fillRect(centerX, 0, width - centerX, height);
-  ctx.restore();
-}
-
 function drawTodaySingleSeries(ctx, serie, selectedOffset, xForMinute, yForRatio, chartHeight, padding) {
   if (!serie.points.length) return;
   const visiblePoints = serie.points.filter((point) => (
@@ -13854,21 +13840,45 @@ function drawTodaySingleSeries(ctx, serie, selectedOffset, xForMinute, yForRatio
   ].filter(Boolean).sort((a, b) => a.minute - b.minute);
   drawTodaySeriesSegment(ctx, pastPoints, xForMinute, yForRatio, "#ffffff", 6);
   drawTodaySeriesSegment(ctx, futurePoints, xForMinute, yForRatio, serie.color, 6);
+}
 
-  if (selectedPoint) {
-    const x = xForMinute(selectedOffset);
-    const y = yForRatio(selectedPoint.ratio);
-    ctx.save();
-    ctx.fillStyle = colorWithAlpha(serie.color, 0.18);
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x, padding.top + chartHeight);
-    ctx.lineTo(ctx.canvas.clientWidth, padding.top + chartHeight);
-    ctx.lineTo(ctx.canvas.clientWidth, padding.top);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  }
+function drawTodayCurveFloor(ctx, serie, selectedOffset, xForMinute, yForRatio, padding, width, height) {
+  if (!serie.points.length) return;
+  const visiblePoints = serie.points.filter((point) => (
+    point.minute >= selectedOffset - TODAY_CURVE_WINDOW_MINUTES * 0.62
+    && point.minute <= selectedOffset + TODAY_CURVE_WINDOW_MINUTES * 0.62
+  ));
+  const points = (visiblePoints.length >= 2 ? visiblePoints : serie.points).sort((a, b) => a.minute - b.minute);
+  if (points.length < 2) return;
+
+  const floorY = height + 4;
+  const gradient = ctx.createLinearGradient(0, padding.top, 0, height);
+  gradient.addColorStop(0, colorWithAlpha(serie.color, 0.10));
+  gradient.addColorStop(0.42, colorWithAlpha(serie.color, 0.26));
+  gradient.addColorStop(1, colorWithAlpha(serie.color, 0.50));
+
+  ctx.save();
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.moveTo(0, floorY);
+  const first = points[0];
+  ctx.lineTo(0, yForRatio(first.ratio));
+  ctx.lineTo(xForMinute(first.minute), yForRatio(first.ratio));
+  points.slice(1).forEach((point, index) => {
+    const previous = points[index];
+    const previousX = xForMinute(previous.minute);
+    const previousY = yForRatio(previous.ratio);
+    const x = xForMinute(point.minute);
+    const y = yForRatio(point.ratio);
+    const midX = (previousX + x) / 2;
+    ctx.bezierCurveTo(midX, previousY, midX, y, x, y);
+  });
+  const last = points[points.length - 1];
+  ctx.lineTo(width, yForRatio(last.ratio));
+  ctx.lineTo(width, floorY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawTodaySeriesSegment(ctx, points, xForMinute, yForRatio, color, width) {
