@@ -1163,9 +1163,9 @@ body.is-spot-name-open .mobile-tabbar {
   left: clamp(0px, 1vw, 10px);
   top: 50%;
   width: 42px;
-  height: min(178px, 42vw);
+  height: min(310px, 72vw);
   display: grid;
-  grid-template-rows: auto minmax(84px, 1fr);
+  grid-template-rows: auto minmax(198px, 1fr);
   justify-items: center;
   align-items: center;
   gap: 6px;
@@ -1217,7 +1217,7 @@ body.is-spot-name-open .mobile-tabbar {
 }
 
 .today-depth-control input {
-  width: 124px;
+  width: 248px;
   height: 26px;
   margin: 0;
   accent-color: var(--today-curve-color, #73e8ff);
