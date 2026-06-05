@@ -2219,6 +2219,7 @@ const state = {
   todaySpotMenuOpen: false,
   todayDepthPickerOpen: false,
   todayDepthDrag: null,
+  todayDepthLastToggleAt: 0,
   todayFocusMode: "current",
   todayCurveDrag: null,
   riggingDirty: false,
@@ -11381,16 +11382,18 @@ function bindEvents() {
   els.todayDepthRange?.addEventListener("input", () => {
     setTodayDepthValue(els.todayDepthRange.value);
   });
-  els.todayDepthButton?.addEventListener("click", (event) => {
-    event.stopPropagation();
-    setTodayDepthPickerOpen(!state.todayDepthPickerOpen);
-  });
+  els.todayDepthControl?.addEventListener("mousedown", handleTodayDepthControlPress, true);
+  els.todayDepthControl?.addEventListener("touchstart", handleTodayDepthControlPress, { capture: true, passive: false });
+  els.todayDepthControl?.addEventListener("click", handleTodayDepthControlClick, true);
   els.todayDepthPicker?.addEventListener("click", handleTodayDepthPickerClick);
   els.todayDepthPicker?.addEventListener("wheel", handleTodayDepthWheel, { passive: false });
   els.todayDepthPicker?.addEventListener("pointerdown", handleTodayDepthPointerDown);
   els.todayDepthPicker?.addEventListener("pointermove", handleTodayDepthPointerMove);
   els.todayDepthPicker?.addEventListener("pointerup", handleTodayDepthPointerRelease);
   els.todayDepthPicker?.addEventListener("pointercancel", handleTodayDepthPointerRelease);
+  els.todayDepthPicker?.addEventListener("touchstart", handleTodayDepthTouchStart, { passive: false });
+  els.todayDepthPicker?.addEventListener("touchmove", handleTodayDepthTouchMove, { passive: false });
+  els.todayDepthPicker?.addEventListener("touchend", handleTodayDepthTouchEnd, { passive: false });
   els.todayTimeRange?.addEventListener("input", () => {
     const hour = Number(els.todayTimeRange.value);
     const currentDayOffset = Math.trunc(selectedTodayCurveOffset() / 1440) * 1440;
@@ -13214,10 +13217,8 @@ function renderTodayView(day) {
   if (els.todaySpotName) els.todaySpotName.textContent = getActiveSpot().name;
   els.todayPanel?.style.setProperty("--today-curve-color", activeSeries.color);
   els.todayPanel?.classList.toggle("is-depth-focus", showDepthControl);
-  els.todayPanel?.classList.toggle("is-depth-picker-open", showDepthControl && state.todayDepthPickerOpen);
   els.todayDepthControl?.classList.toggle("is-depth-focus", showDepthControl);
-  els.todayDepthControl?.classList.toggle("is-depth-picker-open", showDepthControl && state.todayDepthPickerOpen);
-  els.todayDepthButton?.setAttribute("aria-expanded", String(showDepthControl && state.todayDepthPickerOpen));
+  syncTodayDepthPickerState(showDepthControl);
   document.documentElement.style.setProperty("--today-curve-color", activeSeries.color);
   renderTodaySpotMenu();
   setText(els.todayAirTemp, formatTemperatureBrief(sample.airTemperature ?? sampleDay?.airTemperature ?? day?.airTemperature));
@@ -13253,9 +13254,49 @@ function setTodaySpotMenuOpen(open) {
 }
 
 function setTodayDepthPickerOpen(open) {
+  if (open) state.todayFocusMode = "depth";
   state.todayDepthPickerOpen = Boolean(open);
   state.todayDepthDrag = null;
   renderTodayView(getSelectedDay());
+  forceTodayDepthPickerState(open);
+  window.requestAnimationFrame?.(() => forceTodayDepthPickerState(open));
+  window.setTimeout(() => forceTodayDepthPickerState(open), 0);
+}
+
+function syncTodayDepthPickerState(showDepthControl = els.todayDepthControl?.classList.contains("is-depth-focus")) {
+  const isOpen = Boolean(showDepthControl && state.todayDepthPickerOpen);
+  document.documentElement.dataset.todayDepthPicker = isOpen ? "open" : "closed";
+  els.todayDepthControl?.classList.toggle("is-depth-picker-open", isOpen);
+  els.todayPanel?.classList.toggle("is-depth-picker-open", isOpen);
+  els.todayDepthButton?.setAttribute("aria-expanded", String(isOpen));
+}
+
+function forceTodayDepthPickerState(open) {
+  const isOpen = Boolean(open);
+  document.documentElement.dataset.todayDepthPicker = isOpen ? "open" : "closed";
+  els.todayDepthControl?.classList.toggle("is-depth-picker-open", isOpen);
+  els.todayPanel?.classList.toggle("is-depth-picker-open", isOpen);
+  els.todayDepthButton?.setAttribute("aria-expanded", String(isOpen));
+}
+
+function handleTodayDepthControlPress(event) {
+  if (state.todayDepthPickerOpen || event.target.closest?.(".today-depth-picker")) return;
+  if (event.type === "mousedown" && event.button !== 0) return;
+  event.preventDefault?.();
+  event.stopPropagation?.();
+  const now = Date.now();
+  state.todayDepthLastToggleAt = now;
+  setTodayDepthPickerOpen(true);
+}
+
+function handleTodayDepthControlClick(event) {
+  if (event.target.closest?.(".today-depth-picker")) return;
+  event.preventDefault?.();
+  event.stopPropagation?.();
+  const now = Date.now();
+  if (now - state.todayDepthLastToggleAt < 360) return;
+  state.todayDepthLastToggleAt = now;
+  setTodayDepthPickerOpen(!state.todayDepthPickerOpen);
 }
 
 function setTodayDepthValue(value) {
@@ -13271,8 +13312,13 @@ function setTodayDepthValue(value) {
 
 function handleTodayDepthPickerClick(event) {
   event.stopPropagation();
+  if (!state.todayDepthPickerOpen) return;
   if (state.todayDepthDrag?.moved) return;
   const item = event.target.closest?.(".today-depth-wheel-item");
+  selectTodayDepthWheelItem(item);
+}
+
+function selectTodayDepthWheelItem(item) {
   if (!item) return;
   const offset = Number(item.dataset.offset) || 0;
   if (offset === 0) {
@@ -13323,6 +13369,48 @@ function handleTodayDepthPointerRelease(event) {
   }, 0);
 }
 
+function handleTodayDepthTouchStart(event) {
+  if (!state.todayDepthPickerOpen) return;
+  const touch = event.touches?.[0];
+  if (!touch) return;
+  event.preventDefault();
+  event.stopPropagation();
+  state.todayDepthDrag = {
+    pointerId: "touch",
+    startY: touch.clientY,
+    startDepth: state.depth,
+    moved: false,
+  };
+}
+
+function handleTodayDepthTouchMove(event) {
+  const drag = state.todayDepthDrag;
+  const touch = event.touches?.[0];
+  if (!drag || drag.pointerId !== "touch" || !touch) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const delta = drag.startY - touch.clientY;
+  if (Math.abs(delta) > 4) drag.moved = true;
+  setTodayDepthValue(drag.startDepth + Math.round(delta / 32));
+}
+
+function handleTodayDepthTouchEnd(event) {
+  if (state.todayDepthDrag?.pointerId !== "touch") return;
+  event.preventDefault();
+  event.stopPropagation();
+  const drag = state.todayDepthDrag;
+  if (!drag.moved) {
+    const touch = event.changedTouches?.[0];
+    const item = touch
+      ? document.elementFromPoint(touch.clientX, touch.clientY)?.closest?.(".today-depth-wheel-item")
+      : event.target.closest?.(".today-depth-wheel-item");
+    selectTodayDepthWheelItem(item);
+  }
+  window.setTimeout(() => {
+    if (state.todayDepthDrag === drag) state.todayDepthDrag = null;
+  }, 0);
+}
+
 function renderTodayDepthWheel(depthValue = Math.round(state.depth)) {
   if (!els.todayDepthWheelList) return;
   const value = clamp(Number(depthValue) || 0, 0, 80);
@@ -13330,9 +13418,9 @@ function renderTodayDepthWheel(depthValue = Math.round(state.depth)) {
   for (let offset = -3; offset <= 3; offset += 1) {
     const rowValue = clamp(value + offset, 0, 80);
     rows.push(`
-      <span class="today-depth-wheel-item ${offset === 0 ? "is-selected" : ""}" data-offset="${offset}">
+      <button class="today-depth-wheel-item ${offset === 0 ? "is-selected" : ""}" type="button" data-offset="${offset}" data-depth="${rowValue}">
         ${formatNumber(rowValue, 0)}
-      </span>
+      </button>
     `);
   }
   els.todayDepthWheelList.innerHTML = rows.join("");
