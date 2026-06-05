@@ -1,4 +1,4 @@
-const CACHE_NAME = "meteocatch-shell-20260605-today-slim-arrow";
+const CACHE_NAME = "meteocatch-shell-20260605-today-subtle-depth-dial";
 const APP_SHELL = [
   "./",
   "./index.html",
