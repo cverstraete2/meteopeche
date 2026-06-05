@@ -13733,18 +13733,19 @@ function drawTodayCurve(day) {
   ctx.lineTo(selectedX, padding.top + chartHeight);
   ctx.stroke();
 
-  ctx.fillStyle = "rgba(105, 214, 255, 0.36)";
-  ctx.strokeStyle = "#a9f3ff";
-  ctx.lineWidth = 4;
+  ctx.fillStyle = activeSeries.color;
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.arc(selectedX, markerY, 18, 0, Math.PI * 2);
+  ctx.arc(selectedX, markerY, 7, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
 
-  ctx.fillStyle = "#07142a";
-  ctx.font = "900 18px Inter, system-ui, sans-serif";
+  const labelY = clamp(markerY + 20, padding.top + 18, padding.top + chartHeight - 8);
+  ctx.fillStyle = markerY > padding.top + chartHeight * 0.78 ? "#ffffff" : "#07142a";
+  ctx.font = "850 12px Inter, system-ui, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(formatTodayCurveTimeLabel(selectedOffset), selectedX, padding.top + chartHeight + 28);
+  ctx.fillText(formatTodayCurveTimeLabel(selectedOffset), selectedX, labelY);
 }
 
 function selectedTodayCurveOffset() {
@@ -13942,9 +13943,6 @@ function drawTodayCurveLabels(ctx, selectedDay, selectedOffset, xForMinute, heig
     const label = index === selectedIndex ? "Aujourd'hui" : formatShortDay(candidate.date);
     ctx.fillText(label, x, height - 14);
   });
-  ctx.fillStyle = "#07142a";
-  ctx.font = "900 18px Inter, system-ui, sans-serif";
-  ctx.fillText(formatTodayCurveTimeLabel(selectedOffset), xForMinute(selectedOffset), height - 16);
   ctx.restore();
 }
 
