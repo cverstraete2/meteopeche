@@ -33,7 +33,7 @@ try {
 <script>
 (() => {
   const isLocalHost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname);
-  const alreadyCleaned = new URLSearchParams(window.location.search).get("localCacheClean") === "20260605-today-small-marker";
+  const alreadyCleaned = new URLSearchParams(window.location.search).get("localCacheClean") === "20260605-today-vertical-depth";
   if (!isLocalHost || alreadyCleaned || !("serviceWorker" in navigator)) return;
 
   Promise.all([
@@ -45,7 +45,7 @@ try {
       .catch(() => []),
   ]).then(() => {
     const url = new URL(window.location.href);
-    url.searchParams.set("localCacheClean", "20260605-today-small-marker");
+    url.searchParams.set("localCacheClean", "20260605-today-vertical-depth");
     window.location.replace(url.toString());
   }).catch(() => {});
 })();
@@ -58,7 +58,7 @@ try {
 
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
 <link rel="stylesheet" href="vendor/tabler/tabler-icons.min.css" />
-<link rel="stylesheet" href="styles.css?v=20260605-today-small-marker" />
+<link rel="stylesheet" href="styles.css?v=20260605-today-vertical-depth" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon-v2.png" />
 </head>
@@ -681,15 +681,14 @@ try {
           <span><i class="ti ti-waves-electricity" aria-hidden="true"></i><strong id="todaySwell">--</strong></span>
         </div>
 
-        <div class="today-depth-control">
-          <label for="todayDepthRange">
-            <span>Profondeur cible</span>
-            <strong id="todayDepthValue">--</strong>
-          </label>
-          <input id="todayDepthRange" type="range" min="0" max="80" step="1" value="5" />
-        </div>
-
         <div class="today-compass-wrap">
+          <div class="today-depth-control" aria-label="Profondeur cible">
+            <label for="todayDepthRange">
+              <span>Profondeur</span>
+              <strong id="todayDepthValue">--</strong>
+            </label>
+            <input id="todayDepthRange" type="range" min="0" max="80" step="1" value="5" />
+          </div>
           <canvas id="todayCompassCanvas" width="720" height="720" aria-label="Rosace des forces"></canvas>
           <div class="today-compass-badge today-compass-badge-wind">
             <strong id="todayWindBadge">--</strong>
@@ -1105,9 +1104,9 @@ try {
 <script src="mobile-runtime.js" defer></script>
 <script src="vendor/leaflet/leaflet.js"></script>
 <script src="config.js"></script>
-<script src="spots-db.js?v=20260605-today-small-marker" defer></script>
+<script src="spots-db.js?v=20260605-today-vertical-depth" defer></script>
 <script src="overpass-spots.js?v=20260528-global-spots-v2" defer></script>
-<script src="app.js?v=20260605-today-small-marker" defer></script>
+<script src="app.js?v=20260605-today-vertical-depth" defer></script>
 
 </body>
 </html>

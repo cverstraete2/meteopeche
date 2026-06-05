@@ -13185,12 +13185,13 @@ function renderTodayView(day) {
   const windGust = sample.windGust ?? sampleDay?.windGust ?? day?.windGust;
   const waveHeight = sample.waveHeight ?? sampleDay?.waveAvg ?? day?.waveAvg;
   const swellHeight = sample.swellHeight ?? sampleDay?.swellAvg ?? day?.swellAvg ?? waveHeight;
-  const hasDepthCurrent = isValidNumber(depthCurrent);
   const focus = todayFocusMetric(sample, sampleDay ?? day);
   const activeSeries = todayActiveSeries(focus);
+  const showDepthControl = isSeaMode() && focus.key === "depth";
 
   if (els.todaySpotName) els.todaySpotName.textContent = getActiveSpot().name;
   els.todayPanel?.style.setProperty("--today-curve-color", activeSeries.color);
+  els.todayPanel?.classList.toggle("is-depth-focus", showDepthControl);
   document.documentElement.style.setProperty("--today-curve-color", activeSeries.color);
   renderTodaySpotMenu();
   setText(els.todayAirTemp, formatTemperatureBrief(sample.airTemperature ?? sampleDay?.airTemperature ?? day?.airTemperature));
