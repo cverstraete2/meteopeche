@@ -13203,7 +13203,14 @@ function renderTodayView(day) {
   setText(els.todayWind, `${formatNumber(windSpeed, 0)} kt`);
   setText(els.todaySwell, `${formatNumber(swellHeight, 1)} m`);
   setText(els.todayDepthValue, isSeaMode() ? `${formatNumber(state.depth, 0)} m` : "Surface");
-  if (els.todayDepthRange) els.todayDepthRange.value = String(Math.round(state.depth));
+  if (els.todayDepthRange) {
+    const depthValue = Math.round(state.depth);
+    els.todayDepthRange.value = String(depthValue);
+    const minDepth = Number(els.todayDepthRange.min || 0);
+    const maxDepth = Number(els.todayDepthRange.max || 80);
+    const depthRatio = maxDepth > minDepth ? clamp((depthValue - minDepth) / (maxDepth - minDepth), 0, 1) : 0;
+    els.todayPanel?.style.setProperty("--depth-ratio", depthRatio.toFixed(3));
+  }
   if (els.todayTimeRange) els.todayTimeRange.value = String(Math.round(minute / 60));
   setText(els.todayWindBadge, isValidNumber(windSpeed) ? formatNumber(windSpeed, 0) : "--");
   setText(els.todaySwellBadge, isValidNumber(swellHeight) ? `${formatNumber(swellHeight, 1)} m` : "--");
