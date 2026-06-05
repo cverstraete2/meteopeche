@@ -2217,6 +2217,7 @@ const state = {
   forecastExpanded: false,
   todayCurveDays: [],
   todaySpotMenuOpen: false,
+  todayDepthPickerOpen: false,
   todayFocusMode: "current",
   todayCurveDrag: null,
   riggingDirty: false,
@@ -2326,6 +2327,7 @@ const els = {
   todayWaterTemp: document.querySelector("#todayWaterTemp"),
   todayWind: document.querySelector("#todayWind"),
   todaySwell: document.querySelector("#todaySwell"),
+  todayDepthButton: document.querySelector("#todayDepthButton"),
   todayDepthRange: document.querySelector("#todayDepthRange"),
   todayDepthValue: document.querySelector("#todayDepthValue"),
   todayCompassCanvas: document.querySelector("#todayCompassCanvas"),
@@ -11377,6 +11379,10 @@ function bindEvents() {
     renderTodayView(getSelectedDay());
     renderMarineOverlay();
   });
+  els.todayDepthButton?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setTodayDepthPickerOpen(!state.todayDepthPickerOpen);
+  });
   els.todayTimeRange?.addEventListener("input", () => {
     const hour = Number(els.todayTimeRange.value);
     const currentDayOffset = Math.trunc(selectedTodayCurveOffset() / 1440) * 1440;
@@ -11394,9 +11400,12 @@ function bindEvents() {
     setTodaySpotMenuOpen(!state.todaySpotMenuOpen);
   });
   document.addEventListener("click", (event) => {
-    if (!state.todaySpotMenuOpen) return;
-    if (event.target.closest?.(".today-location-menu")) return;
-    setTodaySpotMenuOpen(false);
+    if (state.todaySpotMenuOpen && !event.target.closest?.(".today-location-menu")) {
+      setTodaySpotMenuOpen(false);
+    }
+    if (state.todayDepthPickerOpen && !event.target.closest?.(".today-depth-control")) {
+      setTodayDepthPickerOpen(false);
+    }
   });
   els.languageSelect?.addEventListener("change", () => {
     setLanguagePreference(els.languageSelect.value);
@@ -13192,10 +13201,13 @@ function renderTodayView(day) {
   const focus = todayFocusMetric(sample, sampleDay ?? day);
   const activeSeries = todayActiveSeries(focus);
   const showDepthControl = isSeaMode() && focus.key === "depth";
+  if (!showDepthControl) state.todayDepthPickerOpen = false;
 
   if (els.todaySpotName) els.todaySpotName.textContent = getActiveSpot().name;
   els.todayPanel?.style.setProperty("--today-curve-color", activeSeries.color);
   els.todayPanel?.classList.toggle("is-depth-focus", showDepthControl);
+  els.todayPanel?.classList.toggle("is-depth-picker-open", showDepthControl && state.todayDepthPickerOpen);
+  els.todayDepthButton?.setAttribute("aria-expanded", String(showDepthControl && state.todayDepthPickerOpen));
   document.documentElement.style.setProperty("--today-curve-color", activeSeries.color);
   renderTodaySpotMenu();
   setText(els.todayAirTemp, formatTemperatureBrief(sample.airTemperature ?? sampleDay?.airTemperature ?? day?.airTemperature));
@@ -13206,10 +13218,6 @@ function renderTodayView(day) {
   if (els.todayDepthRange) {
     const depthValue = Math.round(state.depth);
     els.todayDepthRange.value = String(depthValue);
-    const minDepth = Number(els.todayDepthRange.min || 0);
-    const maxDepth = Number(els.todayDepthRange.max || 80);
-    const depthRatio = maxDepth > minDepth ? clamp((depthValue - minDepth) / (maxDepth - minDepth), 0, 1) : 0;
-    els.todayPanel?.style.setProperty("--depth-ratio", depthRatio.toFixed(3));
   }
   if (els.todayTimeRange) els.todayTimeRange.value = String(Math.round(minute / 60));
   setText(els.todayWindBadge, isValidNumber(windSpeed) ? formatNumber(windSpeed, 0) : "--");
@@ -13231,6 +13239,11 @@ function setTodaySpotMenuOpen(open) {
   state.todaySpotMenuOpen = Boolean(open);
   els.todayLocationButton?.parentElement?.classList.toggle("is-open", state.todaySpotMenuOpen);
   renderTodaySpotMenu();
+}
+
+function setTodayDepthPickerOpen(open) {
+  state.todayDepthPickerOpen = Boolean(open);
+  renderTodayView(getSelectedDay());
 }
 
 function todaySpotOptions() {

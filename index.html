@@ -33,7 +33,7 @@ try {
 <script>
 (() => {
   const isLocalHost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname);
-  const alreadyCleaned = new URLSearchParams(window.location.search).get("localCacheClean") === "20260605-today-subtle-depth-dial";
+  const alreadyCleaned = new URLSearchParams(window.location.search).get("localCacheClean") === "20260605-today-inline-depth-picker";
   if (!isLocalHost || alreadyCleaned || !("serviceWorker" in navigator)) return;
 
   Promise.all([
@@ -45,7 +45,7 @@ try {
       .catch(() => []),
   ]).then(() => {
     const url = new URL(window.location.href);
-    url.searchParams.set("localCacheClean", "20260605-today-subtle-depth-dial");
+    url.searchParams.set("localCacheClean", "20260605-today-inline-depth-picker");
     window.location.replace(url.toString());
   }).catch(() => {});
 })();
@@ -58,7 +58,7 @@ try {
 
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
 <link rel="stylesheet" href="vendor/tabler/tabler-icons.min.css" />
-<link rel="stylesheet" href="styles.css?v=20260605-today-subtle-depth-dial" />
+<link rel="stylesheet" href="styles.css?v=20260605-today-inline-depth-picker" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon-v2.png" />
 </head>
@@ -683,17 +683,20 @@ try {
 
         <div class="today-compass-wrap">
           <div class="today-depth-control" aria-label="Profondeur cible">
-            <div class="today-depth-wheel" aria-hidden="true">
-              <span class="today-depth-wheel-label is-min">0 m</span>
-              <span class="today-depth-wheel-label is-mid">40 m</span>
-              <span class="today-depth-wheel-label is-max">80 m</span>
-              <span class="today-depth-wheel-pointer"></span>
-            </div>
-            <label for="todayDepthRange">
+            <button class="today-depth-trigger" id="todayDepthButton" type="button" aria-expanded="false" aria-controls="todayDepthPicker">
               <span>Profondeur</span>
               <strong id="todayDepthValue">--</strong>
-            </label>
-            <input id="todayDepthRange" type="range" min="0" max="80" step="1" value="5" />
+              <i class="ti ti-chevron-down" aria-hidden="true"></i>
+            </button>
+            <div class="today-depth-picker" id="todayDepthPicker">
+              <label for="todayDepthRange">Profondeur cible</label>
+              <input id="todayDepthRange" type="range" min="0" max="80" step="1" value="5" />
+              <div class="today-depth-scale" aria-hidden="true">
+                <span>0 m</span>
+                <span>40 m</span>
+                <span>80 m</span>
+              </div>
+            </div>
           </div>
           <canvas id="todayCompassCanvas" width="720" height="720" aria-label="Rosace des forces"></canvas>
           <div class="today-compass-badge today-compass-badge-wind">
@@ -1110,9 +1113,9 @@ try {
 <script src="mobile-runtime.js" defer></script>
 <script src="vendor/leaflet/leaflet.js"></script>
 <script src="config.js"></script>
-<script src="spots-db.js?v=20260605-today-subtle-depth-dial" defer></script>
+<script src="spots-db.js?v=20260605-today-inline-depth-picker" defer></script>
 <script src="overpass-spots.js?v=20260528-global-spots-v2" defer></script>
-<script src="app.js?v=20260605-today-subtle-depth-dial" defer></script>
+<script src="app.js?v=20260605-today-inline-depth-picker" defer></script>
 
 </body>
 </html>
