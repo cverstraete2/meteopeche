@@ -13395,7 +13395,9 @@ function todayStrengthTone(score) {
 function todayFocusMetric(sample, day) {
   const definitions = todayFocusDefinitions(sample, day);
   const fallback = definitions.find((definition) => isValidNumber(definition.value)) ?? definitions[0];
-  return definitions.find((definition) => definition.key === state.todayFocusMode && isValidNumber(definition.value)) ?? fallback;
+  const requested = definitions.find((definition) => definition.key === state.todayFocusMode);
+  if (requested && (isValidNumber(requested.value) || requested.key === "depth" && isSeaMode())) return requested;
+  return fallback;
 }
 
 function todayFocusDefinitions(sample = {}, day = {}) {
@@ -13665,7 +13667,8 @@ function handleTodayCompassClick(event) {
   const offset = selectedTodayCurveOffset();
   const sampleDay = todayDayForOffset(day, offset) ?? day;
   const sample = timelineSample(sampleDay, wrapMinute(offset));
-  const definitions = todayFocusDefinitions(sample, sampleDay).filter((definition) => isValidNumber(definition.value));
+  const definitions = todayFocusDefinitions(sample, sampleDay)
+    .filter((definition) => isValidNumber(definition.value) || definition.key === "depth" && isSeaMode());
 
   if (!definitions.length) return;
 
