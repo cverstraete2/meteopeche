@@ -1,4 +1,4 @@
-const CACHE_NAME = "meteocatch-shell-20260605-today-menu-layer-fix";
+const CACHE_NAME = "meteocatch-shell-20260605-today-pointed-arrow";
 const APP_SHELL = [
   "./",
   "./index.html",
