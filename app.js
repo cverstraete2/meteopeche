@@ -13638,9 +13638,9 @@ function drawTodayCompassFocusArrow(ctx, cx, cy, length, direction, color) {
   const shoulderDistance = 34;
   const bodyStartDistance = 4;
   const bodyEndDistance = Math.max(0, length - shoulderDistance);
-  const bodyHalf = 12;
-  const headHalf = 30;
-  const baseHalf = 10;
+  const bodyHalf = 9;
+  const headHalf = 23;
+  const baseHalf = 8;
   const baseRound = { x: cx - ux * bodyStartDistance, y: cy - uy * bodyStartDistance };
   const bodyLeft = { x: cx + px * bodyHalf, y: cy + py * bodyHalf };
   const bodyRight = { x: cx - px * bodyHalf, y: cy - py * bodyHalf };
