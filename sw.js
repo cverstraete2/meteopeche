@@ -1,4 +1,4 @@
-const CACHE_NAME = "meteocatch-shell-20260605-today-curve-caption";
+const CACHE_NAME = "meteocatch-shell-20260605-today-curve-label-clean";
 const APP_SHELL = [
   "./",
   "./index.html",
