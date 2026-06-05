@@ -2094,6 +2094,8 @@ const riggingProfiles = {
 };
 
 const TODAY_CURVE_WINDOW_MINUTES = 12 * 60;
+const TODAY_CURVE_PAST_MINUTES = 2 * 24 * 60;
+const TODAY_CURVE_FUTURE_MINUTES = 3 * 24 * 60;
 
 const state = {
   waterMode: WATER_MODES.SEA,
@@ -2213,6 +2215,7 @@ const state = {
   isPro: false,
   profile: { ...DEFAULT_PROFILE },
   forecastExpanded: false,
+  todayCurveDays: [],
   todaySpotMenuOpen: false,
   todayFocusMode: "current",
   todayCurveDrag: null,
@@ -2497,6 +2500,25 @@ function canvasTheme() {
 
 function themeColor(name) {
   return cssVariable(`--chart-${name}`, colors[name] ?? name);
+}
+
+function colorWithAlpha(color, alpha) {
+  const value = String(color ?? "").trim();
+  if (/^#[0-9a-f]{6}$/i.test(value)) {
+    const red = parseInt(value.slice(1, 3), 16);
+    const green = parseInt(value.slice(3, 5), 16);
+    const blue = parseInt(value.slice(5, 7), 16);
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+  }
+  if (/^#[0-9a-f]{3}$/i.test(value)) {
+    const red = parseInt(value[1] + value[1], 16);
+    const green = parseInt(value[2] + value[2], 16);
+    const blue = parseInt(value[3] + value[3], 16);
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+  }
+  return value.startsWith("rgb(")
+    ? value.replace("rgb(", "rgba(").replace(")", `, ${alpha})`)
+    : value;
 }
 
 let i18nReverseMap = null;
@@ -11357,7 +11379,8 @@ function bindEvents() {
   });
   els.todayTimeRange?.addEventListener("input", () => {
     const hour = Number(els.todayTimeRange.value);
-    setTimelineMinute(hour * 60, { heavy: false, liveOnly: true });
+    const currentDayOffset = Math.trunc(selectedTodayCurveOffset() / 1440) * 1440;
+    state.timelineMinute = normalizeTodayCurveOffset(currentDayOffset + hour * 60);
     renderTodayView(getSelectedDay());
   });
   els.todayCurveCanvas?.addEventListener("pointerdown", handleTodayCurvePointer);
@@ -11772,10 +11795,18 @@ function recomputeDepthSensitiveViews() {
   state.realDepthAvailable = false;
   state.realDepthError = "";
   state.hours = state.hours.map((row) => clearDepthCurrent(row));
-  state.days = buildDailySummaries(state.hours);
+  applyForecastDays(buildDailySummaries(state.hours));
   invalidateLiveTimelineCache();
   renderAll();
   saveSettings();
+}
+
+function applyForecastDays(allDays) {
+  const days = Array.isArray(allDays) ? allDays : [];
+  const today = localDateKey();
+  state.todayCurveDays = days;
+  state.days = days.filter((day) => day.date >= today);
+  if (!state.days.length) state.days = days;
 }
 
 function setTimelineMinute(value, options = {}) {
@@ -12368,8 +12399,10 @@ async function loadForecast() {
     state.riverForecastAvailable = !isSeaMode() && Boolean(river?.days?.length);
     state.riverForecastError = riverError?.message || (!isSeaMode() && !river?.days?.length ? "GloFAS indispo" : "");
     state.hours = mergeHourlyData(weather ?? buildMarineOnlyWeatherPayload(marine), marine);
-    state.days = applyRiverForecastToDays(buildDailySummaries(state.hours), river);
-    state.selectedDate = state.days[0]?.date ?? "";
+    const allDays = applyRiverForecastToDays(buildDailySummaries(state.hours), river);
+    applyForecastDays(allDays);
+    const today = localDateKey();
+    state.selectedDate = state.days.find((day) => day.date === today)?.date ?? state.days[0]?.date ?? "";
     state.timelineMinute = defaultTimelineMinute(getSelectedDay());
     invalidateLiveTimelineCache();
 
@@ -12434,6 +12467,7 @@ function buildWeatherUrl(lat, lon, endpoint = WEATHER_API) {
   url.searchParams.set("daily", "wind_speed_10m_max,wind_direction_10m_dominant,sunrise,sunset");
   url.searchParams.set("timezone", "auto");
   url.searchParams.set("forecast_days", "10");
+  url.searchParams.set("past_days", "2");
   url.searchParams.set("wind_speed_unit", "kn");
   return url;
 }
@@ -12455,6 +12489,7 @@ function buildMarineUrl(lat, lon) {
   ].join(","));
   url.searchParams.set("timezone", "auto");
   url.searchParams.set("forecast_days", "10");
+  url.searchParams.set("past_days", "2");
   url.searchParams.set("cell_selection", "sea");
   return url;
 }
@@ -12687,7 +12722,7 @@ async function loadRealDepthCurrents(lat, lon, forecastRequestId = state.forecas
     }
 
     state.hours = applyRealDepthData(state.hours, payload);
-    state.days = buildDailySummaries(state.hours);
+    applyForecastDays(buildDailySummaries(state.hours));
     state.realDepthAvailable = true;
     state.realDepthError = "";
     renderAll();
@@ -13139,21 +13174,23 @@ function renderAll() {
 function renderTodayView(day) {
   if (!els.todayPanel) return;
 
-  const minute = selectedTimelineMinute();
-  const sample = day ? timelineSample(day, minute) : {};
-  const waterTemperature = sample.seaTemperature ?? dailyWaterTemperature(day);
-  const depthCurrent = sample.depthCurrent ?? day?.depthCurrent;
-  const surfaceCurrent = sample.surfaceCurrent ?? day?.surfaceCurrent;
-  const windSpeed = sample.windSpeed ?? day?.windAvg;
-  const windGust = sample.windGust ?? day?.windGust;
-  const waveHeight = sample.waveHeight ?? day?.waveAvg;
-  const swellHeight = sample.swellHeight ?? day?.swellAvg ?? waveHeight;
+  const curveOffset = selectedTodayCurveOffset();
+  const minute = wrapMinute(curveOffset);
+  const sampleDay = todayDayForOffset(day, curveOffset);
+  const sample = sampleDay ? timelineSample(sampleDay, minute) : {};
+  const waterTemperature = sample.seaTemperature ?? dailyWaterTemperature(sampleDay ?? day);
+  const depthCurrent = sample.depthCurrent ?? sampleDay?.depthCurrent ?? day?.depthCurrent;
+  const surfaceCurrent = sample.surfaceCurrent ?? sampleDay?.surfaceCurrent ?? day?.surfaceCurrent;
+  const windSpeed = sample.windSpeed ?? sampleDay?.windAvg ?? day?.windAvg;
+  const windGust = sample.windGust ?? sampleDay?.windGust ?? day?.windGust;
+  const waveHeight = sample.waveHeight ?? sampleDay?.waveAvg ?? day?.waveAvg;
+  const swellHeight = sample.swellHeight ?? sampleDay?.swellAvg ?? day?.swellAvg ?? waveHeight;
   const hasDepthCurrent = isValidNumber(depthCurrent);
-  const focus = todayFocusMetric(sample, day);
+  const focus = todayFocusMetric(sample, sampleDay ?? day);
 
   if (els.todaySpotName) els.todaySpotName.textContent = getActiveSpot().name;
   renderTodaySpotMenu();
-  setText(els.todayAirTemp, formatTemperatureBrief(sample.airTemperature ?? day?.airTemperature));
+  setText(els.todayAirTemp, formatTemperatureBrief(sample.airTemperature ?? sampleDay?.airTemperature ?? day?.airTemperature));
   setText(els.todayWaterTemp, formatTemperatureBrief(waterTemperature));
   setText(els.todayWind, `${formatNumber(windSpeed, 0)} kt`);
   setText(els.todaySwell, `${formatNumber(swellHeight, 1)} m`);
@@ -13162,16 +13199,16 @@ function renderTodayView(day) {
   if (els.todayTimeRange) els.todayTimeRange.value = String(Math.round(minute / 60));
   setText(els.todayWindBadge, isValidNumber(windSpeed) ? formatNumber(windSpeed, 0) : "--");
   setText(els.todaySwellBadge, isValidNumber(swellHeight) ? `${formatNumber(swellHeight, 1)} m` : "--");
-  positionTodayCompassBadges(day, sample);
+  positionTodayCompassBadges(sampleDay ?? day, sample);
   setText(els.todayFocusLabel, focus.label);
   setText(els.todayFocusValue, formatForceValue(focus.value, focus.unit, focus.decimals));
-  setText(els.todayFocusDetail, todayFocusDetail(sample, day));
-  setText(els.todaySelectedHour, formatHourCompact(minute));
-  setText(els.todaySelectedSummary, todaySelectedSummary(sample, day));
+  setText(els.todayFocusDetail, todayFocusDetail(sample, sampleDay ?? day));
+  setText(els.todaySelectedHour, formatTodayCurveTimeLabel(curveOffset));
+  setText(els.todaySelectedSummary, todaySelectedSummary(sample, sampleDay ?? day));
 
-  renderTodayStrength(sample, day);
+  renderTodayStrength(sample, sampleDay ?? day);
   renderTodayLegend();
-  drawTodayCompass(day, sample);
+  drawTodayCompass(sampleDay ?? day, sample);
   drawTodayCurve(day);
 }
 
@@ -13652,29 +13689,27 @@ function drawTodayCurve(day) {
   const height = rect.height;
   ctx.clearRect(0, 0, width, height);
 
-  const padding = { top: 20, right: 24, bottom: 46, left: 24 };
+  const padding = { top: 0, right: 0, bottom: 46, left: 0 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
-  const rows = day?.rows ?? [];
-  if (!rows.length) return;
-
-  const series = todaySeries(rows);
-  const selectedMinute = selectedTimelineMinute();
+  const selectedOffset = selectedTodayCurveOffset();
+  const selectedMinute = wrapMinute(selectedOffset);
   const centerX = padding.left + chartWidth / 2;
-  const xForMinute = (minute) => centerX + ((minute - selectedMinute) / TODAY_CURVE_WINDOW_MINUTES) * chartWidth;
+  const xForMinute = (minute) => centerX + ((minute - selectedOffset) / TODAY_CURVE_WINDOW_MINUTES) * chartWidth;
   const yForRatio = (ratio) => padding.top + (1 - clamp(ratio, 0, 1)) * chartHeight;
+  const selectedDay = getSelectedDay();
+  const selectedCurveDay = todayDayForOffset(day, selectedOffset);
+  const selectedSample = selectedCurveDay ? timelineSample(selectedCurveDay, selectedMinute) : {};
+  const focus = todayFocusMetric(selectedSample, selectedCurveDay ?? day);
+  const activeSeries = todayActiveSeries(focus);
+  const serie = todayCurveSeries(activeSeries);
 
-  const fill = ctx.createLinearGradient(0, padding.top, 0, height);
-  fill.addColorStop(0, "rgba(70, 176, 255, 0.18)");
-  fill.addColorStop(1, "rgba(20, 68, 112, 0.02)");
-  ctx.fillStyle = fill;
-  roundRect(ctx, 0, 0, width, height, 10);
-  ctx.fill();
+  drawTodayCurveBackground(ctx, width, height, padding, centerX, activeSeries.color);
 
-  ctx.strokeStyle = "rgba(216, 237, 255, 0.10)";
+  ctx.strokeStyle = "rgba(44, 77, 112, 0.10)";
   ctx.lineWidth = 1;
-  [0, 360, 720, 1080, 1380].forEach((minute) => {
-    const x = xForMinute(minute);
+  todayCurveGridOffsets(selectedDay).forEach((offset) => {
+    const x = xForMinute(offset);
     if (x < padding.left - chartWidth * 0.16 || x > width - padding.right + chartWidth * 0.16) return;
     ctx.beginPath();
     ctx.moveTo(x, padding.top);
@@ -13682,14 +13717,11 @@ function drawTodayCurve(day) {
     ctx.stroke();
   });
 
-  series.forEach((serie) => drawTodaySeries(ctx, serie, xForMinute, yForRatio));
-
   const selectedX = centerX;
-  const focus = todayFocusMetric(timelineSample(day, selectedMinute), day);
-  const focusSeries = series.find((serie) => todaySeriesMatchesFocus(serie.key, focus.key));
-  const focusPoint = focusSeries?.points.reduce((nearest, point) => (
-    Math.abs(point.minute - selectedMinute) < Math.abs(nearest.minute - selectedMinute) ? point : nearest
-  ), focusSeries?.points[0]);
+  const selectedPoint = nearestTodayCurvePoint(serie.points, selectedOffset);
+  drawTodaySingleSeries(ctx, serie, selectedOffset, xForMinute, yForRatio, chartHeight, padding);
+  drawTodayCurveLabels(ctx, selectedDay, selectedOffset, xForMinute, height);
+  const focusPoint = selectedPoint;
   const markerY = focusPoint ? yForRatio(focusPoint.ratio) : padding.top + chartHeight * 0.62;
 
   ctx.strokeStyle = "rgba(44, 77, 112, 0.34)";
@@ -13710,52 +13742,151 @@ function drawTodayCurve(day) {
   ctx.fillStyle = "#07142a";
   ctx.font = "900 18px Inter, system-ui, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(formatHourCompact(selectedMinute), selectedX, padding.top + chartHeight + 28);
+  ctx.fillText(formatTodayCurveTimeLabel(selectedOffset), selectedX, padding.top + chartHeight + 28);
 }
 
-function todaySeriesMatchesFocus(seriesKey, focusKey) {
-  if (focusKey === "current") return seriesKey === "surfaceCurrent";
-  if (focusKey === "depth") return seriesKey === "depthCurrent";
-  if (focusKey === "wind") return seriesKey === "windGust";
-  if (focusKey === "wave") return seriesKey === "waveHeight";
-  return false;
+function selectedTodayCurveOffset() {
+  return clamp(
+    Number.isFinite(Number(state.timelineMinute)) ? Number(state.timelineMinute) : defaultTimelineMinute(getSelectedDay()),
+    -TODAY_CURVE_PAST_MINUTES,
+    TODAY_CURVE_FUTURE_MINUTES,
+  );
 }
 
-function todaySeries(rows) {
-  const definitions = [
-    { key: "surfaceCurrent", label: "Courant", color: themeColor("current") },
-    { key: "depthCurrent", label: "Fond", color: themeColor("depth") },
-    { key: "waveHeight", label: "Houle", color: themeColor("wave") },
-    { key: "windGust", label: "Rafales", color: themeColor("gust") },
-  ];
-  return definitions.map((definition) => {
-    const values = rows.map((row) => row[definition.key]).filter(isValidNumber);
-    const maxValue = Math.max(0.01, max(values) ?? 1);
-    return {
-      ...definition,
-      points: rows.map((row) => ({
-        minute: minutesFromClock(row.hour),
+function normalizeTodayCurveOffset(value) {
+  const fallback = selectedTodayCurveOffset();
+  const offset = Number.isFinite(Number(value)) ? Number(value) : fallback;
+  return clamp(Math.round(offset / 15) * 15, -TODAY_CURVE_PAST_MINUTES, TODAY_CURVE_FUTURE_MINUTES);
+}
+
+function todayDayForOffset(baseDay, offset) {
+  if (!baseDay) return null;
+  const curveDays = state.todayCurveDays?.length ? state.todayCurveDays : state.days;
+  const baseIndex = curveDays.findIndex((candidate) => candidate.date === baseDay.date);
+  if (baseIndex < 0) return baseDay;
+  const dayDelta = Math.floor(offset / 1440);
+  return curveDays[baseIndex + dayDelta] ?? baseDay;
+}
+
+function todayActiveSeries(focus) {
+  const definitions = {
+    current: { key: "surfaceCurrent", label: "Courant surface", color: themeColor("current") },
+    depth: { key: "depthCurrent", label: "Courant fond", color: themeColor("depth") },
+    wind: { key: "windSpeed", label: "Vent", color: themeColor("wind") },
+    wave: { key: "waveHeight", label: "Houle", color: themeColor("wave") },
+  };
+  return definitions[focus?.key] ?? definitions.current;
+}
+
+function todayCurveSeries(definition) {
+  const selectedDay = getSelectedDay();
+  const curveDays = state.todayCurveDays?.length ? state.todayCurveDays : state.days;
+  const selectedIndex = Math.max(0, curveDays.findIndex((candidate) => candidate.date === selectedDay?.date));
+  const rows = [];
+
+  curveDays.forEach((candidate, index) => {
+    const dayOffset = (index - selectedIndex) * 1440;
+    if (dayOffset < -TODAY_CURVE_PAST_MINUTES - 1440 || dayOffset > TODAY_CURVE_FUTURE_MINUTES + 1440) return;
+    (candidate.rows ?? []).forEach((row) => {
+      const minute = minutesFromClockOrNull(row.hour);
+      if (minute == null) return;
+      rows.push({
+        ...row,
+        offsetMinute: dayOffset + minute,
+        displayDate: candidate.date,
+      });
+    });
+  });
+
+  const values = rows.map((row) => row[definition.key]).filter(isValidNumber);
+  const minValue = min(values);
+  const maxValue = max(values);
+  const range = isValidNumber(minValue) && isValidNumber(maxValue) ? Math.max(0.01, maxValue - minValue) : 1;
+
+  return {
+    ...definition,
+    points: rows
+      .map((row) => ({
+        minute: row.offsetMinute,
+        row,
         value: row[definition.key],
-        ratio: isValidNumber(row[definition.key]) ? row[definition.key] / maxValue : null,
-      })).filter((point) => isValidNumber(point.ratio)),
-    };
-  }).filter((serie) => serie.points.length >= 2);
+        ratio: isValidNumber(row[definition.key]) && isValidNumber(minValue) ? (row[definition.key] - minValue) / range : null,
+      }))
+      .filter((point) => isValidNumber(point.ratio))
+      .sort((a, b) => a.minute - b.minute),
+  };
 }
 
-function drawTodaySeries(ctx, serie, xForMinute, yForRatio) {
+function drawTodayCurveBackground(ctx, width, height, padding, centerX, color) {
   ctx.save();
-  ctx.strokeStyle = serie.color;
-  ctx.lineWidth = serie.key === "depthCurrent" ? 5 : 3;
-  ctx.globalAlpha = serie.key === "depthCurrent" ? 1 : 0.72;
+  const past = ctx.createLinearGradient(0, padding.top, centerX, height);
+  past.addColorStop(0, "rgba(255, 255, 255, 0.82)");
+  past.addColorStop(1, "rgba(255, 255, 255, 0.28)");
+  ctx.fillStyle = past;
+  ctx.fillRect(0, 0, centerX, height);
+
+  const future = ctx.createLinearGradient(centerX, padding.top, width, height);
+  future.addColorStop(0, colorWithAlpha(color, 0.18));
+  future.addColorStop(1, colorWithAlpha(color, 0.04));
+  ctx.fillStyle = future;
+  ctx.fillRect(centerX, 0, width - centerX, height);
+  ctx.restore();
+}
+
+function drawTodaySingleSeries(ctx, serie, selectedOffset, xForMinute, yForRatio, chartHeight, padding) {
+  if (!serie.points.length) return;
+  const visiblePoints = serie.points.filter((point) => (
+    point.minute >= selectedOffset - TODAY_CURVE_WINDOW_MINUTES * 0.62
+    && point.minute <= selectedOffset + TODAY_CURVE_WINDOW_MINUTES * 0.62
+  ));
+  const points = visiblePoints.length >= 2 ? visiblePoints : serie.points;
+  const selectedPoint = nearestTodayCurvePoint(serie.points, selectedOffset);
+  const centerPoint = selectedPoint
+    ? { ...selectedPoint, minute: selectedOffset }
+    : null;
+  const pastPoints = [
+    ...points.filter((point) => point.minute <= selectedOffset),
+    centerPoint,
+  ].filter(Boolean).sort((a, b) => a.minute - b.minute);
+  const futurePoints = [
+    centerPoint,
+    ...points.filter((point) => point.minute >= selectedOffset),
+  ].filter(Boolean).sort((a, b) => a.minute - b.minute);
+  drawTodaySeriesSegment(ctx, pastPoints, xForMinute, yForRatio, "#ffffff", 6);
+  drawTodaySeriesSegment(ctx, futurePoints, xForMinute, yForRatio, serie.color, 6);
+
+  if (selectedPoint) {
+    const x = xForMinute(selectedOffset);
+    const y = yForRatio(selectedPoint.ratio);
+    ctx.save();
+    ctx.fillStyle = colorWithAlpha(serie.color, 0.18);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, padding.top + chartHeight);
+    ctx.lineTo(ctx.canvas.clientWidth, padding.top + chartHeight);
+    ctx.lineTo(ctx.canvas.clientWidth, padding.top);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawTodaySeriesSegment(ctx, points, xForMinute, yForRatio, color, width) {
+  if (points.length < 2) return;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.shadowColor = colorWithAlpha(color, color === "#ffffff" ? 0.24 : 0.28);
+  ctx.shadowBlur = 12;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   ctx.beginPath();
-  serie.points.forEach((point, index) => {
+  points.forEach((point, index) => {
     const x = xForMinute(point.minute);
     const y = yForRatio(point.ratio);
     if (index === 0) ctx.moveTo(x, y);
     else {
-      const previous = serie.points[index - 1];
+      const previous = points[index - 1];
       const previousX = xForMinute(previous.minute);
       const previousY = yForRatio(previous.ratio);
       const midX = (previousX + x) / 2;
@@ -13764,6 +13895,54 @@ function drawTodaySeries(ctx, serie, xForMinute, yForRatio) {
   });
   ctx.stroke();
   ctx.restore();
+}
+
+function nearestTodayCurvePoint(points, minute) {
+  if (!points?.length) return null;
+  return points.reduce((nearest, point) => (
+    Math.abs(point.minute - minute) < Math.abs(nearest.minute - minute) ? point : nearest
+  ), points[0]);
+}
+
+function todayCurveGridOffsets(selectedDay) {
+  const curveDays = state.todayCurveDays?.length ? state.todayCurveDays : state.days;
+  const selectedIndex = Math.max(0, curveDays.findIndex((candidate) => candidate.date === selectedDay?.date));
+  const offsets = [];
+  curveDays.forEach((_candidate, index) => {
+    const dayOffset = (index - selectedIndex) * 1440;
+    for (let minute = 0; minute < 1440; minute += 360) {
+      offsets.push(dayOffset + minute);
+    }
+  });
+  return offsets;
+}
+
+function drawTodayCurveLabels(ctx, selectedDay, selectedOffset, xForMinute, height) {
+  const curveDays = state.todayCurveDays?.length ? state.todayCurveDays : state.days;
+  const selectedIndex = Math.max(0, curveDays.findIndex((candidate) => candidate.date === selectedDay?.date));
+  const canvasWidth = ctx.canvas.clientWidth || ctx.canvas.width;
+  ctx.save();
+  ctx.fillStyle = "rgba(44, 77, 112, 0.58)";
+  ctx.font = "800 11px Inter, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  curveDays.forEach((candidate, index) => {
+    const x = xForMinute((index - selectedIndex) * 1440);
+    if (x < -40 || x > canvasWidth + 40) return;
+    const label = index === selectedIndex ? "Aujourd'hui" : formatShortDay(candidate.date);
+    ctx.fillText(label, x, height - 14);
+  });
+  ctx.fillStyle = "#07142a";
+  ctx.font = "900 18px Inter, system-ui, sans-serif";
+  ctx.fillText(formatTodayCurveTimeLabel(selectedOffset), xForMinute(selectedOffset), height - 16);
+  ctx.restore();
+}
+
+function formatTodayCurveTimeLabel(offset) {
+  const prefix = offset < 0 ? "J-" : offset >= 1440 ? "J+" : "";
+  const dayDelta = Math.abs(Math.trunc(offset / 1440));
+  const dayLabel = prefix ? `${prefix}${dayDelta} ` : "";
+  return `${dayLabel}${formatHourCompact(wrapMinute(offset))}`;
 }
 
 function handleTodayCurvePointer(event) {
@@ -13787,10 +13966,8 @@ function handleTodayCurvePointer(event) {
   const deltaX = event.clientX - drag.startX;
   const minutesPerPixel = TODAY_CURVE_WINDOW_MINUTES / Math.max(1, rect.width);
   drag.dragged = drag.dragged || Math.abs(deltaX) > 4;
-  state.timelineMinute = normalizeTimelineMinute(drag.startMinute - deltaX * minutesPerPixel);
+  state.timelineMinute = normalizeTodayCurveOffset(drag.startMinute - deltaX * minutesPerPixel);
   renderTodayView(getSelectedDay());
-  renderDayTimeline(getSelectedDay());
-  drawCompass();
 }
 
 function handleTodayCurveRelease(event) {
@@ -13798,10 +13975,10 @@ function handleTodayCurveRelease(event) {
     const rect = els.todayCurveCanvas.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const minutesPerPixel = TODAY_CURVE_WINDOW_MINUTES / Math.max(1, rect.width);
-    state.timelineMinute = normalizeTimelineMinute(state.todayCurveDrag.startMinute + (event.clientX - centerX) * minutesPerPixel);
+    state.timelineMinute = normalizeTodayCurveOffset(state.todayCurveDrag.startMinute + (event.clientX - centerX) * minutesPerPixel);
   }
   state.todayCurveDrag = null;
-  scheduleTimelineSelectionRender({ heavy: true });
+  renderTodayView(getSelectedDay());
 }
 
 function playTodayTimeline() {

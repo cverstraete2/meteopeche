@@ -1253,11 +1253,11 @@ body.is-spot-name-open .mobile-tabbar {
 .today-curve-wrap {
   order: 10;
   min-height: clamp(218px, 32dvh, 280px);
-  margin: -6px 0 0;
+  margin: -6px calc(clamp(16px, 4vw, 38px) * -1) 0;
   position: relative;
   display: grid;
   align-items: end;
-  max-width: 100%;
+  max-width: none;
   overflow: hidden;
 }
 
