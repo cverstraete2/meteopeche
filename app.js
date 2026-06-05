@@ -12738,8 +12738,12 @@ async function loadRealDepthCurrents(lat, lon, forecastRequestId = state.forecas
 }
 
 function buildDepthCurrentUrl(lat, lon) {
-  const start = state.hours[0]?.time;
-  const end = state.hours.at(-1)?.time;
+  const startDate = dateKeyOffset(-2);
+  const endDate = dateKeyOffset(3);
+  const depthRows = state.hours.filter((row) => row.date >= startDate && row.date <= endDate);
+  const rows = depthRows.length ? depthRows : state.hours;
+  const start = rows[0]?.time;
+  const end = rows.at(-1)?.time;
   const url = buildAppApiUrl("api/depth-current");
   url.searchParams.set("latitude", lat.toFixed(4));
   url.searchParams.set("longitude", lon.toFixed(4));
@@ -13530,7 +13534,7 @@ function drawTodayCompass(day, sample = {}) {
     ctx.fillText(label, cx + point.x, cy + point.y);
   });
 
-  drawTodayCompassFocusArrow(ctx, cx, cy, radius * 0.78, focus.direction, activeSeries.color);
+  drawTodayCompassFocusArrow(ctx, cx, cy, radius * 0.58, focus.direction, activeSeries.color);
 }
 
 function positionTodayCompassBadges(day, sample = {}) {
@@ -13619,25 +13623,24 @@ function todayCompassPalette(tone) {
 function drawTodayCompassFocusArrow(ctx, cx, cy, length, direction, color) {
   if (!isValidNumber(direction)) return;
   const tip = polar(direction, length);
-  const tail = polar(normalizeDirection(direction + 180), length * 0.24);
   const angle = toRad(direction);
   ctx.save();
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
-  ctx.lineWidth = 11;
+  ctx.lineWidth = 18;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   ctx.shadowColor = colorWithAlpha(color, 0.36);
   ctx.shadowBlur = 18;
   ctx.beginPath();
-  ctx.moveTo(cx + tail.x, cy + tail.y);
+  ctx.moveTo(cx, cy);
   ctx.lineTo(cx + tip.x, cy + tip.y);
   ctx.stroke();
   ctx.shadowBlur = 0;
   ctx.beginPath();
   ctx.moveTo(cx + tip.x, cy + tip.y);
-  ctx.lineTo(cx + tip.x - 26 * Math.sin(angle - 0.54), cy + tip.y + 26 * Math.cos(angle - 0.54));
-  ctx.lineTo(cx + tip.x - 26 * Math.sin(angle + 0.54), cy + tip.y + 26 * Math.cos(angle + 0.54));
+  ctx.lineTo(cx + tip.x - 32 * Math.sin(angle - 0.62), cy + tip.y + 32 * Math.cos(angle - 0.62));
+  ctx.lineTo(cx + tip.x - 32 * Math.sin(angle + 0.62), cy + tip.y + 32 * Math.cos(angle + 0.62));
   ctx.closePath();
   ctx.fill();
   ctx.restore();
@@ -17781,6 +17784,12 @@ function localDateKey(date = new Date()) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function dateKeyOffset(days, base = new Date()) {
+  const date = new Date(base);
+  date.setDate(date.getDate() + days);
+  return localDateKey(date);
 }
 
 function defaultTimelineMinute(day) {
