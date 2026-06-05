@@ -13489,6 +13489,7 @@ function drawTodayCompass(day, sample = {}) {
   const tone = todayStrengthTone(todayStrengthScore(sample, day)).key;
   const palette = todayCompassPalette(tone);
   const focus = todayFocusMetric(sample, day);
+  const activeSeries = todayActiveSeries(focus);
 
   ctx.clearRect(0, 0, width, height);
 
@@ -13529,24 +13530,7 @@ function drawTodayCompass(day, sample = {}) {
     ctx.fillText(label, cx + point.x, cy + point.y);
   });
 
-  if (day) {
-    drawTodayCompassArrow(ctx, cx, cy, radius * 0.86, sample.currentDirection ?? day.surfaceCurrentDirection, themeColor("current"), false);
-    drawTodayCompassArrow(ctx, cx, cy, radius * 0.72, sample.depthDirection ?? day.depthDirection, themeColor("depth"), false);
-  }
-
-  ctx.save();
-  ctx.shadowColor = "rgba(255, 255, 255, 0.92)";
-  ctx.shadowBlur = 8;
-  ctx.fillStyle = "rgba(44, 77, 112, 0.72)";
-  ctx.font = "800 15px Inter, system-ui, sans-serif";
-  ctx.fillText(focus.label, cx, cy - 42);
-  ctx.fillStyle = "#07142a";
-  ctx.font = "900 54px Montserrat, Inter, system-ui, sans-serif";
-  ctx.fillText(isValidNumber(focus.value) ? formatNumber(focus.value, focus.decimals) : "--", cx - 8, cy + 12);
-  ctx.fillStyle = "rgba(44, 77, 112, 0.78)";
-  ctx.font = "900 22px Inter, system-ui, sans-serif";
-  ctx.fillText(focus.unit, cx + 76, cy + 12);
-  ctx.restore();
+  drawTodayCompassFocusArrow(ctx, cx, cy, radius * 0.78, focus.direction, activeSeries.color);
 }
 
 function positionTodayCompassBadges(day, sample = {}) {
@@ -13632,26 +13616,28 @@ function todayCompassPalette(tone) {
   };
 }
 
-function drawTodayCompassArrow(ctx, cx, cy, length, direction, color, dashed) {
+function drawTodayCompassFocusArrow(ctx, cx, cy, length, direction, color) {
   if (!isValidNumber(direction)) return;
   const tip = polar(direction, length);
-  const start = polar(direction, 28);
+  const tail = polar(normalizeDirection(direction + 180), length * 0.24);
   const angle = toRad(direction);
   ctx.save();
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 11;
   ctx.lineCap = "round";
-  ctx.setLineDash(dashed ? [8, 9] : []);
+  ctx.lineJoin = "round";
+  ctx.shadowColor = colorWithAlpha(color, 0.36);
+  ctx.shadowBlur = 18;
   ctx.beginPath();
-  ctx.moveTo(cx + start.x, cy + start.y);
+  ctx.moveTo(cx + tail.x, cy + tail.y);
   ctx.lineTo(cx + tip.x, cy + tip.y);
   ctx.stroke();
-  ctx.setLineDash([]);
+  ctx.shadowBlur = 0;
   ctx.beginPath();
   ctx.moveTo(cx + tip.x, cy + tip.y);
-  ctx.lineTo(cx + tip.x - 13 * Math.sin(angle - 0.55), cy + tip.y + 13 * Math.cos(angle - 0.55));
-  ctx.lineTo(cx + tip.x - 13 * Math.sin(angle + 0.55), cy + tip.y + 13 * Math.cos(angle + 0.55));
+  ctx.lineTo(cx + tip.x - 26 * Math.sin(angle - 0.54), cy + tip.y + 26 * Math.cos(angle - 0.54));
+  ctx.lineTo(cx + tip.x - 26 * Math.sin(angle + 0.54), cy + tip.y + 26 * Math.cos(angle + 0.54));
   ctx.closePath();
   ctx.fill();
   ctx.restore();
@@ -13735,7 +13721,7 @@ function drawTodayCurve(day) {
   const selectedPoint = nearestTodayCurvePoint(serie.points, selectedOffset);
   drawTodayCurveFloor(ctx, serie, selectedOffset, xForMinute, yForRatio, padding, width, height);
   drawTodaySingleSeries(ctx, serie, selectedOffset, xForMinute, yForRatio, chartHeight, padding);
-  drawTodayCurveLabels(ctx, selectedDay, selectedOffset, xForMinute, height);
+  drawTodayCurveMarkers(ctx, serie, selectedOffset, xForMinute, yForRatio, padding, chartHeight, width, activeSeries);
   const focusPoint = selectedPoint;
   const markerY = focusPoint ? yForRatio(focusPoint.ratio) : padding.top + chartHeight * 0.62;
 
@@ -13754,11 +13740,7 @@ function drawTodayCurve(day) {
   ctx.fill();
   ctx.stroke();
 
-  const labelY = clamp(markerY + 20, padding.top + 18, padding.top + chartHeight - 8);
-  ctx.fillStyle = markerY > padding.top + chartHeight * 0.78 ? "#ffffff" : "#07142a";
-  ctx.font = "850 12px Inter, system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText(formatTodayCurveTimeLabel(selectedOffset), selectedX, labelY);
+  drawTodaySelectedCurveLabel(ctx, activeSeries, selectedPoint, selectedOffset, selectedX, markerY, padding, chartHeight);
 }
 
 function selectedTodayCurveOffset() {
@@ -13941,22 +13923,57 @@ function todayCurveGridOffsets(selectedDay) {
   return offsets;
 }
 
-function drawTodayCurveLabels(ctx, selectedDay, selectedOffset, xForMinute, height) {
-  const curveDays = state.todayCurveDays?.length ? state.todayCurveDays : state.days;
-  const selectedIndex = Math.max(0, curveDays.findIndex((candidate) => candidate.date === selectedDay?.date));
-  const canvasWidth = ctx.canvas.clientWidth || ctx.canvas.width;
+function drawTodayCurveMarkers(ctx, serie, selectedOffset, xForMinute, yForRatio, padding, chartHeight, width, activeSeries) {
+  if (!serie.points.length) return;
+  const start = Math.ceil((selectedOffset - TODAY_CURVE_WINDOW_MINUTES * 0.5) / 360) * 360;
+  const end = Math.floor((selectedOffset + TODAY_CURVE_WINDOW_MINUTES * 0.5) / 360) * 360;
   ctx.save();
-  ctx.fillStyle = "rgba(44, 77, 112, 0.58)";
-  ctx.font = "800 11px Inter, system-ui, sans-serif";
   ctx.textAlign = "center";
-  ctx.textBaseline = "alphabetic";
-  curveDays.forEach((candidate, index) => {
-    const x = xForMinute((index - selectedIndex) * 1440);
-    if (x < -40 || x > canvasWidth + 40) return;
-    const label = index === selectedIndex ? "Aujourd'hui" : formatShortDay(candidate.date);
-    ctx.fillText(label, x, height - 14);
-  });
+  for (let offset = start; offset <= end; offset += 360) {
+    if (Math.abs(offset - selectedOffset) < 48) continue;
+    const point = nearestTodayCurvePoint(serie.points, offset);
+    if (!point || Math.abs(point.minute - offset) > 90) continue;
+    const x = xForMinute(offset);
+    if (x < 28 || x > width - 28) continue;
+    const y = yForRatio(point.ratio);
+    ctx.fillStyle = colorWithAlpha(activeSeries.color, 0.88);
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    drawTodayCurvePointLabel(ctx, activeSeries, point, offset, x, y, padding, chartHeight, false);
+  }
   ctx.restore();
+}
+
+function drawTodaySelectedCurveLabel(ctx, activeSeries, selectedPoint, selectedOffset, x, y, padding, chartHeight) {
+  ctx.save();
+  ctx.textAlign = "center";
+  drawTodayCurvePointLabel(ctx, activeSeries, selectedPoint, selectedOffset, x, y, padding, chartHeight, true);
+  ctx.restore();
+}
+
+function drawTodayCurvePointLabel(ctx, activeSeries, point, offset, x, y, padding, chartHeight, selected) {
+  const valueText = todayCurvePointValueLabel(activeSeries, point);
+  const hourText = formatTodayCurveTimeLabel(offset);
+  const hourY = clamp(y - (selected ? 18 : 13), padding.top + 12, padding.top + chartHeight - 28);
+  const valueY = clamp(y + (selected ? 22 : 16), padding.top + 28, padding.top + chartHeight - 8);
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = selected ? "#07142a" : "rgba(7, 20, 42, 0.72)";
+  ctx.font = selected ? "900 12px Inter, system-ui, sans-serif" : "850 10px Inter, system-ui, sans-serif";
+  ctx.fillText(hourText, x, hourY);
+  ctx.fillStyle = selected ? "#07142a" : "rgba(7, 20, 42, 0.66)";
+  ctx.font = selected ? "850 11px Inter, system-ui, sans-serif" : "800 9px Inter, system-ui, sans-serif";
+  ctx.fillText(valueText, x, valueY);
+}
+
+function todayCurvePointValueLabel(activeSeries, point) {
+  if (!point || !isValidNumber(point.value)) return "--";
+  const digits = activeSeries.key === "windSpeed" ? 0 : activeSeries.key === "waveHeight" ? 1 : 2;
+  const unit = activeSeries.key === "waveHeight" ? "m" : "kt";
+  return `${formatNumber(point.value, digits)} ${unit}`;
 }
 
 function formatTodayCurveTimeLabel(offset) {
