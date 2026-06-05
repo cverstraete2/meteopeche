@@ -13399,15 +13399,22 @@ function todayFocusMetric(sample, day) {
 }
 
 function todayFocusDefinitions(sample = {}, day = {}) {
-  const hasDepthCurrent = isValidNumber(sample.depthCurrent ?? day?.depthCurrent);
   return [
     {
-      key: hasDepthCurrent ? "depth" : "current",
-      label: hasDepthCurrent ? "Courant fond" : "Courant surface",
-      value: hasDepthCurrent ? sample.depthCurrent ?? day?.depthCurrent : sample.surfaceCurrent ?? day?.surfaceCurrent,
+      key: "current",
+      label: "Courant surface",
+      value: sample.surfaceCurrent ?? day?.surfaceCurrent,
       unit: "kt",
       decimals: 2,
-      direction: hasDepthCurrent ? sample.depthDirection ?? day?.depthDirection : sample.currentDirection ?? day?.surfaceCurrentDirection,
+      direction: sample.currentDirection ?? day?.surfaceCurrentDirection,
+    },
+    {
+      key: "depth",
+      label: "Courant fond",
+      value: sample.depthCurrent ?? day?.depthCurrent,
+      unit: "kt",
+      decimals: 2,
+      direction: sample.depthDirection ?? day?.depthDirection,
     },
     {
       key: "wind",
@@ -13655,8 +13662,10 @@ function handleTodayCompassClick(event) {
   const x = event.clientX - rect.left - rect.width / 2;
   const y = event.clientY - rect.top - rect.height / 2;
   const distance = Math.hypot(x, y);
-  const sample = timelineSample(day, selectedTimelineMinute());
-  const definitions = todayFocusDefinitions(sample, day).filter((definition) => isValidNumber(definition.value));
+  const offset = selectedTodayCurveOffset();
+  const sampleDay = todayDayForOffset(day, offset) ?? day;
+  const sample = timelineSample(sampleDay, wrapMinute(offset));
+  const definitions = todayFocusDefinitions(sample, sampleDay).filter((definition) => isValidNumber(definition.value));
 
   if (!definitions.length) return;
 
