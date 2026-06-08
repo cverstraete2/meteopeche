@@ -2215,6 +2215,8 @@ const state = {
   isPro: false,
   profile: { ...DEFAULT_PROFILE },
   forecastExpanded: false,
+  forecastLoading: false,
+  forecastLoadDetail: "",
   todayCurveDays: [],
   todaySpotMenuOpen: false,
   todayDepthPickerOpen: false,
@@ -2250,6 +2252,8 @@ const els = {
   weatherSubviewSections: [...document.querySelectorAll("[data-weather-subview]")],
   main: document.querySelector("main"),
   appSplash: document.querySelector("#appSplash"),
+  appDataLoader: document.querySelector("#appDataLoader"),
+  appDataLoaderDetail: document.querySelector("#appDataLoaderDetail"),
   onboardingScreen: document.querySelector("#onboardingScreen"),
   onboardingClose: document.querySelector("#onboardingClose"),
   onboardingGpsButton: document.querySelector("#onboardingGpsButton"),
@@ -12382,10 +12386,12 @@ async function loadForecast() {
   const lon = Number(els.longitude.value);
 
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    setForecastLoading(false);
     setStatus("Coordonnées invalides", "error");
     return;
   }
 
+  setForecastLoading(true, "Chargement météo, mer et activité du spot");
   setStatus("Chargement", "loading");
   saveSettings();
 
@@ -12432,6 +12438,7 @@ async function loadForecast() {
     }
 
     safeRenderAll();
+    setForecastLoading(false);
     const preliminaryStatus = forecastStatusLabel({ weather, marine, river, weatherError, marineError, riverError, realDepthApplied: false });
     setStatus(preliminaryStatus.label, preliminaryStatus.mode);
     const realDepthApplied = isSeaMode() ? await loadRealDepthCurrents(lat, lon, requestId) : false;
@@ -12442,6 +12449,7 @@ async function loadForecast() {
   } catch (error) {
     if (!isCurrentForecast()) return;
     console.error(error);
+    setForecastLoading(false);
     setStatus("Erreur", "error");
     els.metricGrid.innerHTML = `<article class="metric-card metric-card-wide"><strong class="metric-value">Données indisponibles</strong><span class="metric-detail">${escapeHtml(error.message)}</span></article>`;
   }
@@ -13170,6 +13178,7 @@ function glanceWaterPayload(summary, sample, day = getSelectedDay()) {
 
 function renderAll() {
   const selected = getSelectedDay();
+  renderForecastLoadingScreen();
   updateSpotMeta();
   renderSpotTools();
   renderDayTabs();
@@ -13194,6 +13203,7 @@ function renderAll() {
   syncGlancePayload(selected);
   applyTranslations(document.body);
   scheduleTimelineDataRepair();
+  renderForecastLoadingScreen();
 }
 
 function renderTodayView(day) {
@@ -18806,6 +18816,27 @@ function roundToStep(value, step) {
 
 function isValidNumber(value) {
   return typeof value === "number" && Number.isFinite(value);
+}
+
+function hasForecastData() {
+  return Array.isArray(state.days) && state.days.length > 0 && Array.isArray(state.hours) && state.hours.length > 0;
+}
+
+function setForecastLoading(isLoading, detail = "") {
+  state.forecastLoading = Boolean(isLoading);
+  if (detail) state.forecastLoadDetail = detail;
+  renderForecastLoadingScreen();
+}
+
+function renderForecastLoadingScreen() {
+  if (!els.appDataLoader) return;
+  const shouldShow = state.forecastLoading && !hasForecastData();
+  els.appDataLoader.classList.toggle("is-visible", shouldShow);
+  els.appDataLoader.setAttribute("aria-hidden", String(!shouldShow));
+  document.body.classList.toggle("is-forecast-loading", shouldShow);
+  if (els.appDataLoaderDetail) {
+    els.appDataLoaderDetail.textContent = t(state.forecastLoadDetail || "Chargement météo, mer et activité du spot");
+  }
 }
 
 function setStatus(label, mode) {
